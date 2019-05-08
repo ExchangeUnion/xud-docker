@@ -1,0 +1,14 @@
+FROM golang:alpine AS build-stage
+RUN apk add --no-cache alpine-sdk
+RUN git clone https://github.com/offerm/ltcd $GOPATH/src/github.com/ltcsuite/ltcd
+WORKDIR $GOPATH/src/github.com/ltcsuite/ltcd
+RUN GO111MODULE=on go install . ./cmd/...
+
+# Final stage
+FROM alpine
+COPY --from=build-stage /go/bin/ltcd /bin/
+COPY --from=build-stage /go/bin/ltcctl /bin/
+COPY entrypoint.sh /
+VOLUME [ "/root/.ltcd" ]
+ENTRYPOINT [ "./entrypoint.sh" ]
+EXPOSE 18556

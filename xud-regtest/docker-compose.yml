@@ -1,0 +1,114 @@
+version: "3.6"
+
+services:
+  btcd:
+    build: btcd
+    # Let generated "rpc.cert" has "btcd" domain name,
+    # or it will deny lnd rpc connections
+    hostname: btcd 
+    volumes:
+      - ./data/btcd:/root/.btcd
+      - ./data/btcwallet:/root/.btcwallet
+    ports:
+      - 18556:18556
+      - 18554:18554
+
+  ltcd:
+    build: ltcd
+    # Let generated "rpc.cert" has "ltcd" domain name,
+    # or it will deny lnd rpc connections
+    hostname: ltcd
+    volumes:
+      - ./data/ltcd:/root/.ltcd
+      - ./data/ltcwallet:/root/.ltcwallet
+    ports:
+      - 19556:18556
+      - 19554:18554
+
+  lndbtc1:
+    build: lnd
+    hostname: lndbtc1
+    environment:
+      - BACKEND=btcd
+      - ALIAS=lndbtc1
+    volumes:
+      - ./data/btcd:/root/.btcd
+      - ./data/lndbtc1:/root/.lnd
+    ports:
+      - 10009:10009
+    depends_on:
+      - btcd
+
+  lndbtc2:
+    build: lnd
+    hostname: lndbtc2
+    environment:
+      - BACKEND=btcd
+      - ALIAS=lndbtc2
+    volumes:
+      - ./data/btcd:/root/.btcd
+      - ./data/lndbtc2:/root/.lnd
+    ports:
+      - 10010:10009
+    depends_on:
+      - btcd
+
+  lndltc1:
+    build: lnd
+    hostname: lndltc1
+    environment:
+      - BACKEND=ltcd
+      - ALIAS=lndltc1
+    volumes:
+      - ./data/ltcd:/root/.ltcd
+      - ./data/lndltc1:/root/.lnd
+    ports:
+      - 20009:10009
+    depends_on:
+      - ltcd
+
+  lndltc2:
+    build: lnd
+    hostname: lndltc2
+    environment:
+      - BACKEND=ltcd
+      - ALIAS=lndltc2
+    volumes:
+      - ./data/ltcd:/root/.ltcd
+      - ./data/lndltc2:/root/.lnd
+    ports:
+      - 20010:10009
+    depends_on:
+      - ltcd
+
+  xud1:
+    build: xud
+    hostname: xud1
+    environment:
+      - NETWORK=regtest
+    volumes:
+      - ./data/xud1:/root/.xud
+      - ./data/lndbtc1:/root/.lndbtc
+      - ./data/lndltc1:/root/.lndltc
+    ports:
+      - 18885:8885
+      - 18886:8886
+    depends_on:
+      - lndbtc1
+      - lndltc1
+  
+  xud2:
+    build: xud
+    hostname: xud2
+    environment:
+      - NETWORK=regtest
+    volumes:
+      - ./data/xud2:/root/.xud
+      - ./data/lndbtc2:/root/.lndbtc
+      - ./data/lndltc2:/root/.lndltc
+    ports:
+      - 28885:8885
+      - 28886:8886
+    depends_on:
+      - lndbtc2
+      - lndltc2

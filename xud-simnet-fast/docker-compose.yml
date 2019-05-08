@@ -1,0 +1,66 @@
+version: "3.6"
+
+services:
+  btcd:
+    build: btcd
+    # Let generated "rpc.cert" has "btcd" domain name,
+    # or it will deny lnd rpc connections
+    hostname: btcd 
+    command: >
+      --addpeer=35.231.222.142:18555
+    ports:
+      - 18556:18556
+    volumes:
+      - ./data/btcd:/root/.btcd
+
+  ltcd:
+    build: ltcd
+    # Let generated "rpc.cert" has "ltcd" domain name,
+    # or it will deny lnd rpc connections
+    hostname: ltcd
+    command: >
+      --addpeer=35.231.222.142:19555
+    ports:
+      - 19556:18556
+    volumes:
+      - ./data/ltcd:/root/.ltcd
+
+  lndbtc:
+    build: lndbtc
+    hostname: lndbtc
+    environment:
+      - BACKEND=btcd
+      - ALIAS=lndbtc
+    ports:
+      - 10009:10009
+    volumes:
+      - ./data/lndbtc:/root/.lnd
+    depends_on:
+      - btcd
+
+  lndltc:
+    build: lndltc
+    hostname: lndltc
+    environment:
+      - BACKEND=ltcd
+      - ALIAS=lndltc
+    ports:
+      - 20009:10009
+    volumes:
+      - ./data/lndltc:/root/.lnd
+    depends_on:
+      - ltcd
+
+  xud:
+    build: xud
+    hostname: xud
+    environment:
+      - NETWORK=simnet
+    volumes:
+      - ./data/xud:/root/.xud
+    ports:
+      - 18885:8885
+      - 18886:8886
+    depends_on:
+      - lndbtc
+      - lndltc
