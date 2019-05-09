@@ -35,6 +35,7 @@ services:
       - 10009:10009
     volumes:
       - ./data/lndbtc:/root/.lnd
+      - ./data/btcd:/root/.btcd
     depends_on:
       - btcd
 
@@ -48,6 +49,7 @@ services:
       - 20009:10009
     volumes:
       - ./data/lndltc:/root/.lnd
+      - ./data/ltcd:/root/.ltcd
     depends_on:
       - ltcd
 
@@ -58,6 +60,8 @@ services:
       - NETWORK=simnet
     volumes:
       - ./data/xud:/root/.xud
+      - ./data/lndbtc:/root/.lndbtc
+      - ./data/lndltc:/root/.lndltc
     ports:
       - 18885:8885
       - 18886:8886
