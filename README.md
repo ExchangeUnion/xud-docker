@@ -12,7 +12,7 @@ curl https://raw.githubusercontent.com/exchangeunion/xud-docker/master/xud-simne
 docker-compose up -d
 
 # Apply the aliases: btcctl, ltcctl, lndbtc-lncli, lndltc-lncli, xucli
-source <(curl https://raw.githubusercontent.com/exchangeunion/xud-docker/master/xud-simnet-fast/aliases.bash)
+source <(curl https://raw.githubusercontent.com/exchangeunion/xud-docker/master/xud-simnet/aliases.bash)
 
 # Inspect instance logs
 docker-compose logs -f btcd/ltcd/lndbtc/lndltc/xud
