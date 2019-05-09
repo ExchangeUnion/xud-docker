@@ -70,7 +70,7 @@ services:
       - lndltc
   
   ctl:
-    build: exchangeunion/ctl
+    image: exchangeunion/ctl
     volumes:
       - ./data/lndbtc:/root/.lndbtc
       - ./data/lndltc:/root/.lndltc
