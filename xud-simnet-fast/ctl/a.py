@@ -5,38 +5,55 @@ import lnrpc_pb2_grpc as lnrpc
 import codecs
 import time
 
-# Lnd admin macaroon is at ~/.lnd/data/chain/bitcoin/simnet/admin.macaroon on Linux and
-# ~/Library/Application Support/Lnd/data/chain/bitcoin/simnet/admin.macaroon on Mac
-with open(os.path.expanduser('~/.lndbtc/data/chain/bitcoin/simnet/admin.macaroon'), 'rb') as f:
-    macaroon_bytes = f.read()
-    macaroon = codecs.encode(macaroon_bytes, 'hex')
+def create_stub(cert, macaroon, rpcaddr):
+    with open(os.path.expanduser(macaroon), 'rb') as f:
+        macaroon_bytes = f.read()
+        macaroon = codecs.encode(macaroon_bytes, 'hex')
 
-def metadata_callback(context, callback):
-    # for more info see grpc docs
-    callback([('macaroon', macaroon)], None)
+    def metadata_callback(context, callback):
+        callback([('macaroon', macaroon)], None)
 
-os.environ["GRPC_SSL_CIPHER_SUITES"] = 'HIGH+ECDSA'
-cert = open(os.path.expanduser('~/.lndbtc/tls.cert'), 'rb').read()
-# build ssl credentials using the cert the same as before
-cert_creds = grpc.ssl_channel_credentials(cert)
-# now build meta data credentials
-auth_creds = grpc.metadata_call_credentials(metadata_callback)
-# combine the cert credentials and the macaroon auth credentials
-# such that every call is properly encrypted and authenticated
-combined_creds = grpc.composite_channel_credentials(cert_creds, auth_creds)
-channel = grpc.secure_channel('lndbtc:10009', combined_creds)
-stub = lnrpc.LightningStub(channel)
+    os.environ["GRPC_SSL_CIPHER_SUITES"] = 'HIGH+ECDSA'
+    cert = open(os.path.expanduser(cert), 'rb').read()
+    # build ssl credentials using the cert the same as before
+    cert_creds = grpc.ssl_channel_credentials(cert)
+    # now build meta data credentials
+    auth_creds = grpc.metadata_call_credentials(metadata_callback)
+    # combine the cert credentials and the macaroon auth credentials
+    # such that every call is properly encrypted and authenticated
+    combined_creds = grpc.composite_channel_credentials(cert_creds, auth_creds)
+    channel = grpc.secure_channel(rpcaddr, combined_creds)
+    return lnrpc.LightningStub(channel)
 
-def lndbtc_getinfo():
+lndbtc = create_stub('~/.lndbtc/tls.cert',
+                     '~/.lndbtc/data/chain/bitcoin/simnet/admin.macaroon', 'lndbtc:10009')
+lndltc = create_stub('~/.lndltc/tls.cert',
+                     '~/.lndltc/data/chain/litecoin/simnet/admin.macaroon', 'lndltc:10009')
+
+def getinfo(stub):
     return stub.GetInfo(ln.GetInfoRequest())
 
-def lndbtc_connect():
-    return stub.ConnectPeer(ln.ConnectPeerRequest())
+def connect(stub, addr):
+    try:
+        parts = addr.split('@')
+        request = ln.ConnectPeerRequest(
+            addr=ln.LightningAddress(
+                pubkey=parts[0],
+                host=parts[1]
+            )
+        )
+        return stub.ConnectPeer(request)
+    except Exception as e:
+        print(e)
 
-while not lndbtc_getinfo().synced_to_chain:
+while not getinfo(lndbtc).synced_to_chain:
     time.sleep(1)
-    print('Retry getinfo to see if synced_to_chain')
+    print('Retry lndbtc getinfo to see if synced_to_chain')
 
-print('Synced!')
+connect(lndbtc, '030c2ffd29a92e2dd2fb6fb046b0d9157e0eda8b11caa0e439d0dd6a46a444381c@35.229.81.83:10012')
 
-lndbtc_connect()
+while not getinfo(lndltc).synced_to_chain:
+    time.sleep(1)
+    print('Retry lndltc getinfo to see if synced_to_chain')
+
+connect(lndltc, '02f5e0324909bdb635d4d6a50aa07c517db59f5d18219fd058f9faa3ef3a1fd83a@35.229.81.83:10011')
