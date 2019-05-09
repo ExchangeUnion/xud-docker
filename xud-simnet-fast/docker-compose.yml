@@ -26,7 +26,7 @@ services:
       - ./data/ltcd:/root/.ltcd
 
   lndbtc:
-    build: lndbtc
+    build: ../xud-simnet/lnd
     hostname: lndbtc
     environment:
       - BACKEND=btcd
@@ -35,11 +35,12 @@ services:
       - 10009:10009
     volumes:
       - ./data/lndbtc:/root/.lnd
+      - ./data/btcd:/root/.btcd
     depends_on:
       - btcd
 
   lndltc:
-    build: lndltc
+    build: ../xud-simnet/lnd
     hostname: lndltc
     environment:
       - BACKEND=ltcd
@@ -48,6 +49,7 @@ services:
       - 20009:10009
     volumes:
       - ./data/lndltc:/root/.lnd
+      - ./data/ltcd:/root/.ltcd
     depends_on:
       - ltcd
 
@@ -56,11 +58,13 @@ services:
     hostname: xud
     environment:
       - NETWORK=simnet
-    volumes:
-      - ./data/xud:/root/.xud
     ports:
       - 18885:8885
       - 18886:8886
+    volumes:
+      - ./data/xud:/root/.xud
+      - ./data/lndbtc:/root/.lndbtc
+      - ./data/lndltc:/root/.lndltc
     depends_on:
       - lndbtc
       - lndltc

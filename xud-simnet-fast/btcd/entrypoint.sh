@@ -5,7 +5,6 @@ if [ -e "/data.tar.gz" ]; then
     mkdir -p /root/.btcd/data/simnet/blocks_ffldb
     tar -C /root/.btcd/data/simnet/blocks_ffldb -zxvf /data.tar.gz
     rm /data.tar.gz
-    mv /rpc.cert /rpc.key /root/.btcd
     touch /root/.btcd/btcd.conf
 fi
 

@@ -26,7 +26,7 @@ services:
       - ./data/ltcd:/root/.ltcd
 
   lndbtc:
-    image: exchangeunion/lndbtc-simnet
+    image: exchangeunion/lnd-simnet
     hostname: lndbtc
     environment:
       - BACKEND=btcd
@@ -39,7 +39,7 @@ services:
       - btcd
 
   lndltc:
-    image: exchangeunion/lndltc-simnet
+    image: exchangeunion/lnd
     hostname: lndltc
     environment:
       - BACKEND=ltcd
@@ -52,7 +52,7 @@ services:
       - ltcd
 
   xud:
-    image: exchangeunion/xud-simnet
+    image: exchangeunion/xud:test
     hostname: xud
     environment:
       - NETWORK=simnet
