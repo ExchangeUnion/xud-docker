@@ -6,8 +6,9 @@ RUN GO111MODULE=on go install . ./cmd/...
 
 # Final stage
 FROM alpine
-COPY --from=build-stage /go/bin/ltcd /go/bin/ltcctl /bin/
-COPY data.tar.gz entrypoint.sh /
-ENTRYPOINT [ "./entrypoint.sh" ]
+COPY --from=build-stage /go/bin/ltcd /bin/
+COPY --from=build-stage /go/bin/ltcctl /bin/
+COPY entrypoint.sh /
 VOLUME [ "/root/.ltcd" ]
+ENTRYPOINT [ "./entrypoint.sh" ]
 EXPOSE 18556

@@ -26,7 +26,7 @@ services:
       - ./data/ltcd:/root/.ltcd
 
   lndbtc:
-    build: ../xud-simnet/lnd
+    build: lnd
     hostname: lndbtc
     environment:
       - BACKEND=btcd
@@ -40,7 +40,7 @@ services:
       - btcd
 
   lndltc:
-    build: ../xud-simnet/lnd
+    build: lnd
     hostname: lndltc
     environment:
       - BACKEND=ltcd
@@ -68,9 +68,3 @@ services:
     depends_on:
       - lndbtc
       - lndltc
-
-  ctl:
-    build: ctl
-    volumes:
-      - ./data/lndbtc:/root/.lndbtc
-      - ./data/lndltc:/root/.lndltc

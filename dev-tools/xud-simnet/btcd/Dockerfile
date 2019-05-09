@@ -6,8 +6,9 @@ RUN GO111MODULE=on go install . ./cmd/...
 
 # Final stage
 FROM alpine
-COPY --from=build-stage /go/bin/btcd /go/bin/btcctl /bin/
-COPY data.tar.gz entrypoint.sh /
-ENTRYPOINT [ "./entrypoint.sh" ]
+COPY --from=build-stage /go/bin/btcd /bin/
+COPY --from=build-stage /go/bin/btcctl /bin/
+COPY entrypoint.sh /
 VOLUME [ "/root/.btcd" ]
+ENTRYPOINT [ "./entrypoint.sh" ]
 EXPOSE 18556

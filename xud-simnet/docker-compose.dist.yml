@@ -2,7 +2,7 @@ version: "3.6"
 
 services:
   btcd:
-    build: btcd
+    image: exchangeunion/btcd-simnet
     # Let generated "rpc.cert" has "btcd" domain name,
     # or it will deny lnd rpc connections
     hostname: btcd 
@@ -14,7 +14,7 @@ services:
       - ./data/btcd:/root/.btcd
 
   ltcd:
-    build: ltcd
+    image: exchangeunion/ltcd-simnet
     # Let generated "rpc.cert" has "ltcd" domain name,
     # or it will deny lnd rpc connections
     hostname: ltcd
@@ -26,7 +26,7 @@ services:
       - ./data/ltcd:/root/.ltcd
 
   lndbtc:
-    build: ../xud-simnet/lnd
+    image: exchangeunion/lnd
     hostname: lndbtc
     environment:
       - BACKEND=btcd
@@ -40,7 +40,7 @@ services:
       - btcd
 
   lndltc:
-    build: ../xud-simnet/lnd
+    image: exchangeunion/lnd
     hostname: lndltc
     environment:
       - BACKEND=ltcd
@@ -54,23 +54,17 @@ services:
       - ltcd
 
   xud:
-    build: xud
+    image: exchangeunion/xud:test
     hostname: xud
     environment:
       - NETWORK=simnet
-    ports:
-      - 18885:8885
-      - 18886:8886
     volumes:
       - ./data/xud:/root/.xud
       - ./data/lndbtc:/root/.lndbtc
       - ./data/lndltc:/root/.lndltc
+    ports:
+      - 18885:8885
+      - 18886:8886
     depends_on:
       - lndbtc
       - lndltc
-
-  ctl:
-    build: ctl
-    volumes:
-      - ./data/lndbtc:/root/.lndbtc
-      - ./data/lndltc:/root/.lndltc
