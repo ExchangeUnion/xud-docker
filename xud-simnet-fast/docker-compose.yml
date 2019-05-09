@@ -74,3 +74,6 @@ services:
     volumes:
       - ./data/lndbtc:/root/.lndbtc
       - ./data/lndltc:/root/.lndltc
+    depends_on:
+      - lndbtc
+      - lndltc
