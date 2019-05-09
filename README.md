@@ -32,7 +32,7 @@ alias logs="docker-compose logs"
 # Inspect instance logs
 docker-compose logs -f btcd/ltcd/lndbtc/lndltc/xud
 
-# Shutdown the xud environment
+# Shutdown the xud environment and remove containers
 docker-compose down
 ```
 
