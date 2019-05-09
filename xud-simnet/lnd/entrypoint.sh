@@ -7,8 +7,6 @@ if [ "$BACKEND" == "ltcd" ]; then
     RPCHOST="ltcd:18556"
 fi
 
-sleep 20
-
 # macaroons is force enabled when listening on public interfaces (--no-macaroons)
 # specify 0.0.0.0:10009 instead of :10009 because `lncli -n simnet getinfo` will not work with ':10009'
 lnd --nobootstrap --noseedbackup --debuglevel=debug --maxpendingchannels=10 \

@@ -68,3 +68,9 @@ services:
     depends_on:
       - lndbtc
       - lndltc
+
+  ctl:
+    build: ctl
+    volumes:
+      - ./data/lndbtc:/root/.lndbtc
+      - ./data/lndltc:/root/.lndltc

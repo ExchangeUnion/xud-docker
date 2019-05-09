@@ -26,7 +26,7 @@ services:
       - ./data/ltcd:/root/.ltcd
 
   lndbtc:
-    image: exchangeunion/lnd-simnet
+    image: exchangeunion/lnd
     hostname: lndbtc
     environment:
       - BACKEND=btcd

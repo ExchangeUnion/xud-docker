@@ -8,10 +8,10 @@ services:
     hostname: btcd 
     command: >
       --addpeer=35.231.222.142:18555
-    volumes:
-      - ./data/btcd:/root/.btcd
     ports:
       - 18556:18556
+    volumes:
+      - ./data/btcd:/root/.btcd
 
   ltcd:
     build: ltcd
@@ -20,10 +20,10 @@ services:
     hostname: ltcd
     command: >
       --addpeer=35.231.222.142:19555
-    volumes:
-      - ./data/ltcd:/root/.ltcd
     ports:
       - 19556:18556
+    volumes:
+      - ./data/ltcd:/root/.ltcd
 
   lndbtc:
     build: lnd
@@ -31,11 +31,11 @@ services:
     environment:
       - BACKEND=btcd
       - ALIAS=lndbtc
-    volumes:
-      - ./data/btcd:/root/.btcd
-      - ./data/lndbtc:/root/.lnd
     ports:
       - 10009:10009
+    volumes:
+      - ./data/lndbtc:/root/.lnd
+      - ./data/btcd:/root/.btcd
     depends_on:
       - btcd
 
@@ -45,11 +45,11 @@ services:
     environment:
       - BACKEND=ltcd
       - ALIAS=lndltc
-    volumes:
-      - ./data/ltcd:/root/.ltcd
-      - ./data/lndltc:/root/.lnd
     ports:
       - 20009:10009
+    volumes:
+      - ./data/lndltc:/root/.lnd
+      - ./data/ltcd:/root/.ltcd
     depends_on:
       - ltcd
 
@@ -58,14 +58,13 @@ services:
     hostname: xud
     environment:
       - NETWORK=simnet
+    ports:
+      - 18885:8885
+      - 18886:8886
     volumes:
       - ./data/xud:/root/.xud
       - ./data/lndbtc:/root/.lndbtc
       - ./data/lndltc:/root/.lndltc
-    ports:
-      - 18885:8885
-      - 18886:8886
     depends_on:
       - lndbtc
       - lndltc
-  
