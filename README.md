@@ -18,7 +18,7 @@ docker-ce 18.09 or higher with current user added to docker group. Check [the of
 ```bash
 mkdir my-xud
 cd my-xud
-curl https://raw.githubusercontent.com/exchangeunion/xud-docker/master/xud-simnet/docker-compose.dist.yml > docker-compose.yml
+curl https://raw.githubusercontent.com/exchangeunion/xud-docker/master/xud-simnet/docker-compose.yml > docker-compose.yml
 docker-compose up -d
 
 # Apply the aliases: btcctl, ltcctl, lndbtc-lncli, lndltc-lncli, xucli
