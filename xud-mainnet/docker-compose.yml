@@ -91,7 +91,7 @@ services:
     image: exchangeunion/xud:test
     hostname: xud
     environment:
-      - NETWORK=testnet
+      - NETWORK=mainnet
     volumes:
       - ./data/xud:/root/.xud
       - ./data/lndbtc:/root/.lndbtc
