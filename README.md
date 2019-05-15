@@ -3,36 +3,50 @@ xud-docker
 
 
 This project comprises a containerized [xud](https://github.com/ExchangeUnion/xud) environment for easy
-* development with regtest (producing blocks locally) Status: live
-* playing on our simnet (private chains maintained by our cloud instances, automatic channel management and allocation of coins, trading against bots) Status: live
-* real-world playing (testnet) Status: in development
-* and reckless trading (mainnet) Status: in development
+* development with **regtest** (producing blocks locally) Status: **live**
+* playing on our **simnet** (private chains maintained by our cloud instances, automatic channel management and allocation of coins, trading against bots) Status: **live**
+* real-world playing on **testnet** Status: **in development**
+* and reckless trading on **mainnet** Status: **in development**
 
 ### Requirements
 
-docker-ce 18.09 or higher with current user added to docker group. Check [the official install instructions.](https://docs.docker.com/install/)
+git & docker-ce 18.09 (or higher) with user added to docker group. Check [the official install instructions.](https://docs.docker.com/install/)
 
 
 ### How to run
 
 ```bash
-mkdir my-xud
-cd my-xud
-curl https://raw.githubusercontent.com/exchangeunion/xud-docker/master/xud-simnet/docker-compose.yml > docker-compose.yml
+git clone https://github.com/ExchangeUnion/xud-docker.git ~/xud-docker
+cd ~/xud-docker/
+```
+
+Change into the sub-folder of the network you want to run
+```bash
+cd xud-regtest
+cd xud-simnet
+cd xud-testnet
+cd xud-mainnet
+```
+
+Start the environment
+```bash
 docker-compose up -d
+```
 
-# Apply the aliases: btcctl, ltcctl, lndbtc-lncli, lndltc-lncli, xucli
-alias btcctl="docker-compose exec btcd btcctl --simnet --rpcuser=xu --rpcpass=xu"
-alias ltcctl="docker-compose exec ltcd ltcctl --simnet --rpcuser=xu --rpcpass=xu"
-alias lndbtc-lncli="docker-compose exec lndbtc lncli -n simnet -c bitcoin"
-alias lndltc-lncli="docker-compose exec lndltc lncli -n simnet -c litecoin"
-alias xucli="docker-compose exec xud xucli"
-alias logs="docker-compose logs"
+Permanently set aliases (tested on linux & macOS)
+```bash
+echo "source ~/xud-docker/aliases.bash" >> ~/.bashrc
+source ~/.bashrc
+```
 
-# Inspect instance logs
+To inspect logs
+```bash
+#Simnet
 docker-compose logs -f btcd/ltcd/lndbtc/lndltc/xud
+```
 
-# Shutdown the xud environment and remove containers
+Shutdown th environment and remove containers
+```bash
 docker-compose down
 ```
 
