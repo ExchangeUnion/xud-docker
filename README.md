@@ -33,9 +33,9 @@ Start the environment
 docker-compose up -d
 ```
 
-Permanently set aliases (tested on linux & macOS)
+Permanently set aliases (works on linux & macOS)
 ```bash
-echo "source ~/xud-docker/aliases.bash" >> ~/.bashrc
+echo "source ./aliases.bash" >> ~/.bashrc
 source ~/.bashrc
 ```
 
