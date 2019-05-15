@@ -1,7 +1,7 @@
 version: "3.6"
 
 services:
-  btcd:
+  bitcoind:
     image: exchangeunion/bitcoind
     # Let generated "rpc.cert" has "btcd" domain name,
     # or it will deny lnd rpc connections
@@ -25,7 +25,7 @@ services:
     volumes:
       - ./data/bitcoind:/root/.bitcoin
 
-  ltcd:
+  litecoind:
     image: exchangeunion/litecoind
     # Let generated "rpc.cert" has "ltcd" domain name,
     # or it will deny lnd rpc connections
