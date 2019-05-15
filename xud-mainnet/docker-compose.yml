@@ -1,0 +1,104 @@
+version: "3.6"
+
+services:
+  btcd:
+    image: exchangeunion/bitcoind
+    # Let generated "rpc.cert" has "btcd" domain name,
+    # or it will deny lnd rpc connections
+    hostname: bitcoind
+    command: >
+      -server
+      -mainnet
+      -rpcuser=xu
+      -rpcpassword=xu
+      -disablewallet
+      -txindex
+      -zmqpubrawblock=tcp://0.0.0.0:8333
+      -zmqpubrawtx=tcp://0.0.0.0:8333
+      -zmqpubhashblock=tcp://0.0.0.0:8333
+      -zmqpubhashtx=tcp://0.0.0.0:8333
+      -logips
+      -rpcport=8332
+    ports:
+      - 8332:8332
+      - 8333:8333
+    volumes:
+      - ./data/bitcoind:/root/.bitcoin
+
+  ltcd:
+    image: exchangeunion/litecoind
+    # Let generated "rpc.cert" has "ltcd" domain name,
+    # or it will deny lnd rpc connections
+    hostname: litecoind
+    command: >
+      -server
+      -mainnet
+      -rpcuser=xu
+      -rpcpassword=xu
+      -disablewallet
+      -txindex
+      -zmqpubrawblock=tcp://0.0.0.0:9333
+      -zmqpubrawtx=tcp://0.0.0.0:9333
+      -zmqpubhashblock=tcp://0.0.0.0:9333
+      -zmqpubhashtx=tcp://0.0.0.0:9333
+      -logips
+      -rpcport=9332
+    ports:
+      - 9332:9332
+      - 9333:9333
+    volumes:
+      - ./data/litecoind:/root/.litecoin
+
+  lndbtc:
+    image: exchangeunion/lnd
+    hostname: lndbtc
+    command: >
+      --alias=lndbtc
+      --bitcoin.active
+      --bitcoin.mainnet
+      --bitcoin.node=bitcoind
+      --bitcoin.rpcuser=xu
+      --bitcoin.rpcpass=xu
+      --bitcoin.zmqpubrawblock=tcp://bitcoind:8333
+      --bitcoin.zmqpubrawtx=tcp://bitcoind:8333
+    ports:
+      - 10009:10009
+    volumes:
+      - ./data/lndbtc:/root/.lnd
+    depends_on:
+      - bitcoind
+
+  lndltc:
+    image: exchangeunion/lnd
+    hostname: lndltc
+    command: >
+      --alias=lndltc
+      --litecoin.active
+      --litecoin.mainnet
+      --litecoin.node=litecoind
+      --litecoin.rpcuser=xu
+      --litecoin.rpcpass=xu
+      --litecoin.zmqpubrawblock=tcp://litecoind:8333
+      --litecoin.zmqpubrawtx=tcp://litecoind:8333
+    ports:
+      - 20009:10009
+    volumes:
+      - ./data/lndltc:/root/.lnd
+    depends_on:
+      - litecoind
+
+  xud:
+    image: exchangeunion/xud:test
+    hostname: xud
+    environment:
+      - NETWORK=testnet
+    volumes:
+      - ./data/xud:/root/.xud
+      - ./data/lndbtc:/root/.lndbtc
+      - ./data/lndltc:/root/.lndltc
+    ports:
+      - 18885:8885
+      - 18886:8886
+    depends_on:
+      - lndbtc
+      - lndltc
