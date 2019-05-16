@@ -19,6 +19,7 @@ services:
       -zmqpubhashtx=tcp://0.0.0.0:8333
       -logips
       -rpcport=8332
+      -rpcallowip=::/0
     ports:
       - 8332:8332
       - 8333:8333
@@ -43,6 +44,7 @@ services:
       -zmqpubhashtx=tcp://0.0.0.0:9333
       -logips
       -rpcport=9332
+      -rpcallowip=::/0
     ports:
       - 9332:9332
       - 9333:9333
@@ -99,6 +101,15 @@ services:
     ports:
       - 18885:8885
       - 18886:8886
+    depends_on:
+      - lndbtc
+      - lndltc
+  
+  ctl:
+    build: exchangeunion/ctl:testnet
+    volumes:
+      - ./data/lndbtc:/root/.lndbtc
+      - ./data/lndltc:/root/.lndltc
     depends_on:
       - lndbtc
       - lndltc
