@@ -107,9 +107,8 @@ services:
   
   ctl:
     build: exchangeunion/ctl:testnet
+    environment:
+      - NETWORK=testnet
     volumes:
       - ./data/lndbtc:/root/.lndbtc
       - ./data/lndltc:/root/.lndltc
-    depends_on:
-      - lndbtc
-      - lndltc
