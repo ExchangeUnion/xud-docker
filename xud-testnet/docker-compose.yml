@@ -112,3 +112,25 @@ services:
     volumes:
       - ./data/lndbtc:/root/.lndbtc
       - ./data/lndltc:/root/.lndltc
+  
+  geth:
+    image: ethereum/client-go
+    command: >
+      --testnet
+      --syncmode fast
+      --rpc
+      --rpcapi eth,net,web3,txpool
+    volumes: 
+      - ./data/geth:/root/.ethereum
+    ports:
+      - 8545:8545
+      - 8546:8546
+      - 30303:30303
+
+  raiden:
+    image: raidennetwork/raiden
+    command: >
+      --keystore-path /root/.ethereum/testnet/keystore
+      --accept-disclaimer
+    volumes:
+      - ./data/geth:/root/.ethereum
