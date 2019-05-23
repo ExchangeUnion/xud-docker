@@ -106,7 +106,7 @@ services:
       - lndltc
   
   ctl:
-    build: exchangeunion/ctl:dev
+    image: exchangeunion/ctl:dev
     environment:
       - NETWORK=testnet
     volumes:
