@@ -13,15 +13,15 @@ services:
       -rpcpassword=xu
       -disablewallet
       -txindex
-      -zmqpubrawblock=tcp://0.0.0.0:28333
+      -zmqpubrawblock=tcp://0.0.0.0:28332
       -zmqpubrawtx=tcp://0.0.0.0:28333
-      -zmqpubhashblock=tcp://0.0.0.0:28333
-      -zmqpubhashtx=tcp://0.0.0.0:28333
       -logips
       -rpcport=18332
       -rpcallowip=::/0
+      -rpcbind=0.0.0.0
     ports:
       - 18332:18332
+      - 28332:28332
       - 28333:28333
     volumes:
       - ./data/bitcoind:/root/.bitcoin
@@ -38,15 +38,15 @@ services:
       -rpcpassword=xu
       -disablewallet
       -txindex
-      -zmqpubrawblock=tcp://0.0.0.0:29333
+      -zmqpubrawblock=tcp://0.0.0.0:29332
       -zmqpubrawtx=tcp://0.0.0.0:29333
-      -zmqpubhashblock=tcp://0.0.0.0:29333
-      -zmqpubhashtx=tcp://0.0.0.0:29333
       -logips
       -rpcport=19332
       -rpcallowip=::/0
+      -rpcbind=0.0.0.0
     ports:
       - 19332:19332
+      - 29332:29332
       - 29333:29333
     volumes:
       - ./data/litecoind:/root/.litecoin
@@ -59,10 +59,12 @@ services:
       --bitcoin.active
       --bitcoin.testnet
       --bitcoin.node=bitcoind
-      --bitcoin.rpcuser=xu
-      --bitcoin.rpcpass=xu
-      --bitcoin.zmqpubrawblock=tcp://bitcoind:28333
-      --bitcoin.zmqpubrawtx=tcp://bitcoind:28333
+      --bitcoind.rpchost=bitcoind
+      --bitcoind.rpcuser=xu
+      --bitcoind.rpcpass=xu
+      --bitcoind.zmqpubrawblock=tcp://bitcoind:28332
+      --bitcoind.zmqpubrawtx=tcp://bitcoind:28333
+      --debuglevel=debug
     ports:
       - 10009:10009
     volumes:
@@ -78,10 +80,12 @@ services:
       --litecoin.active
       --litecoin.testnet
       --litecoin.node=litecoind
-      --litecoin.rpcuser=xu
-      --litecoin.rpcpass=xu
-      --litecoin.zmqpubrawblock=tcp://litecoind:28333
-      --litecoin.zmqpubrawtx=tcp://litecoind:28333
+      --litecoind.rpchost=litecoind
+      --litecoind.rpcuser=xu
+      --litecoind.rpcpass=xu
+      --litecoind.zmqpubrawblock=tcp://litecoind:29332
+      --litecoind.zmqpubrawtx=tcp://litecoind:29333
+      --debuglevel=debug
     ports:
       - 20009:10009
     volumes:
@@ -105,32 +109,33 @@ services:
       - lndbtc
       - lndltc
   
-  ctl:
-    image: exchangeunion/ctl:dev
-    environment:
-      - NETWORK=testnet
-    volumes:
-      - ./data/lndbtc:/root/.lndbtc
-      - ./data/lndltc:/root/.lndltc
-  
   geth:
     image: ethereum/client-go
     command: >
       --testnet
       --syncmode fast
       --rpc
-      --rpcapi eth,net,web3,txpool
+      --rpcapi eth,net,web3,txpool,personal,admin
+      --rpcaddr 0.0.0.0
+      --rpcvhosts=*
     volumes: 
       - ./data/geth:/root/.ethereum
     ports:
       - 8545:8545
       - 8546:8546
-      - 30303:30303
+      - 30303:30303/udp
 
   raiden:
     image: raidennetwork/raiden
     command: >
       --keystore-path /root/.ethereum/testnet/keystore
       --accept-disclaimer
+      --eth-rpc-endpoint http://geth:8545
+      --network-id ropsten
+      --address 0xd749FA6626C6489c05D8b575A477F02511f43D08
+      --password-file /root/.raiden/password.txt
+    ports:
+      - 5001:5001
     volumes:
       - ./data/geth:/root/.ethereum
+      - ./data/raiden:/root/.raiden
