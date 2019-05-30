@@ -103,8 +103,8 @@ services:
       - ./data/lndbtc:/root/.lndbtc
       - ./data/lndltc:/root/.lndltc
     ports:
-      - 18885:8885
-      - 18886:8886
+      - 8885:8885
+      - 8886:8886
     depends_on:
       - lndbtc
       - lndltc
