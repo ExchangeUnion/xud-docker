@@ -132,10 +132,9 @@ services:
       --accept-disclaimer
       --eth-rpc-endpoint http://geth:8545
       --network-id ropsten
-      --address 0xd749FA6626C6489c05D8b575A477F02511f43D08
-      --password-file /root/.raiden/password.txt
+      --address ${GETH_ACCOUNT}
+      --password-file /root/.ethereum/passphrase.txt
     ports:
       - 5001:5001
     volumes:
       - ./data/geth:/root/.ethereum
-      - ./data/raiden:/root/.raiden

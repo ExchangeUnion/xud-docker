@@ -2,7 +2,7 @@ version: "3.6"
 
 services:
   bitcoind:
-    image: exchangeunion/bitcoind
+    image: exchangeunion/bitcoind:0.18.0
     # Let generated "rpc.cert" has "btcd" domain name,
     # or it will deny lnd rpc connections
     hostname: bitcoind
@@ -27,7 +27,7 @@ services:
       - ./data/bitcoind:/root/.bitcoin
 
   litecoind:
-    image: exchangeunion/litecoind
+    image: exchangeunion/litecoind:0.17.1
     # Let generated "rpc.cert" has "ltcd" domain name,
     # or it will deny lnd rpc connections
     hostname: litecoind
@@ -52,7 +52,7 @@ services:
       - ./data/litecoind:/root/.litecoin
 
   lndbtc:
-    image: exchangeunion/lnd
+    image: exchangeunion/lnd:0.6.1-beta-rc2
     hostname: lndbtc
     command: >
       --alias=lndbtc
@@ -73,7 +73,7 @@ services:
       - bitcoind
 
   lndltc:
-    image: exchangeunion/lnd
+    image: exchangeunion/lnd:0.6.1-beta-rc2
     hostname: lndltc
     command: >
       --alias=lndltc
