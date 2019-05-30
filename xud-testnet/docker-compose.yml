@@ -74,6 +74,7 @@ services:
       - ./data/lndbtc:/root/.lnd
     depends_on:
       - bitcoind
+    restart: always
 
   lndltc:
     image: exchangeunion/lnd
@@ -98,6 +99,7 @@ services:
       - ./data/lndltc:/root/.lnd
     depends_on:
       - litecoind
+    restart: always
 
   xud:
     image: exchangeunion/xud:test

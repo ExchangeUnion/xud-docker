@@ -1,24 +1,9 @@
 #!/bin/bash
 
 PS3='Please choose network: '
-options=('regtest', 'simnet', 'testnet', 'mainnet')
-select opt in "${options[@]}"
+select network in regtest simnet testnet mainnet
 do
-    case $opt in
-        "regtest")
-            network="regtest"
-            ;;
-        "simnet")
-            network="simnet"
-            ;;
-        "testnet")
-            network="testnet"
-            ;;
-        "mainnet")
-            network="mainnet"
-            ;;
-        *) echo "Invalid network $REPLY";;
-    esac
+break
 done
 
 # Check docker
@@ -48,7 +33,14 @@ fi
 # Download docker-compose
 mkdir -p ~/.xud-docker/$network
 cd ~/.xud-docker/$network
+
+if [ -e docker-compose.yml ]; then
+    docker-compose down
+    rm docker-compose.yml
+fi
+
 wget https://raw.githubusercontent.com/ExchangeUnion/xud-docker/master/xud-$network/docker-compose.yml
 
 # docker-compose up -d
+docker-compose pull
 docker-compose up -d
