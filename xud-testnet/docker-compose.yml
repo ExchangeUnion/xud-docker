@@ -53,6 +53,9 @@ services:
 
   lndbtc:
     image: exchangeunion/lnd
+    environment:
+      - NETWORK=testnet
+      - CHAIN=bitcoin
     hostname: lndbtc
     command: >
       --alias=lndbtc
@@ -74,6 +77,9 @@ services:
 
   lndltc:
     image: exchangeunion/lnd
+    environment:
+      - NETWORK=testnet
+      - CHAIN=litecoin
     hostname: lndltc
     command: >
       --alias=lndltc
@@ -110,7 +116,9 @@ services:
       - lndltc
   
   geth:
-    image: ethereum/client-go
+    image: exchangeunion/geth
+    environment:
+      - NETWORK=testnet
     command: >
       --testnet
       --syncmode fast
@@ -126,15 +134,26 @@ services:
       - 30303:30303/udp
 
   raiden:
-    image: raidennetwork/raiden
+    image: exchangeunion/raiden
+    environment:
+      - NETWORK=testnet
     command: >
       --keystore-path /root/.ethereum/testnet/keystore
       --accept-disclaimer
       --eth-rpc-endpoint http://geth:8545
       --network-id ropsten
-      --address ${GETH_ACCOUNT}
       --password-file /root/.ethereum/passphrase.txt
     ports:
       - 5001:5001
     volumes:
       - ./data/geth:/root/.ethereum
+    restart: always
+  
+  ctl:
+    build: exchangeunion/ctl
+    environment:
+      - NETWORK=testnet
+    volumes:
+      - ./data/lndbtc:/root/.lndbtc
+      - ./data/lndltc:/root/.lndltc
+      - ./data/xud:/root/.xud
