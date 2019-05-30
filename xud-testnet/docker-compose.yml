@@ -150,7 +150,7 @@ services:
     restart: always
   
   ctl:
-    build: exchangeunion/ctl
+    image: exchangeunion/ctl
     environment:
       - NETWORK=testnet
     volumes:
