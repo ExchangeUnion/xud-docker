@@ -56,4 +56,4 @@ alias geth="docker-compose exec geth geth --testnet"
 alias xucli="docker-compose exec xud xucli"
 EOF
 
-echo "Please reload bash config or open a new bash to use \"xucli\" and other handy cli commands"
+echo "XUD started successfully. Please run source ~/.bashrc and then xucli getinfo to get the status of the system. xucli help to show all available commands."
