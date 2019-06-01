@@ -36,7 +36,7 @@ cd ~/.xud-docker/$network
 
 if [ -e docker-compose.yml ]; then
     docker-compose down
-    rm docker-compose.yml
+    rm -f docker-compose.yml
 fi
 
 wget https://raw.githubusercontent.com/ExchangeUnion/xud-docker/master/xud-$network/docker-compose.yml
@@ -44,3 +44,16 @@ wget https://raw.githubusercontent.com/ExchangeUnion/xud-docker/master/xud-$netw
 # docker-compose up -d
 docker-compose pull
 docker-compose up -d
+
+
+cat <<EOF >> ~/.bashrc
+# Add aliases for xud-docker
+alias bitcoin-cli="docker-compose exec bitcoind bitcoin-cli -testnet -rpcuser=xu -rpcpassword=xu"
+alias litecoin-cli="docker-compose exec litecoind litecoin-cli -testnet -rpcuser=xu -rpcpassword=xu"
+alias lndbtc-lncli="docker-compose exec lndbtc lncli -n testnet -c bitcoin"
+alias lndltc-lncli="docker-compose exec lndltc lncli -n testnet -c litecoin"
+alias geth="docker-compose exec geth geth --testnet"
+alias xucli="docker-compose exec xud xucli"
+EOF
+
+echo "Please reload bash config or open a new bash to use \"xucli\" and other handy cli commands"
