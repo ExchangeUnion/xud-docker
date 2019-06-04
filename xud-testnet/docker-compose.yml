@@ -72,8 +72,6 @@ services:
       - 10009:10009
     volumes:
       - ./data/lndbtc:/root/.lnd
-    depends_on:
-      - bitcoind
     restart: always
 
   lndltc:
@@ -97,8 +95,6 @@ services:
       - 20009:10009
     volumes:
       - ./data/lndltc:/root/.lnd
-    depends_on:
-      - litecoind
     restart: always
 
   xud:
@@ -113,9 +109,6 @@ services:
     ports:
       - 8885:8885
       - 8886:8886
-    depends_on:
-      - lndbtc
-      - lndltc
   
   geth:
     image: exchangeunion/geth
@@ -150,12 +143,3 @@ services:
     volumes:
       - ./data/geth:/root/.ethereum
     restart: always
-  
-  ctl:
-    image: exchangeunion/ctl
-    environment:
-      - NETWORK=testnet
-    volumes:
-      - ./data/lndbtc:/root/.lndbtc
-      - ./data/lndltc:/root/.lndltc
-      - ./data/xud:/root/.xud
