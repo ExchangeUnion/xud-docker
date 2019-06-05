@@ -58,14 +58,25 @@ download_docker_compose_yml() {
         echo "docker-compose.yml exists"
         rm docker-compose.yml
     fi
-    curl -S https://raw.githubusercontent.com/ExchangeUnion/xud-docker/master/xud-$network/docker-compose.yml > docker-compose.yml
+    curl -s https://raw.githubusercontent.com/ExchangeUnion/xud-docker/master/xud-$network/docker-compose.yml > docker-compose.yml
 }
 
-upgrade_aliases() {
-    echo "Upgrade aliases.sh from github"
+setup_aliases() {
+    echo "Set up aliases.sh from github"
     cd $root
     rm -f aliases.sh
-    curl https://raw.githubusercontent.com/ExchangeUnion/xud-docker/master/aliases.sh > aliases.sh
+    curl -s https://raw.githubusercontent.com/ExchangeUnion/xud-docker/master/aliases.sh > aliases.sh
+
+    if ! [ -e ~/.bashrc ]; then
+        touch ~/.bashrc
+    fi
+
+    if ! grep 'Add xud-docker aliases' ~/.bashrc; then
+        cat <<EOF >> ~/.bashrc
+# Add xud-docker aliases
+source $root/aliases.sh
+EOF
+    fi
 }
 
 upgrade() {
@@ -74,24 +85,14 @@ upgrade() {
     download_docker_compose_yml
     docker-compose pull
     docker-compose up -d
-    upgrade_aliases
-}
-
-install_aliases() {
-    upgrade_aliases
-    if ! [ -e ~/.bashrc ]; then
-        touch ~/.bashrc
-    fi
-    cat <<EOF >> ~/.bashrc
-# Add docker-compose aliases
-source $root/aliases.sh
-EOF
+    setup_aliases
 }
 
 install() {
     echo "Installing..."
     if [ -e docker-compose.yml ]; then
         read -p "Already installed. Would you like to upgrade? (y/n) " -n 1 -r
+        echo # move to a new line
         if [[ $REPLY =~ ^[Yy]$ ]]; then
             upgrade
         fi
@@ -99,7 +100,7 @@ install() {
     fi
     download_docker_compose_yml
     docker-compose up -d
-    install_aliases
+    setup_aliases
     echo "XUD started successfully. Please run source ~/.bashrc and then xucli getinfo to get the status of the system. xucli help to show all available commands."
 }
 
