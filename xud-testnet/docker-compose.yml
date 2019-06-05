@@ -98,7 +98,7 @@ services:
     restart: always
 
   xud:
-    image: exchangeunion/xud:test
+    image: exchangeunion/xudctl:1.0.0-prealpha.4
     hostname: xud
     environment:
       - NETWORK=testnet
