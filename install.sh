@@ -46,6 +46,7 @@ docker-compose pull
 docker-compose up -d
 
 
+
 cat <<EOF >> ~/.bashrc
 # Add aliases for xud-docker
 alias bitcoin-cli="docker-compose exec bitcoind bitcoin-cli -testnet -rpcuser=xu -rpcpassword=xu"
@@ -54,6 +55,7 @@ alias lndbtc-lncli="docker-compose exec lndbtc lncli -n testnet -c bitcoin"
 alias lndltc-lncli="docker-compose exec lndltc lncli -n testnet -c litecoin"
 alias geth="docker-compose exec geth geth --testnet"
 alias xucli="docker-compose exec xud xucli"
+alias xucli-status="docker-compose exec xud status"
 EOF
 
 echo "XUD started successfully. Please run source ~/.bashrc and then xucli getinfo to get the status of the system. xucli help to show all available commands."
