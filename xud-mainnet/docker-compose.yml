@@ -96,7 +96,7 @@ services:
       - ./data/lndltc:/root/.lnd
 
   xud:
-    image: exchangeunion/xudctl:1.0.0-prealpha.4
+    image: exchangeunion/xudctl:1.0.0-alpha.11
     hostname: xud
     environment:
       - NETWORK=mainnet
