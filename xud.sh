@@ -38,7 +38,7 @@ cd $home
 
 # Check docker
 if which docker > /dev/null; then
-
+    echo '[OK] docker exists'
 else
     echo '[ERROR] docker missing'
     exit 1
