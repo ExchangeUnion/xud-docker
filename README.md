@@ -1,6 +1,7 @@
 xud-docker
 ==========
 
+[![Build Status](https://travis-ci.org/ExchangeUnion/xud-docker.svg?branch=master)](https://travis-ci.org/ExchangeUnion/xud-docker)
 
 This project comprises a containerized [xud](https://github.com/ExchangeUnion/xud) environment for easy
 * development with **regtest** (producing blocks locally) Status: **live**
