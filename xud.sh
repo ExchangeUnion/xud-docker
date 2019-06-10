@@ -164,7 +164,6 @@ detect_cluster_status() {
             fi
         fi
     else
-        download_docker_compose_yml
         echo PRISTINE
     fi
 }
