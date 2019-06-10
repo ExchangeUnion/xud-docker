@@ -102,7 +102,7 @@ install() {
 }
 
 bug_report() {
-    report="bug_report.txt"
+    report="bug_report_${date +%s}.txt"
     echo "Generating $report..."
     commands = (
         "uname -a"
