@@ -153,7 +153,7 @@ get_status() {
 }
 
 detect_cluster_status() {
-    if [ -e $home ]; then
+    if [ -e $home/docker-compose.yml ]; then
         if is_ready; then
             echo UP
         else
@@ -163,7 +163,8 @@ detect_cluster_status() {
                 echo DOWN
             fi
         fi
-    else 
+    else
+        download_docker_compose_yml
         echo PRISTINE
     fi
 }
