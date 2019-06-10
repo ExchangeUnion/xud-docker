@@ -104,7 +104,7 @@ install() {
 bug_report() {
     report="bug_report_${date +%s}.txt"
     echo "Generating $report..."
-    commands = (
+    commands=(
         "uname -a"
         "docker info"
         "docker stats --no-stream"
@@ -170,12 +170,16 @@ smart_run() {
     case $status in
         PRISTINE)
             install
+            ;;
         UP)
             launch_xud_shell
+            ;;
         DOWN)
             restart_all_containers
+            ;;
         ERROR)
             bug_report
+            ;;
     esac
 }
 
