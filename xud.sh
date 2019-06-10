@@ -136,7 +136,7 @@ restart_all_containers() {
 
 get_up_services() {
     IFS=$'\n'
-    docker-compose ps | grep Up | awk '{print $1}'` | sed "s/$network_//g" | sed "s/_1//g"
+    docker-compose ps | grep Up | awk '{print $1}' | sed "s/$network_//g" | sed "s/_1//g"
 }
 
 is_ready() {
