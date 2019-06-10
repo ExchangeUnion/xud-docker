@@ -145,6 +145,7 @@ is_ready() {
         return true
     else
         return false
+    fi
 }
 
 get_status() {
@@ -154,14 +155,17 @@ get_status() {
 detect_cluster_status() {
     if [ -e $home ]; then
         if is_ready; then
-            return "UP"
+            echo UP
         else
-            if [ get_status -eq "DOWN" ]; then
-                return "ERROR"
+            if [ `get_status` = DOWN ]; then
+                echo ERROR
             else
-                return "DOWN"
+                echo DOWN
+            fi
+        fi
     else 
-        return "PRISTINE"
+        echo PRISTINE
+    fi
 }
 
 smart_run() {
