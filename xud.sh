@@ -8,9 +8,10 @@ original_dir=`pwd`
 
 show_help() {
     cat <<EOF
-Usage: $0 [-n <network>] install
-       $0 [-n <network>] upgrade
-       $0 [-n <network>] report
+Usage: $0 [-n <network>]
+
+Options:
+    -n Network. Available values are regtest, simnet, testnet, and mainnet. Default value is testnet
 EOF
     exit 0
 }
@@ -100,20 +101,82 @@ install() {
     echo "XUD started successfully. Please run source ~/.bashrc and then xucli getinfo to get the status of the system. xucli help to show all available commands."
 }
 
-report() {
-    echo "Generate report.txt"
-    docker-compose ps >> report.txt
-    docker-compose logs bitcoind >> report.txt
-    docker-compose logs litecoind >> report.txt
-    docker-compose logs lndbtc >> report.txt
-    docker-compose logs lndltc >> report.txt
-    docker-compose logs geth >> report.txt
-    docker-compose logs raiden >> report.txt
-    docker-compose logs xud >> report.txt
+bug_report() {
+    report="bug_report.txt"
+    echo "Generating $report..."
+    commands = (
+        "uname -a"
+        "docker info"
+        "docker stats --no-stream"
+        "docker-compose ps"
+        "docker-compose logs --tail=100 bitcoind"
+        "docker-compose logs --tail=100 litecoind"
+        "docker-compose logs --tail=100 lndbtc"
+        "docker-compose logs --tail=100 lndltc"
+        "docker-compose logs --tail=100 geth"
+        "docker-compose logs --tail=100 raiden"
+        "docker-compose logs --tail=100 xud"
+    )
+
+    for cmd in "${command[@]}"; do
+        echo $cmd >> $report
+        eval $cmd >> $report
+        echo "" >> $report
+    done
 }
 
-if [ -z $1 ]; then
-    show_help
-fi
+launch_xud_shell() {
+    docker-compose exec xud bash
+}
 
-eval $1
+restart_all_containers() {
+    docker-compose down
+    docker-compose up -d
+}
+
+get_up_services() {
+    IFS=$'\n'
+    docker-compose ps | grep Up | awk '{print $1}'` | sed "s/$network_//g" | sed "s/_1//g"
+}
+
+is_ready() {
+    services=`get_up_services`
+    if [ "${#services[@]}" -eq 7 ]; then
+        return true
+    else
+        return false
+}
+
+get_status() {
+    cat $home/status
+}
+
+detect_cluster_status() {
+    if [ -e $home ]; then
+        if is_ready; then
+            return "UP"
+        else
+            if [ get_status -eq "DOWN" ]; then
+                return "ERROR"
+            else
+                return "DOWN"
+    else 
+        return "PRISTINE"
+}
+
+smart_run() {
+    status=`detect_cluster_status`
+    echo $status > $home/status
+    case $status in
+        PRISTINE)
+            install
+        UP)
+            launch_xud_shell
+        DOWN)
+            restart_all_containers
+        ERROR)
+            bug_report
+    esac
+}
+
+smart_run
