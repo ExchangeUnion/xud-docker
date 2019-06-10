@@ -1,0 +1,10 @@
+#!/usr/bin/expect
+
+set timeout -1
+spawn vagrant ssh
+expect "$ "
+send "date\r"
+expect "$ "
+send "./xud.sh install\r"
+expect "$ "
+send "exit\r"

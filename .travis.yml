@@ -1,0 +1,5 @@
+deploy:
+  provider: script
+  script: bash xud.sh
+  on:
+    branch: master

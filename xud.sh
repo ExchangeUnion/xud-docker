@@ -37,17 +37,13 @@ fi
 cd $home
 
 # Check docker
-if which docker > /dev/null; then
-    echo '[OK] docker exists'
-else
+if ! which docker > /dev/null; then
     echo '[ERROR] docker missing'
     exit 1
 fi
 
 # Check docker-compose
-if which docker-compose > /dev/null; then
-    echo '[OK] docker-compose exists'
-else
+if ! which docker-compose > /dev/null; then
     echo '[ERROR] docker-compose missing'
     exit 1
 fi
