@@ -19,4 +19,4 @@ addons:
       - docker-ce
 
 script:
-  - bash -x xud.sh
+  - bash tests/run_test.sh

@@ -1,0 +1,5 @@
+#pexpect==4.7.0
+web3==4.9.2
+python-bitcoinrpc==1.0
+grpcio==1.20.1
+googleapis-common-protos==1.6.0

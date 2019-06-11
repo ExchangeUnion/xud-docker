@@ -1,0 +1,10 @@
+#!/usr/bin/expect -f
+
+set passphrase ""
+
+spawn geth --$env(NETWORK) account new
+expect "Passphrase: "
+send "$passphrase\r"
+expect "Repeat passphrase: "
+send "$passphrase\r"
+expect eof
