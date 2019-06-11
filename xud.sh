@@ -187,4 +187,8 @@ smart_run() {
     esac
 }
 
-smart_run
+if [ $1 = upgrade ]; then
+    upgrade
+else
+    smart_run
+fi
