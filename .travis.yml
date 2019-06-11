@@ -19,4 +19,4 @@ addons:
       - docker-ce
 
 script:
-  - bash xud.sh install
+  - bash -x xud.sh
