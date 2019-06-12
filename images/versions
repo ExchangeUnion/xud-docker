@@ -1,0 +1,6 @@
+bitcoind=0.18.0
+litecoind=0.17.1
+lnd=0.6.1-beta-rc2
+geth=1.8.27
+raiden=0.100.3
+xud=1.0.0-alpha.11

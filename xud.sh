@@ -4,7 +4,6 @@
 set -e
 
 network=testnet
-original_dir=`pwd`
 
 show_help() {
     cat <<EOF
@@ -58,31 +57,12 @@ download_docker_compose_yml() {
     curl -s https://raw.githubusercontent.com/ExchangeUnion/xud-docker/master/xud-$network/docker-compose.yml > docker-compose.yml
 }
 
-setup_aliases() {
-    echo "Set up aliases.sh from github"
-    cd $root
-    rm -f aliases.sh
-    curl -s https://raw.githubusercontent.com/ExchangeUnion/xud-docker/master/aliases.sh > aliases.sh
-
-    if ! [ -e ~/.bashrc ]; then
-        touch ~/.bashrc
-    fi
-
-    if ! grep 'Add xud-docker aliases' ~/.bashrc; then
-        cat <<EOF >> ~/.bashrc
-# Add xud-docker aliases
-source $root/aliases.sh
-EOF
-    fi
-}
-
 upgrade() {
     echo "Upgrading..."
     docker-compose down
     download_docker_compose_yml
     docker-compose pull
     docker-compose up -d
-    setup_aliases
 }
 
 install() {
@@ -97,12 +77,11 @@ install() {
     fi
     download_docker_compose_yml
     docker-compose up -d
-    setup_aliases
     echo "XUD started successfully. Please run source ~/.bashrc and then xucli getinfo to get the status of the system. xucli help to show all available commands."
 }
 
 bug_report() {
-    report="bug_report_${date +%s}.txt"
+    report="bug_report_$(date +%s).txt"
     echo "Generating $report..."
     commands=(
         "uname -a"
@@ -126,7 +105,10 @@ bug_report() {
 }
 
 launch_xud_shell() {
-    docker-compose exec xud bash
+    curl -s https://raw.githubusercontent.com/ExchangeUnion/xud-docker/master/banner.txt > banner.txt
+    cat banner.txt
+    curl -s https://raw.githubusercontent.com/ExchangeUnion/xud-docker/master/init.sh > banner.txt
+    bash --init-file init.sh
 }
 
 restart_all_containers() {
@@ -136,15 +118,16 @@ restart_all_containers() {
 
 get_up_services() {
     IFS=$'\n'
-    docker-compose ps | grep Up | awk '{print $1}' | sed "s/$network_//g" | sed "s/_1//g"
+    docker-compose ps | grep Up | awk '{print $1}' | sed "s/${network}_//g" | sed "s/_1//g"
 }
 
 is_ready() {
-    services=`get_up_services`
-    if [ "${#services[@]}" -eq 7 ]; then
-        return true
+    services=(`get_up_services`)
+    n="${#services[@]}"
+    if [ $n -eq 7 ]; then
+        true
     else
-        return false
+        false
     fi
 }
 
@@ -155,36 +138,46 @@ get_status() {
 detect_cluster_status() {
     if [ -e $home/docker-compose.yml ]; then
         if is_ready; then
-            echo UP
+            status="UP"
         else
             if [ `get_status` = DOWN ]; then
-                echo ERROR
+                status="ERROR"
             else
-                echo DOWN
+                status="DOWN"
             fi
         fi
     else
-        echo PRISTINE
+        status="PRISTINE"
     fi
 }
 
 smart_run() {
-    status=`detect_cluster_status`
-    echo $status > $home/status
-    case $status in
-        PRISTINE)
-            install
-            ;;
-        UP)
-            launch_xud_shell
-            ;;
-        DOWN)
-            restart_all_containers
-            ;;
-        ERROR)
-            bug_report
-            ;;
-    esac
+    while true; do
+        detect_cluster_status
+        echo $status > $home/status
+        case $status in
+            PRISTINE)
+                install
+                ;;
+            UP)
+                launch_xud_shell
+                break 2
+                ;;
+            DOWN)
+                restart_all_containers
+                ;;
+            ERROR)
+                bug_report
+                rm $home/status
+                break 2
+                ;;
+            *)
+                echo "Unexpected status: $status"
+                break 2
+                ;;
+        esac
+        sleep 3
+    done
 }
 
 if [ $1 = upgrade ]; then

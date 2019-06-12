@@ -1,0 +1,7 @@
+#!/usr/bin/expect
+
+# Should enter xud shell
+spawn bash xud.sh
+expect '$ '
+send 'exit\r'
+expect eof

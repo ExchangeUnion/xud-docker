@@ -5,6 +5,6 @@ spawn vagrant ssh
 expect "$ "
 send "date\r"
 expect "$ "
-send "./xud.sh install\r"
+send "./run_test.sh\r"
 expect "$ "
 send "exit\r"

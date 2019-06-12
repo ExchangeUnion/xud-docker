@@ -20,6 +20,7 @@ sudo add-apt-repository \
    stable"
 sudo apt-get update
 sudo apt-get install -y docker-ce docker-ce-cli containerd.io
+sudo apt-get install -y expect
 
 sudo usermod -aG docker vagrant
 
@@ -31,5 +32,3 @@ sudo curl -sL "https://github.com/docker/compose/releases/download/1.24.0/docker
 sudo chmod +x /usr/local/bin/docker-compose
 
 docker-compose --version
-
-

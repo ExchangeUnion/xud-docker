@@ -1,0 +1,17 @@
+#!/usr/bin/expect -f
+
+set timeout -1
+
+set password "12345678"
+set passphrase ""
+
+spawn lncli -n $env(NETWORK) -c $env(CHAIN) create
+expect "Input wallet password"
+send "$password\r"
+expect "Confirm wallet password"
+send "$password\r"
+expect "Do you have an existing cipher seed mnemonic you want to use"
+send "n\r"
+expect "Input your passphrase if you wish to encrypt it"
+send "$passphrase\r"
+expect "lnd successfully initialized"
