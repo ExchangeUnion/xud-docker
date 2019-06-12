@@ -107,7 +107,7 @@ bug_report() {
 launch_xud_shell() {
     curl -s https://raw.githubusercontent.com/ExchangeUnion/xud-docker/master/banner.txt > banner.txt
     cat banner.txt
-    curl -s https://raw.githubusercontent.com/ExchangeUnion/xud-docker/master/init.sh > banner.txt
+    curl -s https://raw.githubusercontent.com/ExchangeUnion/xud-docker/master/init.sh > init.sh
     bash --init-file init.sh
 }
 
@@ -180,8 +180,4 @@ smart_run() {
     done
 }
 
-if [ $1 = upgrade ]; then
-    upgrade
-else
-    smart_run
-fi
+smart_run

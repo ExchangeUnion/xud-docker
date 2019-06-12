@@ -29,6 +29,8 @@ alias sell="xucli sell"
 
 home=`pwd`
 
+export XUD_DOCKER_HOME=$home
+
 nocolor() {
     sed -r "s/\x1b\[([0-9]{1,2}(;[0-9]{1,2})?)?m//g"
 }
@@ -52,6 +54,10 @@ xud_status() {
 
 all_status() {
     set -euo pipefail
+
+    cd $XUD_DOCKER_HOME
+
+    home=$XUD_DOCKER_HOME
 
     if ! [ -e $home/tmp/status ]; then
         mkdir -p $home/tmp/status
