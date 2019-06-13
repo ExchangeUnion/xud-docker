@@ -17,17 +17,19 @@ Status: **in development**
 
 ### Requirements
 
-1. docker >= 18.09
+1. Linux, MacOS or [Windows 10 with WSL 2](https://devblogs.microsoft.com/commandline/wsl-2-is-now-available-in-windows-insiders/).
+
+2. docker >= 18.09
 ```
 $ docker --version
 Docker version 18.09.6, build 481bc77
 ```
-2. docker-compose >= 1.24
+3. docker-compose >= 1.24
 ```
 $ docker-compose --version
 docker-compose version 1.24.0, build 0aa59064
 ```
-3. current user can run docker without sudo
+4. current user can run docker without sudo
 ```
 $ docker run hello-world
 ```
@@ -42,9 +44,9 @@ Start the environment with
 curl https://raw.githubusercontent.com/ExchangeUnion/xud-docker/master/xud.sh -o ~/xud.sh
 bash ~/xud.sh 
 ```
-which guides you through a quick setup on first run, pulls necessary containers, syncs chains and gets you into `xud-ctl` when all is up and ready. `xud-ctl` takes `xucli` commands and some more, like `status` to check on the underlying clients like `bitcoind`, `litecoind` or `geth`. 
+which guides you through a setup on first run, pulls necessary containers, syncs chains and gets you into `xud-ctl` when all is up and ready. `xud-ctl` takes `xucli` commands and some more, like `status` to check on the underlying clients like `bitcoind`, `litecoind` or `geth`. 
 
-Set xud alias (works on linux & macOS)
+Permanently set xud alias to control xud from anywhere:
 ```bash
 source ~/.bashrc
 ```
