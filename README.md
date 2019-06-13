@@ -3,7 +3,7 @@ xud-docker
 
 [![Build Status](https://travis-ci.org/ExchangeUnion/xud-docker.svg?branch=master)](https://travis-ci.org/ExchangeUnion/xud-docker)
 
-This project comprises a no-install, containerized [xud](https://github.com/ExchangeUnion/xud) environment for
+This project comprises a 0-install, containerized [xud](https://github.com/ExchangeUnion/xud) environment for
 * development with **regtest** (producing blocks locally)
 Status: **in development**
 * playing on our **simnet** (private chains maintained by exchange union cloud instances, automatic channel management and allocation of coins, trading against bots)
