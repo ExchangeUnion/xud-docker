@@ -4,10 +4,14 @@ xud-docker
 [![Build Status](https://travis-ci.org/ExchangeUnion/xud-docker.svg?branch=master)](https://travis-ci.org/ExchangeUnion/xud-docker)
 
 This project comprises a containerized [xud](https://github.com/ExchangeUnion/xud) environment for easy
-* development with **regtest** (producing blocks locally) Status: **live**
-* playing on our **simnet** (private chains maintained by our cloud instances, automatic channel management and allocation of coins, trading against bots) Status: **live**
-* real-world playing on **testnet** Status: **in development**
-* and reckless trading on **mainnet** Status: **in development**
+* development with **regtest** (producing blocks locally)
+Status: **in development**
+* playing on our **simnet** (private chains maintained by our cloud instances, automatic channel management and allocation of coins, trading against bots)
+Status: **live**
+* real-world playing on **testnet**
+Status: **in development**
+* and reckless trading on **mainnet**
+Status: **in development**
 
 ### Requirements
 
