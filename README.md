@@ -63,7 +63,7 @@ docker-compose down
 ```
 
 ### References
-Simnet:
+Simnet only:
 * [btcd config options](https://godoc.org/github.com/btcsuite/btcd)
 * [ltcd config options](https://godoc.org/github.com/ltcsuite/ltcd)
 
