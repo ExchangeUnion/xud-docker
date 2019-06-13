@@ -31,7 +31,7 @@ docker-compose version 1.24.0, build 0aa59064
 ```
 $ docker run hello-world
 ```
-If this doesn't work, [check this](https://docs.docker.com/install/linux/linux-postinstall/). If you don't have docker installed yet, follow [the official install instructions.](https://docs.docker.com/install/)
+If this doesn't work, [check here](https://docs.docker.com/install/linux/linux-postinstall/). If you don't have docker installed yet, follow [the official install instructions.](https://docs.docker.com/install/)
 
 
 
