@@ -3,44 +3,46 @@ xud-docker
 
 [![Build Status](https://travis-ci.org/ExchangeUnion/xud-docker.svg?branch=master)](https://travis-ci.org/ExchangeUnion/xud-docker)
 
-This project comprises a containerized [xud](https://github.com/ExchangeUnion/xud) environment for easy
+This project comprises a 0-install containerized [xud](https://github.com/ExchangeUnion/xud) environment for
 * development with **regtest** (producing blocks locally)
 Status: **in development**
 * playing on our **simnet** (private chains maintained by our cloud instances, automatic channel management and allocation of coins, trading against bots)
 Status: **live**
 * real-world playing on **testnet**
 Status: **in development**
-* and reckless trading on **mainnet**
+* reckless trading on **mainnet**
 Status: **in development**
 
 ### Requirements
 
-git & docker-ce 18.09 (or higher) with user added to docker group. Check [the official install instructions.](https://docs.docker.com/install/)
+1. docker >= 18.09
+```
+$ docker --version
+Docker version 18.09.6, build 481bc77
+```
+2. docker-compose >= 1.24
+```
+$ docker-compose --version
+docker-compose version 1.24.0, build 0aa59064
+```
+3. current user can run docker without sudo
+```
+$ docker run hello-world
+```
+If not [check this](https://docs.docker.com/install/linux/linux-postinstall/).
+
+If you do't have docker installed yet, follow [the official install instructions.](https://docs.docker.com/install/)
 
 
 ### How to run
 
 ```bash
-git clone https://github.com/ExchangeUnion/xud-docker.git ~/xud-docker
-cd ~/xud-docker/
+curl https://raw.githubusercontent.com/ExchangeUnion/xud-docker/master/xud.sh -o ~/xud.sh
+bash ~/xud.sh 
 ```
 
-Change into the sub-folder of the network you want to run
+Set xud alias (works on linux & macOS)
 ```bash
-cd xud-regtest
-cd xud-simnet
-cd xud-testnet
-cd xud-mainnet
-```
-
-Start the environment
-```bash
-docker-compose up -d
-```
-
-Permanently set aliases (works on linux & macOS)
-```bash
-echo "source ./aliases.bash" >> ~/.bashrc
 source ~/.bashrc
 ```
 
@@ -56,8 +58,9 @@ docker-compose down
 ```
 
 ### References
-
+Simnet:
 * [BTCD config options](https://godoc.org/github.com/btcsuite/btcd)
 * [LTCD config options](https://godoc.org/github.com/ltcsuite/ltcd)
+All:
 * [LND config options](https://github.com/lightningnetwork/lnd/blob/master/sample-lnd.conf)
 * [XUD config options](https://github.com/ExchangeUnion/xud/blob/master/sample-xud.conf)
