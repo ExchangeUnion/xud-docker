@@ -17,7 +17,7 @@ Status: **in development**
 
 ### Requirements
 
-1. Linux, MacOS or [Windows 10 with WSL 2](https://devblogs.microsoft.com/commandline/wsl-2-is-now-available-in-windows-insiders/).
+1. Linux, MacOS or [Windows with WSL 2](https://devblogs.microsoft.com/commandline/wsl-2-is-now-available-in-windows-insiders/).
 
 2. docker >= 18.09
 ```
