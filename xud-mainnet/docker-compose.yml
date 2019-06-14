@@ -72,6 +72,7 @@ services:
       - 10009:10009
     volumes:
       - ./data/lndbtc:/root/.lnd
+    restart: on-failure:10
 
   lndltc:
     image: exchangeunion/lnd:0.6.1-beta-rc2
@@ -94,6 +95,7 @@ services:
       - 20009:10009
     volumes:
       - ./data/lndltc:/root/.lnd
+    restart: on-failure:10
 
   xud:
     image: exchangeunion/xudctl:1.0.0-alpha.11
@@ -139,4 +141,4 @@ services:
       - 5001:5001
     volumes:
       - ./data/geth:/root/.ethereum
-    restart: always
+    restart: on-failure:10
