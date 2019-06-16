@@ -1,6 +1,6 @@
 xud-docker
 ==========
+A 0-install [xud](https://github.com/ExchangeUnion/xud) environment using [docker](https://www.docker.com/)
 
-[![Build Status](https://travis-ci.org/ExchangeUnion/xud-docker.svg?branch=master)](https://travis-ci.org/ExchangeUnion/xud-docker)
-
-[How to use](https://github.com/ExchangeUnion/xud/wiki/Docker)
+Description and usage:
+* [xud wiki](https://github.com/ExchangeUnion/xud/wiki/Docker)
