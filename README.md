@@ -44,9 +44,9 @@ Start the environment with
 curl https://raw.githubusercontent.com/ExchangeUnion/xud-docker/master/xud.sh -o ~/xud.sh
 bash ~/xud.sh 
 ```
-This guides you through a setup on first run, pulls necessary containers, syncs chains and gets you into `xud-ctl` when all is up and ready. `xud-ctl` takes [`xucli` commands](https://api.exchangeunion.com) and some more, like `status` to check on the underlying clients like `bitcoind`, `litecoind` or `geth`. 
+This guides you through a setup on first run, pulls necessary containers, syncs chains and gets you into `xud ctl` when all is up and ready. `xud ctl` takes [`xucli` commands](https://api.exchangeunion.com) and some more, like `status` to check on the underlying clients like `bitcoind`, `litecoind` or `geth`. Once the `xud` environment is setup and ready, `xud ctl` is 
 
-Permanently set xud alias to control xud from anywhere:
+Permanently set xud alias to launch `xud ctl` from anywhere:
 ```bash
 source ~/.bashrc
 ```
