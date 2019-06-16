@@ -11,6 +11,7 @@ RUN npm prune --dev
 
 # final stage
 FROM node:lts-alpine
+RUN apk add --no-cache bash
 RUN mkdir /root/.xud
 VOLUME [ "/root/.xud" ]
 COPY --from=builder /xud/dist /app/dist

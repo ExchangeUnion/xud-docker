@@ -3,8 +3,6 @@ version: "3.6"
 services:
   bitcoind:
     image: exchangeunion/bitcoind:0.18.0
-    # Let generated "rpc.cert" has "btcd" domain name,
-    # or it will deny lnd rpc connections
     hostname: bitcoind
     command: >
       -server
@@ -28,9 +26,10 @@ services:
 
   litecoind:
     image: exchangeunion/litecoind:0.17.1
-    # Let generated "rpc.cert" has "ltcd" domain name,
-    # or it will deny lnd rpc connections
     hostname: litecoind
+    # Use -reindex to solve "Failed to read block ... from disk" error
+    # ref. https://bitcoin.stackexchange.com/questions/8787/failed-to-read-block
+    # Disable this parameter because it will let litecoind sync from scratch after every restart
     command: >
       -server
       -testnet
@@ -53,10 +52,10 @@ services:
 
   lndbtc:
     image: exchangeunion/lnd:0.6.1-beta-rc2
+    hostname: lndbtc
     environment:
       - NETWORK=testnet
       - CHAIN=bitcoin
-    hostname: lndbtc
     command: >
       --alias=lndbtc
       --bitcoin.active
@@ -76,10 +75,10 @@ services:
 
   lndltc:
     image: exchangeunion/lnd:0.6.1-beta-rc2
+    hostname: lndltc
     environment:
       - NETWORK=testnet
       - CHAIN=litecoin
-    hostname: lndltc
     command: >
       --alias=lndltc
       --litecoin.active
@@ -98,7 +97,7 @@ services:
     restart: always
 
   xud:
-    image: exchangeunion/xudctl:1.0.0-alpha.11
+    image: exchangeunion/xud:1.0.0-alpha.11
     hostname: xud
     environment:
       - NETWORK=testnet
@@ -114,9 +113,12 @@ services:
     image: exchangeunion/geth:1.8.27
     environment:
       - NETWORK=testnet
+    # --syncmode fast 
+    # may cause eth.blockNumber always 0
+    # https://github.com/ethereum/go-ethereum/issues/14338
+    # https://github.com/ethereum/go-ethereum/issues/16147
     command: >
       --testnet
-      --syncmode fast
       --rpc
       --rpcapi eth,net,web3,txpool,personal,admin
       --rpcaddr 0.0.0.0
@@ -130,16 +132,22 @@ services:
 
   raiden:
     image: exchangeunion/raiden:0.100.3
+    hostname: raiden
     environment:
       - NETWORK=testnet
     command: >
       --keystore-path /root/.ethereum/testnet/keystore
       --accept-disclaimer
-      --eth-rpc-endpoint http://geth:8545
+      --eth-rpc-endpoint geth:8545
       --network-id ropsten
       --password-file /root/.ethereum/passphrase.txt
+      --datadir /root/.raiden
+      --rpc
+      --api-address 0.0.0.0:5001
+      --matrix-server https://raidentransport.exchangeunion.com
     ports:
       - 5001:5001
     volumes:
       - ./data/geth:/root/.ethereum
+      - ./data/raiden:/root/.raiden
     restart: always
