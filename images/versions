@@ -1,4 +1,4 @@
-bitcoind=0.18.0
+bitcoind=0.17.1
 litecoind=0.17.1
 lnd=0.6.1-beta
 geth=1.8.27

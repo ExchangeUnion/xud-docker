@@ -2,7 +2,7 @@ version: "3.6"
 
 services:
   bitcoind:
-    image: exchangeunion/bitcoind:0.18.0
+    image: exchangeunion/bitcoind:0.17.1
     hostname: bitcoind
     command: >
       -server

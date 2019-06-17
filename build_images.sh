@@ -1,5 +1,7 @@
 #!/bin/bash
 
+cd images
+
 source versions
 
 bitcoind_tag=exchangeunion/bitcoind:$bitcoind
