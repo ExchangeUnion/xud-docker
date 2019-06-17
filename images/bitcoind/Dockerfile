@@ -59,7 +59,7 @@ RUN make install
 RUN strip ${BITCOIN_PREFIX}/bin/bitcoind
 RUN strip ${BITCOIN_PREFIX}/bin/bitcoin-tx
 RUN strip ${BITCOIN_PREFIX}/bin/bitcoin-cli
-RUN strip ${BITCOIN_PREFIX}/bin/bitcoin-wallet
+#RUN strip ${BITCOIN_PREFIX}/bin/bitcoin-wallet
 
 # Assemble the final image
 FROM alpine:3.9.3
