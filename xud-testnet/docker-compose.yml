@@ -49,6 +49,7 @@ services:
       - 29333:29333
     volumes:
       - ./data/litecoind:/root/.litecoin
+    stop_grace_period: 1m
 
   lndbtc:
     image: exchangeunion/lnd:0.6.1-beta

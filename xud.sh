@@ -17,14 +17,16 @@ EOF
     exit 0
 }
 
-while getopts "hndb:" opt; do
+while getopts "hn:d:b:" opt; do
     case "$opt" in
     h) 
         show_help ;;
     n) 
         network=$OPTARG ;;
     d) 
-        debug=true ;;
+        debug=true
+        debug_action=$OPTARG
+        ;;
     b) 
         branch=$OPTARG ;;
     esac
@@ -117,6 +119,17 @@ install() {
     docker-compose up -d
 }
 
+remove_old() {
+    docker-compose down
+}
+
+do_upgrade() {
+    remove_old
+    download_files
+    docker-compose pull
+    docker-compose up -d
+}
+
 upgrade() {
     $debug && return
     fetch_github_metadata
@@ -124,10 +137,7 @@ upgrade() {
     b=`cat docker-compose.yml | tail -1`
     if ! [ "$a" = "$b" ]; then
         echo "New version detected, upgrading..."
-        docker-compose down
-        download_files
-        docker-compose pull
-        docker-compose up -d
+        do_upgrade
     fi
 }
 
@@ -158,4 +168,13 @@ smart_run() {
     launch_xud_shell
 }
 
-smart_run
+echo "debug_action=$debug_action"
+
+if [ -z "$debug_action" ]; then
+    smart_run
+else
+    case "$debug_action" in
+        upgrade)
+            do_upgrade ;;
+    esac
+fi
