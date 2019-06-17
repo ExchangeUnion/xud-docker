@@ -51,7 +51,7 @@ services:
       - ./data/litecoind:/root/.litecoin
 
   lndbtc:
-    image: exchangeunion/lnd:0.6.1-beta-rc2
+    image: exchangeunion/lnd:0.6.1-beta
     hostname: lndbtc
     environment:
       - NETWORK=testnet
@@ -74,7 +74,7 @@ services:
     restart: always
 
   lndltc:
-    image: exchangeunion/lnd:0.6.1-beta-rc2
+    image: exchangeunion/lnd:0.6.1-beta
     hostname: lndltc
     environment:
       - NETWORK=testnet
