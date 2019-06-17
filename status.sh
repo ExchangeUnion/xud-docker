@@ -20,7 +20,10 @@ status_text() {
         if [ $1 -eq $2 ]; then
             echo "Ready"
         else
-            printf "Syncing %.2f%% (%d/%d)\n" $(echo "$1/$2*100" | bc -l) $1 $2
+            p=`echo "$1/$2*100" | bc -l`
+            pp=`echo "$p*100/1" | bc`
+            ppp=`echo "$pp/100" | bc -l`
+            printf "Syncing %.2f%% (%d/%d)\n" $ppp $1 $2
         fi
     fi
 }
