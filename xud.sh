@@ -98,8 +98,6 @@ fetch_github_metadata() {
 import sys,json; \
 r = json.load(sys.stdin); \
 print('# date: %s' % r['author']['date']); \
-print('# author: %s %s' % (r['author']['name'], r['author']['email'])); \
-print('# message: %s' % r['message']); \
 print('# sha: %s' % r['sha'])"`
 }
 
