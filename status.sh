@@ -28,6 +28,26 @@ status_text() {
     fi
 }
 
+status_text2() {
+    if [ -z "$1" ] || [ -z "$2" ]; then
+        echo "Waiting for sync"
+    else
+        if [ $1 -eq $2 ]; then
+            echo "Ready"
+        else
+            echo "Waiting for sync"
+        fi
+    fi
+}
+
+check_container() {
+    if ! docker-compose ps | grep Up | grep $1 >/dev/null 2>&1; then
+        echo "Container down"
+        return 1
+    fi
+    return 0
+}
+
 bitcoind_status() {
     set +e
     set +o pipefail
@@ -51,7 +71,7 @@ lnd_status() {
     fi
     y=`$pre1 getblockchaininfo 2>/dev/null | grep -A 1 blocks | grep -Po '\d+' | tail -1`
     x=`$pre2 getinfo 2>/dev/null | grep block_height | grep -Po '\d+'`
-    status_text $x $y
+    status_text2 $x $y
 }
 
 nocolor() {
@@ -87,13 +107,13 @@ xud_status() {
 
 all_status() {
     echo -e "SERVICE\tSTATUS"
-    echo -e "btc\t$(bitcoind_status btc)"
-    echo -e "ltc\t$(bitcoind_status ltc)"
-    echo -e "lndbtc\t$(lnd_status btc)"
-    echo -e "lndltc\t$(lnd_status ltc)"
-    echo -e "eth\t$(geth_status)"
-    echo -e "raiden\t$(raiden_status)"
-    echo -e "xud\t$(xud_status)"
+    echo -e "btc\t$(check_container bitcoind && bitcoind_status btc)"
+    echo -e "lndbtc\t$(check_container lndbtc && lnd_status btc)"
+    echo -e "ltc\t$(check_container litecoind && bitcoind_status ltc)"
+    echo -e "lndltc\t$(check_container lndltc && lnd_status ltc)"
+    echo -e "eth\t$(check_container geth && geth_status)"
+    echo -e "raiden\t$(check_container raiden && raiden_status)"
+    echo -e "xud\t$(check_container xud && xud_status)"
 }
 
 table() {
