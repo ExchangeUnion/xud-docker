@@ -1,5 +1,4 @@
 # Build Bitcoin Core
-# Copied from https://github.com/BoltzExchange/boltz-backend/blob/master/docker/bitcoin-core/Dockerfile
 FROM alpine:3.9.3 as bitcoin-core
 
 COPY --from=boltz/berkeley-db /opt /opt

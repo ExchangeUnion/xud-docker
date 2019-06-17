@@ -1,5 +1,4 @@
 # Build Litecoin Core
-# Copied from https://github.com/BoltzExchange/boltz-backend/blob/master/docker/litecoin-core/Dockerfile
 FROM alpine:3.9.3 as litecoin-core
 
 COPY --from=boltz/berkeley-db /opt /opt
