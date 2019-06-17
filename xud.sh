@@ -123,14 +123,11 @@ upgrade() {
     a=`echo -e "$ending" | tail -1`
     b=`cat docker-compose.yml | tail -1`
     if ! [ "$a" = "$b" ]; then
-        read -p "Would you like to upgrade? (y/N) " -n 1 -r
-        echo # move to a new line
-        if [[ $REPLY =~ ^[Yy]$ ]]; then
-            docker-compose down
-            download_files
-            docker-compose pull
-            docker-compose up -d
-        fi
+        echo "New version detected, upgrading..."
+        docker-compose down
+        download_files
+        docker-compose pull
+        docker-compose up -d
     fi
 }
 
