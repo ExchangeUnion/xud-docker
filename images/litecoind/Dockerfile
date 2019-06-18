@@ -65,6 +65,7 @@ RUN apk --no-cache add \
     libevent \
     libressl \
     boost-program_options
+RUN apk --no-cache add bash
 
 ARG version=0.17.1
 
@@ -74,4 +75,5 @@ COPY --from=litecoin-core /opt/litecoin-${LITECOIN_VERSION}/bin /bin
 
 EXPOSE 9332 19332 29332 29333
 
-ENTRYPOINT ["litecoind"]
+COPY entrypoint.sh /
+ENTRYPOINT [ "./entrypoint.sh" ]
