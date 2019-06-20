@@ -49,7 +49,6 @@ services:
       - 29333:29333
     volumes:
       - ./data/litecoind:/root/.litecoin
-    stop_grace_period: 1m
 
   lndbtc:
     image: exchangeunion/lnd:0.6.1-beta
@@ -98,7 +97,7 @@ services:
     restart: always
 
   xud:
-    image: exchangeunion/xud:1.0.0-alpha.11
+    image: exchangeunion/xud:latest
     hostname: xud
     environment:
       - NETWORK=testnet
@@ -110,22 +109,17 @@ services:
       - 8885:8885
       - 8886:8886
   
-  geth:
-    image: exchangeunion/geth:1.8.27
+  parity:
+    image: exchangeunion/parity:2.4.7-stable
     environment:
       - NETWORK=testnet
-    # --syncmode fast 
-    # may cause eth.blockNumber always 0
-    # https://github.com/ethereum/go-ethereum/issues/14338
-    # https://github.com/ethereum/go-ethereum/issues/16147
     command: >
-      --testnet
-      --rpc
-      --rpcapi eth,net,web3,txpool,personal,admin
-      --rpcaddr 0.0.0.0
-      --rpcvhosts=*
+      --warp
+      --chain ropsten
+      --jsonrpc-apis eth,net,web3,parity,personal
+      --jsonrpc-interface 0.0.0.0
     volumes: 
-      - ./data/geth:/root/.ethereum
+      - ./data/parity:/root/.local/share/io.parity.ethereum
     ports:
       - 8545:8545
       - 8546:8546
@@ -137,9 +131,9 @@ services:
     environment:
       - NETWORK=testnet
     command: >
-      --keystore-path /root/.ethereum/testnet/keystore
+      --keystore-path /root/.ethereum/keys/ropsten
       --accept-disclaimer
-      --eth-rpc-endpoint geth:8545
+      --eth-rpc-endpoint parity:8545
       --network-id ropsten
       --password-file /root/.ethereum/passphrase.txt
       --datadir /root/.raiden
@@ -149,6 +143,6 @@ services:
     ports:
       - 5001:5001
     volumes:
-      - ./data/geth:/root/.ethereum
+      - ./data/parity:/root/.ethereum
       - ./data/raiden:/root/.raiden
     restart: always

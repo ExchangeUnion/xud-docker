@@ -2,14 +2,17 @@
 
 set -e
 
-addr=`ls /root/.ethereum/$NETWORK/keystore/ | head -1`
+getaddr() {
+    addr=`cat /root/.ethereum/account-$NETWORK.txt | head -1`
+}
+
+getaddr
 
 while [ -z "$addr" ]; do
     sleep 3
-    echo "Waiting for the geth account"
-    addr=`ls /root/.ethereum/$NETWORK/keystore/ | head -1`
+    echo "Waiting for the parity $NETWORK account"
+    getaddr
 done
-
 
 addr="${addr: -40}"
 # Address must be EIP55 checksummed

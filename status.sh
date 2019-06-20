@@ -11,6 +11,7 @@ litecoind="docker-compose exec -T litecoind litecoin-cli -testnet -rpcuser=xu -r
 lndbtc="docker-compose exec -T lndbtc lncli -n testnet -c bitcoin"
 lndltc="docker-compose exec -T lndltc lncli -n testnet -c litecoin"
 geth="docker-compose exec -T geth geth --testnet"
+parity="docker-compose exec -T parity parity --chain ropsten"
 xud="docker-compose exec -T xud xucli"
 
 status_text() {
@@ -79,7 +80,16 @@ nocolor() {
 }
 
 geth_status() {
-    a=(`$geth --exec 'eth.syncing' attach | nocolor | grep -A 1 currentBlock | grep -Po '\d+'`)
+    a=(`$geth --exec 'eth.syncing' attach 2>/dev/null | nocolor | grep -A 1 currentBlock | grep -Po '\d+'`)
+    status_text ${a[@]}
+}
+
+parity_status() {
+    a=(`curl -s -X POST -H "Content-Type: application/json"  \
+--data '{"jsonrpc":"2.0","method":"eth_syncing","params":[],"id":1}' http://127.0.0.1:8545 | \
+sed 's/^.*"currentBlock":"0x\([0-9a-f]\+\)","highestBlock":"0x\([0-9a-f]\+\)".*$/\1\n\2/' | \
+tr 'a-f' 'A-F' | \
+xargs -n 1 -I {} sh -c "echo 'obase=10;ibase=16;{}' | bc"`)
     status_text ${a[@]}
 }
 
@@ -111,7 +121,8 @@ all_status() {
     echo -e "lndbtc\t$(check_container lndbtc && lnd_status btc)"
     echo -e "ltc\t$(check_container litecoind && bitcoind_status ltc)"
     echo -e "lndltc\t$(check_container lndltc && lnd_status ltc)"
-    echo -e "eth\t$(check_container geth && geth_status)"
+    #echo -e "eth\t$(check_container geth && geth_status)"
+    echo -e "parity\t$(check_container parity && parity_status)"
     echo -e "raiden\t$(check_container raiden && raiden_status)"
     echo -e "xud\t$(check_container xud && xud_status)"
 }

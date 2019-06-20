@@ -66,7 +66,7 @@ bug_report() {
         "docker-compose logs --tail=100 litecoind"
         "docker-compose logs --tail=100 lndbtc"
         "docker-compose logs --tail=100 lndltc"
-        "docker-compose logs --tail=100 geth"
+        "docker-compose logs --tail=100 parity"
         "docker-compose logs --tail=100 raiden"
         "docker-compose logs --tail=100 xud"
     )
