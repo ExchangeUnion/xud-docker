@@ -114,7 +114,7 @@ services:
     environment:
       - NETWORK=testnet
     command: >
-      --warp
+      --no-warp
       --chain ropsten
       --jsonrpc-apis eth,net,web3,parity,personal
       --jsonrpc-interface 0.0.0.0
