@@ -71,7 +71,6 @@ services:
       - 10009:10009
     volumes:
       - ./data/lndbtc:/root/.lnd
-    restart: always
 
   lndltc:
     image: exchangeunion/lnd:0.6.1-beta
@@ -94,21 +93,7 @@ services:
       - 20009:10009
     volumes:
       - ./data/lndltc:/root/.lnd
-    restart: always
 
-  xud:
-    image: exchangeunion/xud:latest
-    hostname: xud
-    environment:
-      - NETWORK=testnet
-    volumes:
-      - ./data/xud:/root/.xud
-      - ./data/lndbtc:/root/.lndbtc
-      - ./data/lndltc:/root/.lndltc
-    ports:
-      - 8885:8885
-      - 8886:8886
-  
   parity:
     image: exchangeunion/parity:2.4.7-stable
     environment:
@@ -145,4 +130,16 @@ services:
     volumes:
       - ./data/parity:/root/.ethereum
       - ./data/raiden:/root/.raiden
-    restart: always
+  
+  xud:
+    image: exchangeunion/xud
+    hostname: xud
+    environment:
+      - NETWORK=testnet
+    volumes:
+      - ./data/xud:/root/.xud
+      - ./data/lndbtc:/root/.lndbtc
+      - ./data/lndltc:/root/.lndltc
+    ports:
+      - 8885:8885
+      - 8886:8886

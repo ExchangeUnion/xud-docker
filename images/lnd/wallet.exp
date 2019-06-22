@@ -5,6 +5,8 @@ set timeout -1
 set password "12345678"
 set passphrase ""
 
+puts "=================== Auto unlock LND wallet ========================"
+
 spawn lncli -n $env(NETWORK) -c $env(CHAIN) create
 expect "Input wallet password"
 send "$password\r"
@@ -15,3 +17,5 @@ send "n\r"
 expect "Input your passphrase if you wish to encrypt it"
 send "$passphrase\r"
 expect "lnd successfully initialized"
+
+puts "-------------------------------------------------------------------"

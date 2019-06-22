@@ -2,11 +2,19 @@ version: "3.6"
 
 services:
   btcd:
-    image: exchangeunion/btcd-simnet
+    image: exchangeunion/btcd
     # Let generated "rpc.cert" has "btcd" domain name,
     # or it will deny lnd rpc connections
-    hostname: btcd 
+    hostname: btcd
+    environment:
+      - NETWORK=simnet
     command: >
+      --simnet
+      --txindex
+      --rpcuser=xu
+      --rpcpass=xu
+      --rpclisten=:18556
+      --nolisten
       --addpeer=35.231.222.142:18555
     ports:
       - 18556:18556
@@ -14,11 +22,19 @@ services:
       - ./data/btcd:/root/.btcd
 
   ltcd:
-    image: exchangeunion/ltcd-simnet
+    image: exchangeunion/ltcd
     # Let generated "rpc.cert" has "ltcd" domain name,
     # or it will deny lnd rpc connections
     hostname: ltcd
+    environment:
+      - NETWORK=simnet
     command: >
+      --simnet
+      --txindex
+      --rpcuser=xu
+      --rpcpass=xu
+      --rpclisten=:18556
+      --nolisten
       --addpeer=35.231.222.142:19555
     ports:
       - 19556:18556
@@ -26,35 +42,74 @@ services:
       - ./data/ltcd:/root/.ltcd
 
   lndbtc:
-    image: exchangeunion/lnd
+    image: exchangeunion/lnd:0.6.1-beta
     hostname: lndbtc
     environment:
-      - BACKEND=btcd
-      - ALIAS=lndbtc
+      - NETWORK=simnet
+      - CHAIN=bitcoin
+    command: >
+      --alias=lndbtc
+      --bitcoin.active
+      --bitcoin.simnet
+      --bitcoin.node=btcd
+      --btcd.rpchost=btcd
+      --btcd.rpcuser=xu
+      --btcd.rpcpass=xu
+      --debuglevel=debug
     ports:
-      - 10009:10009
+      - 10010:10009
     volumes:
       - ./data/lndbtc:/root/.lnd
       - ./data/btcd:/root/.btcd
-    depends_on:
-      - btcd
 
   lndltc:
-    image: exchangeunion/lnd
+    image: exchangeunion/lnd:0.6.1-beta
     hostname: lndltc
     environment:
-      - BACKEND=ltcd
-      - ALIAS=lndltc
+      - NETWORK=simnet
+      - CHAIN=litecoin
+    command: >
+      --alias=lndltc
+      --litecoin.active
+      --litecoin.simnet
+      --litecoin.node=ltcd
+      --ltcd.rpchost=ltcd
+      --ltcd.rpcuser=xu
+      --ltcd.rpcpass=xu
+      --debuglevel=debug
     ports:
-      - 20009:10009
+      - 20010:10009
     volumes:
       - ./data/lndltc:/root/.lnd
       - ./data/ltcd:/root/.ltcd
-    depends_on:
-      - ltcd
+
+  raiden:
+    image: exchangeunion/raiden:0.100.3
+    hostname: raiden
+    environment:
+      - NETWORK=simnet
+    command: >
+      --keystore-path /keystore
+      --accept-disclaimer
+      --eth-rpc-endpoint 35.231.222.142:8546
+      --network-id 4321
+      --password-file /password.txt
+      --datadir /root/.raiden
+      --rpc
+      --api-address 0.0.0.0:5001
+      --matrix-server https://raidentransport.exchangeunion.com
+      --no-sync-check
+      --tokennetwork-registry-contract-address 0x3A17B96809258523c4DED8e7F3f9364D13eBc2C5
+      --secret-registry-contract-address 0xddFecc25B8F834D14601A7e2359FB25189994cEE
+      --endpoint-registry-contract-address 0xe81091B6a83DC5479c99169ab0adB7092B8f0411
+      --gas-price 10000000000
+    ports:
+      - 5002:5001
+    volumes:
+      - ./data/raiden:/root/.raiden
 
   xud:
-    image: exchangeunion/xud:test
+    image: exchangeunion/xud
     hostname: xud
     environment:
       - NETWORK=simnet
@@ -63,17 +118,5 @@ services:
       - ./data/lndbtc:/root/.lndbtc
       - ./data/lndltc:/root/.lndltc
     ports:
-      - 18885:8885
-      - 18886:8886
-    depends_on:
-      - lndbtc
-      - lndltc
-  
-  ctl:
-    image: exchangeunion/ctl
-    volumes:
-      - ./data/lndbtc:/root/.lndbtc
-      - ./data/lndltc:/root/.lndltc
-    depends_on:
-      - lndbtc
-      - lndltc
+      - 9885:8885
+      - 9886:8886
