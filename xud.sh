@@ -168,7 +168,7 @@ smart_run() {
     launch_xud_shell
 }
 
-echo "debug_action=$debug_action"
+#echo "debug_action=$debug_action"
 
 if [ -z "$debug_action" ]; then
     smart_run
