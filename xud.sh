@@ -10,4 +10,4 @@ while getopts b: opt 2>/dev/null; do
     esac
 done
 
-curl -sf https://raw.githubusercontent.com/ExchangeUnion/xud-docker/$branch/setup.sh | bash -s $@
+bash <(curl -sf https://raw.githubusercontent.com/ExchangeUnion/xud-docker/$branch/setup.sh) $@
