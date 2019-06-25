@@ -1,0 +1,13 @@
+diff --git a/chaincfg/params.go b/chaincfg/params.go
+index ae143fcd..fbe69c35 100644
+--- a/chaincfg/params.go
++++ b/chaincfg/params.go
+@@ -506,7 +506,7 @@ var SimNetParams = Params{
+ 	CoinbaseMaturity:         100,
+ 	SubsidyReductionInterval: 210000,
+ 	TargetTimespan:           time.Hour * 24 * 14, // 14 days
+-	TargetTimePerBlock:       time.Minute * 10,    // 10 minutes
++	TargetTimePerBlock:       time.Second * 1,    // 10 minutes
+ 	RetargetAdjustmentFactor: 4,                   // 25% less, 400% more
+ 	ReduceMinDifficulty:      true,
+ 	MinDiffReductionTime:     time.Minute * 20, // TargetTimePerBlock * 2

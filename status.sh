@@ -2,6 +2,10 @@
 
 set -eo pipefail
 
+if ! [ -e tmp ]; then
+    mkdir tmp;
+fi
+
 # using -T to solve docker-compose error:
 # the input device is not a TTY
 # ref. https://github.com/docker/compose/issues/5696
@@ -32,14 +36,10 @@ status_text() {
 }
 
 status_text2() {
-    if [ -z "$1" ] || [ -z "$2" ]; then
-        echo "Waiting for sync"
+    if [ $1 -eq $2 ]; then
+        echo "Ready"
     else
-        if [ $1 -eq $2 ]; then
-            echo "Ready"
-        else
-            echo "Waiting for sync"
-        fi
+        echo "Waiting for sync"
     fi
 }
 
@@ -92,6 +92,14 @@ lnd_status() {
     fi
     local y=`$pre1 getblockchaininfo 2>/dev/null | grep -A 1 blocks | grep -Po '\d+' | tail -1`
     local x=`$pre2 getinfo 2>/dev/null | grep block_height | grep -Po '\d+'`
+    if [ -z "$x" ] || [ -z "$y" ]; then
+        if $pre2 getinfo 2>/dev/null | grep '"synced_to_chain": true' >/dev/null; then
+            echo "Ready"
+        else
+            echo "Waiting for sync"
+        fi
+        return
+    fi
     status_text2 $x $y
 }
 
@@ -124,15 +132,15 @@ raiden_status() {
 }
 
 xud_status() {
-    local info=`$xud getinfo 2>/dev/null`
-    local lndbtc_error=`echo $info | grep -A 2 BTC | grep error`
-    local lndltc_error=`echo $info | grep -A 2 LTC | grep error`
-    local raiden_error=`echo $info | grep -A 1 raiden | grep error`
+    $xud getinfo > tmp/xud_getinfo 2>&1
+    local lndbtc_ok=`cat tmp/xud_getinfo | grep -A2 BTC | grep error | grep '""'`
+    local lndltc_ok=`cat tmp/xud_getinfo | grep -A2 LTC | grep error | grep '""'`
+    local raiden_ok=`cat tmp/xud_getinfo | grep -A1 raiden | grep error | grep '""'`
 
-    if ! [ -z "$lndbtc_error" ] || ! [ -z "$lndltc_error" ] || ! [ -z "$raiden_error" ]; then
-        echo "Waiting for sync"
-    else
+    if ! [ -z "$lndbtc_ok" ] && ! [ -z "$lndltc_ok" ] && ! [ -z "$raiden_ok" ]; then
         echo "Ready"
+    else
+        echo "Waiting for sync"
     fi
 }
 
@@ -147,7 +155,9 @@ all_status() {
         local ltc_service="litecoind"
     fi
 
-    echo -e "btc\t$(check_container $btc_service && btc_status btc)"
+    if [ "$XUD_NETWORK" != "simnet" ]; then
+        echo -e "btc\t$(check_container $btc_service && btc_status btc)"
+    fi
     echo -e "lndbtc\t$(check_container lndbtc && lnd_status btc)"
     echo -e "ltc\t$(check_container $ltc_service && btc_status ltc)"
     echo -e "lndltc\t$(check_container lndltc && lnd_status ltc)"
