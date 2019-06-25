@@ -55,7 +55,7 @@ download_files() {
         if ! [ -e $n ]; then
             mkdir $n
         fi
-        curl -s $url/xud-regtest/docker-compose.yml > regtest/docker-compose.yml
+        curl -s $url/xud-$n/docker-compose.yml > $n/docker-compose.yml
     done
 
     curl -s $url/banner.txt > banner.txt
@@ -105,7 +105,7 @@ upgrade() {
     $debug && return
     fetch_github_metadata
     a=`echo -e "$revision" | tail -1`
-    b=`cat revision.txt | tail -1`
+    b=`cat revision.txt 2>/dev/null| tail -1`
     if ! [ "$a" = "$b" ]; then
         echo "New version detected, upgrading..."
         do_upgrade
