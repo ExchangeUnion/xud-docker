@@ -50,10 +50,14 @@ download_files() {
     cd $home
     echo -e "$revision" >> revision.txt
     url="https://raw.githubusercontent.com/ExchangeUnion/xud-docker/$branch"
-    curl -s $url/xud-regtest/docker-compose.yml > regtest/docker-compose.yml
-    curl -s $url/xud-simnet/docker-compose.yml  > simnet/docker-compose.yml
-    curl -s $url/xud-testnet/docker-compose.yml > testnet/docker-compose.yml
-    curl -s $url/xud-mainnet/docker-compose.yml > mainnet/docker-compose.yml
+
+    for n in regtest simnet testnet mainnet; do
+        if ! [ -e $n ]; then
+            mkdir $n
+        fi
+        curl -s $url/xud-regtest/docker-compose.yml > regtest/docker-compose.yml
+    done
+
     curl -s $url/banner.txt > banner.txt
     curl -s $url/init.sh > init.sh
     curl -s $url/status.sh > status.sh
