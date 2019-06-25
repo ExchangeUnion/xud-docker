@@ -5,3 +5,5 @@ geth=1.8.27
 raiden=0.100.3
 xud=latest
 parity=2.4.7-stable
+btcd=latest
+ltcd=latest

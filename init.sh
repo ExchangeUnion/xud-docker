@@ -1,13 +1,27 @@
-export PS1='> '
+export XUD_NETWORK=`basename $(pwd)`
 
-alias bitcoin-cli="docker-compose exec bitcoind bitcoin-cli -testnet -rpcuser=xu -rpcpassword=xu"
-alias litecoin-cli="docker-compose exec litecoind litecoin-cli -testnet -rpcuser=xu -rpcpassword=xu"
-alias lndbtc-lncli="docker-compose exec lndbtc lncli -n testnet -c bitcoin"
-alias lndltc-lncli="docker-compose exec lndltc lncli -n testnet -c litecoin"
-#alias geth="docker-compose exec geth geth --testnet"
-alias parity="docker-compose exec parity parity --chain ropsten"
-alias xucli="docker-compose exec xud xucli"
+case $XUD_NETWORK in
+    testnet)
+        alias bitcoin-cli="docker-compose exec bitcoind bitcoin-cli -testnet -rpcuser=xu -rpcpassword=xu"
+        alias litecoin-cli="docker-compose exec litecoind litecoin-cli -testnet -rpcuser=xu -rpcpassword=xu"
+        alias lndbtc-lncli="docker-compose exec lndbtc lncli -n testnet -c bitcoin"
+        alias lndltc-lncli="docker-compose exec lndltc lncli -n testnet -c litecoin"
+        #alias geth="docker-compose exec geth geth --testnet"
+        alias parity="docker-compose exec parity parity --chain ropsten"
+        alias xucli="docker-compose exec xud xucli"
+        ;;
+    simnet)
+        alias btcctl="docker-compose exec btcd btcctl --simnet --rpcuser=xu --rpcpass=xu"
+        alias ltcctl="docker-compose exec ltcd ltcctl --simnet --rpcuser=xu --rpcpass=xu"
+        alias lndbtc-lncli="docker-compose exec lndbtc lncli -n simnet -c bitcoin"
+        alias lndltc-lncli="docker-compose exec lndltc lncli -n simnet -c litecoin"
+        alias parity="docker-compose exec parity parity --chain ropsten"
+        alias xucli="docker-compose exec xud xucli"
+        ;;
+esac
 
+alias logs="docker-compose logs"
+    
 alias help="xucli help"
 alias addcurrency="xucli addcurrency"
 alias addpair="xucli addpair"
@@ -28,6 +42,10 @@ alias unban="xucli unban"
 alias buy="xucli buy"
 alias sell="xucli sell"
 
+export PS1="$XUD_NETWORK > "
+
 export XUD_DOCKER_HOME=~/.xud-docker
 
 alias status="$XUD_DOCKER_HOME/status.sh"
+
+cat ../banner.txt
