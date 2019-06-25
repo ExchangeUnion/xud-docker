@@ -125,8 +125,8 @@ run() {
         install
     fi
 
-    PS3="Please choose the network: "
-    options=("Simnet" "Testnet" "Mainnet")
+    PS3="Please choose the network (1/2): "
+    options=("Simnet" "Testnet" "Mainnet (comming soon)")
     select opt in "${options[@]}"; do
         case $REPLY in
             "1") network="simnet"
@@ -134,8 +134,8 @@ run() {
             "2") network="testnet"
                 break;;
             "3") network="mainnet"
-                break;;
-            *) echo "Invalid option $REPLY";;
+                exit 1;;
+            *) echo "Invalid option: $REPLY";;
         esac
     done
 
