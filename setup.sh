@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -euo pipefail
+#set -euo pipefail
 
 branch=master
 debug=false
@@ -67,11 +67,11 @@ install() {
 }
 
 get_running_networks() {
-    docker ps --format '{{.Names}}' | cut -d'_' -f 1 | uniq | grep -e 'regtest|simnet|testnet|mainnet'
+    docker ps --format '{{.Names}}' | cut -d'_' -f 1 | uniq | grep -E 'regtest|simnet|testnet|mainnet'
 }
 
 get_existing_networks() {
-    docker ps -a --format '{{.Names}}' | cut -d'_' -f 1 | uniq | grep -e 'regtest|simnet|testnet|mainnet'
+    docker ps -a --format '{{.Names}}' | cut -d'_' -f 1 | uniq | grep -E 'regtest|simnet|testnet|mainnet'
 }
 
 remove_old() {
