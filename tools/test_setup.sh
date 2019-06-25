@@ -25,4 +25,4 @@ chmod u+x main.sh status.sh
 
 cd $project_root
 
-./setup.sh -d
+./setup.sh $@

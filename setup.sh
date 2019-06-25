@@ -47,6 +47,7 @@ print('# sha: %s' % r['sha'])" 2>/dev/null`
 }
 
 download_files() {
+    cd $home
     echo -e "$revision" >> revision.txt
     url="https://raw.githubusercontent.com/ExchangeUnion/xud-docker/$branch"
     curl -s $url/xud-regtest/docker-compose.yml > regtest/docker-compose.yml
@@ -134,7 +135,7 @@ run() {
         esac
     done
 
-    cd $network
+    cd $home/$network
 
     ../main.sh -n $network
 }
