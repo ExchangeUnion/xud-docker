@@ -68,6 +68,7 @@ services:
       --bitcoind.zmqpubrawtx=tcp://bitcoind:28333
       --debuglevel=debug
     ports:
+      - 9735:9735
       - 10009:10009
     volumes:
       - ./data/lndbtc:/root/.lnd
@@ -90,6 +91,7 @@ services:
       --litecoind.zmqpubrawtx=tcp://litecoind:29333
       --debuglevel=debug
     ports:
+      - 10735:9735
       - 20009:10009
     volumes:
       - ./data/lndltc:/root/.lnd
