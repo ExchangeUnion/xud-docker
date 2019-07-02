@@ -98,3 +98,7 @@ services:
     ports:
       - 9885:8885
       - 9886:8886
+    depends_on:
+      - lndbtc
+      - lndltc
+      - raiden
