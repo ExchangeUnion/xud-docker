@@ -5,36 +5,19 @@ set -euo pipefail
 lncli="lncli -n $NETWORK -c $CHAIN"
 
 check_lnd() {
-    err=`cat /root/.lnd/logs/$CHAIN/$NETWORK/lnd.log | grep ERR | tail -1`
-    if ! [ -z "$err" ]; then
-        echo "[DEBUG] Last error log"
-        echo -e "\n\n$err\n\n"
-    fi
+    # err=`cat /root/.lnd/logs/$CHAIN/$NETWORK/lnd.log | grep ERR | tail -1`
+    # if ! [ -z "$err" ]; then
+    #     echo "[DEBUG] Last error log"
+    #     echo -e "\n\n$err\n\n"
+    # fi
 
-    echo "=========================== LND status checking ==================================="
-    ps | grep "lnd " | grep -v grep
-    $lncli getinfo
-    echo "==================================================================================="
+    # echo "=========================== LND status checking ==================================="
+    # ps | grep "lnd " | grep -v grep
+    # $lncli getinfo
+    # echo "==================================================================================="
 
     n=`ps | grep "lnd " | grep -v grep | wc -l`
     [ $n -eq "1" ] && $lncli getinfo > /dev/null 2>&1
-}
-
-start_lnd() {
-    set -m
-
-    # macaroons is force enabled when listening on public interfaces (--no-macaroons)
-    # specify 0.0.0.0:10009 instead of :10009 because `lncli -n simnet getinfo` will not work with ':10009'
-    lnd --rpclisten=0.0.0.0:10009 --listen=0.0.0.0:9735 --restlisten=0.0.0.0:8080 $@ &
-
-    sleep 3
-
-    ./wallet.exp
-    ./unlock.exp
-
-    #fg %2
-
-    post_actions &
 }
 
 post_actions() {
@@ -84,6 +67,29 @@ post_actions() {
     # done
     # echo -e "[DEBUG] The channel is active"
 }
+
+unlock_wallet() {
+    ./wallet.exp
+    ./unlock.exp
+
+    # TODO make sure wallet has been unlocked
+}
+
+start_lnd() {
+    set -m
+
+    # macaroons is force enabled when listening on public interfaces (--no-macaroons)
+    # specify 0.0.0.0:10009 instead of :10009 because `lncli -n simnet getinfo` will not work with ':10009'
+    lnd --rpclisten=0.0.0.0:10009 --listen=0.0.0.0:9735 --restlisten=0.0.0.0:8080 $@ &
+
+    post_actions &
+
+    sleep 3
+
+    unlock_wallet
+}
+
+
 
 restart_lnd() {
     set +e
