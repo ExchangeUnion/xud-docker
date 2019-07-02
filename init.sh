@@ -41,6 +41,7 @@ alias shutdown="xucli shutdown"
 alias unban="xucli unban"
 alias buy="xucli buy"
 alias sell="xucli sell"
+alias orderbook="xucli orderbook"
 
 export PS1="$XUD_NETWORK > "
 

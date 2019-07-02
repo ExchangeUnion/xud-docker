@@ -58,6 +58,16 @@ fi
 sed -i "s/<instance_id>/$insid/g" ~/.xud/xud.conf
 sed -i "s/<network>/$NETWORK/g" ~/.xud/xud.conf
 
+while ! [ -e "/root/.lndbtc/data/chain/bitcoin/$NETWORK/admin.macaroon" ]; do
+    "Waiting for lndbtc admin.macaroon"
+    sleep 3
+done
+
+while ! [ -e "/root/.lndltc/data/chain/litecoin/$NETWORK/admin.macaroon" ]; do
+    "Waiting for lndltc admin.macaroon"
+    sleep 3
+done
+
 if [ "$NETWORK" = "simnet" ]; then
     set_weth &
 fi
