@@ -21,6 +21,12 @@ case $XUD_NETWORK in
 esac
 
 alias logs="docker-compose logs"
+alias start="docker-compose start"
+alias stop="docker-compose stop"
+alias restart="docker-compose restart"
+alias logs="docker-compose logs"
+alias up="docker-compose up"
+alias down="docker-compose down"
     
 alias help="xucli help"
 alias addcurrency="xucli addcurrency"

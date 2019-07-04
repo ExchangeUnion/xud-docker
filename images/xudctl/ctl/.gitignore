@@ -1,7 +1,0 @@
-build/
-dist/
-*.egg-info/
-venv/
-draft.txt
-__pycache__/
-sync.sh

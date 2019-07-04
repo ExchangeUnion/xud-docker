@@ -1,8 +1,0 @@
-#!/usr/bin/expect
-
-# Should success on first installation
-spawn bash xud.sh
-expect "XUD started successfully. Please run source ~/.bashrc and then xucli getinfo to get the status of the system. xucli help to show all available commands."
-expect "$ "
-send "exit\r"
-expect eof

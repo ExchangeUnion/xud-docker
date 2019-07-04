@@ -1,6 +1,20 @@
 #!/bin/bash
 
-#set -euo pipefail
+set -euo pipefail
+set -E # error trap
+
+home=${XUD_DOCKER_HOME:-~/.xud-docker}
+logfile=$home/xud-docker.log
+
+failure() {
+	local lineno=$1
+	local msg=$2
+	echo "Failed at $lineno: $msg" >>$logfile
+}
+
+emit_error() {
+    >&2 echo $1
+}
 
 branch=master
 debug=false
@@ -8,42 +22,37 @@ debug=false
 while getopts "b:d" opt 2>/dev/null; do
     case "$opt" in
         b) branch=$OPTARG;;
-        d) debug=true;;
+        d) set -x;;
     esac
 done
 shift $((OPTIND -1))
 
 check_system() {
     if ! which docker > /dev/null; then
-        echo '[ERROR] docker missing'
+        emit_error 'docker is missing'
         exit 1
     fi
 
     if ! which docker-compose > /dev/null; then
-        echo '[ERROR] docker-compose missing'
+        emit_error 'docker-compose is missing'
         exit 1
-    fi
-
-    if [ -z "${XUD_DOCKER_HOME:-}" ]; then
-        home=~/.xud-docker
-    else
-        home="$XUD_DOCKER_HOME"
     fi
 }
 
 fetch_github_metadata() {
-    export PYTHONIOENCODING=utf8
-    url=`curl -s https://api.github.com/repos/ExchangeUnion/xud-docker/git/refs/heads/$branch | \
-        python -c "import sys,json; print(json.load(sys.stdin)['object']['url'])" 2>/dev/null`
-    revision=`curl -s $url | python -c "\
-import sys,json; \
-r = json.load(sys.stdin); \
-print('# date: %s' % r['author']['date']); \
-print('# sha: %s' % r['sha'])" 2>/dev/null`
-    if [ -z "$revision" ]; then
-        echo "[ERROR] Failed to fetch GitHub metadata"
+    url=`curl -sf https://api.github.com/repos/ExchangeUnion/xud-docker/git/refs/heads/$branch 2>>$logfile | grep url | tail -1 | sed -nE 's/.* "([^"]+)".*/\1/p'`
+    if [[ -z $url ]]; then
+        emit_error "Failed to fetch $branch branch metadata"
         exit 1
     fi
+    commit=`curl -sf $url 2>>$logfile`
+    if [[ -z $commit ]]; then
+        emit_error "Failed to fetch commit metadata ($url)"
+        exit 1
+    fi
+    date=`echo "$commit" | grep date | head -1 | sed -E 's/.*: "([^"]+)".*/\1/g'`
+    sha=`echo "$commit" | grep sha | head -1 | sed -E 's/.*: "([^"]+).*/\1/g'`
+    revision="date: $date\nsha: $sha"
 }
 
 download_files() {
@@ -72,32 +81,31 @@ install() {
 }
 
 get_running_networks() {
-    docker ps --format '{{.Names}}' | cut -d'_' -f 1 | uniq | grep -E 'regtest|simnet|testnet|mainnet'
+    docker ps --format '{{.Names}}' | cut -d'_' -f 1 | sort | uniq | grep -E 'regtest|simnet|testnet|mainnet'
 }
 
 get_existing_networks() {
-    docker ps -a --format '{{.Names}}' | cut -d'_' -f 1 | uniq | grep -E 'regtest|simnet|testnet|mainnet'
-}
-
-remove_old() {
-    docker-compose down
+    docker ps -a --format '{{.Names}}' | cut -d'_' -f 1 | sort | uniq | grep -E 'regtest|simnet|testnet|mainnet'
 }
 
 do_upgrade() {
     running_networks=(`get_running_networks`)
     existing_networks=(`get_existing_networks`)
-    for n in "${running_networks[@]}"; do
+    for n in "${running_networks[@]:-}"; do
         cd $home/$n
-        docker-compose down
+        echo "Shutdown $n environment"
+        docker-compose down >/dev/null 2>>$logfile
     done
     download_files
-    for n in "${existing_networks[@]}"; do
+    for n in "${existing_networks[@]:-}"; do
         cd $home/$n
-        docker-compose pull
+        echo "Pull $n images"
+        docker-compose pull >/dev/null 2>>$logfile
     done
-    for n in "${running_networks[@]}"; do
+    for n in "${running_networks[@]:-}"; do
         cd $home/$n
-        docker-compose up -d
+        echo "Launch $n environment"
+        docker-compose up -d >/dev/null 2>>$logfile
     done
 }
 
@@ -105,23 +113,42 @@ upgrade() {
     $debug && return
     fetch_github_metadata
     a=`echo -e "$revision" | tail -1`
-    b=`cat revision.txt 2>/dev/null| tail -1`
-    if ! [ "$a" = "$b" ]; then
+    if [[ -e revision.txt ]]; then
+        b=`cat revision.txt | tail -1`
+    else
+        b=""
+    fi
+    if [[ $a != $b ]]; then
         echo "New version detected, upgrading..."
         do_upgrade
-        pwd
     fi
+}
+
+integrity_check() {
+    return 0
+}
+
+fix_content() {
+    return 0
 }
 
 run() {
     check_system
 
-    if [ -e $home ]; then
+    if [[ -e $home ]]; then
         cd $home
+        if ! integrity_check; then
+            fix_content
+        fi
+        echo "$(date)">$logfile
+        trap 'failure ${LINENO} "$BASH_COMMAND"' ERR
         upgrade
     else
         mkdir -p $home
+        touch $logfile
         cd $home
+        echo "$(date)">$logfile
+        trap 'failure ${LINENO} "$BASH_COMMAND"' ERR
         install
     fi
 
@@ -142,7 +169,7 @@ run() {
 
     cd $home/$network
 
-    ../main.sh -n $network
+    ../main.sh -n $network -l $logfile
 }
 
 run

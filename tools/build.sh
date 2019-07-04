@@ -55,6 +55,7 @@ build_xud() {
     else
         docker build -t $xud_tag --build-arg branch=v$xud xud
     fi
+    sleep 10
     docker push $xud_tag
 }
 
