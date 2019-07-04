@@ -1,6 +1,7 @@
 FROM golang:alpine AS build-stage
+ARG branch=master
 RUN apk add --no-cache alpine-sdk
-RUN git clone https://github.com/ltcsuite/ltcd $GOPATH/src/github.com/ltcsuite/ltcd
+RUN git clone -b ${branch} https://github.com/ltcsuite/ltcd $GOPATH/src/github.com/ltcsuite/ltcd
 WORKDIR $GOPATH/src/github.com/ltcsuite/ltcd
 RUN GO111MODULE=on go install . ./cmd/...
 

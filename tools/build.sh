@@ -51,7 +51,7 @@ build_parity() {
 
 build_xud() {
     if [ "$xud" = "latest" ]; then
-        docker build --no-cache -t $xud_tag --build-arg branch=master xud
+        docker build -t $xud_tag --build-arg branch=master xud
     else
         docker build -t $xud_tag --build-arg branch=v$xud xud
     fi
@@ -80,8 +80,8 @@ build_ltcd() {
         touch $images/ltcd/data.tar.gz
     fi
     if [ "$ltcd" = "latest" ]; then
-        docker build --no-cache -t $ltcd_tag --build-arg branch=master ltcd
-        docker build --no-cache -t $ltcd_simnet_tag --build-arg branch=master -f ltcd/Dockerfile.simnet ltcd
+        docker build -t $ltcd_tag --build-arg branch=master ltcd
+        docker build -t $ltcd_simnet_tag --build-arg branch=master -f ltcd/Dockerfile.simnet ltcd
     else
         docker build -t $ltcd_tag --build-arg branch=v$ltcd ltcd
         docker build -t $ltcd_simnet_tag --build-arg branch=v$ltcd -f ltcd/Dockerfile.simnet ltcd

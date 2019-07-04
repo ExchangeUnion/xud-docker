@@ -5,22 +5,14 @@ set -euo pipefail
 lncli="lncli -n $NETWORK -c $CHAIN"
 
 check_lnd() {
-    # err=`cat /root/.lnd/logs/$CHAIN/$NETWORK/lnd.log | grep ERR | tail -1`
-    # if ! [ -z "$err" ]; then
-    #     echo "[DEBUG] Last error log"
-    #     echo -e "\n\n$err\n\n"
-    # fi
-
-    # echo "=========================== LND status checking ==================================="
-    # ps | grep "lnd " | grep -v grep
-    # $lncli getinfo
-    # echo "==================================================================================="
-
     n=`ps | grep "lnd " | grep -v grep | wc -l`
     [ $n -eq "1" ] && $lncli getinfo > /dev/null 2>&1
 }
 
 post_actions() {
+
+    set +e
+    set +o pipefail
 
     while ! check_lnd; do
         echo "[DEBUG] Sleep 10 seconds to check lnd then perform post actions"
@@ -57,15 +49,7 @@ post_actions() {
         fi
     fi
 
-    # Wait until the channel is active
-    # while true; do
-    #     echo "[DEBUG] Wait 3 seconds to see if the channel is active ($connectstr)"
-    #     if  $lncli listchannels 2>&1 |grep active > /dev/null 2>&1; then
-    #         break
-    #     fi
-    #     sleep 3
-    # done
-    # echo -e "[DEBUG] The channel is active"
+    set -eo pipefail
 }
 
 unlock_wallet() {
@@ -90,7 +74,6 @@ start_lnd() {
 }
 
 
-
 restart_lnd() {
     set +e
     echo "[DEBUG] Enter restart_lnd function"
@@ -107,7 +90,6 @@ restart_lnd() {
     sleep 10
     start_lnd $@
 }
-
 
 
 run() {
