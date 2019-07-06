@@ -68,8 +68,8 @@ btc_status() {
             local pre="$litecoind"
         fi
     fi
-    local a=(`$pre getblockchaininfo 2>/dev/null | grep -A 1 blocks | sed -nE 's/[^0-9]*([0-9]+).*/\1/p'`)
-    status_text ${a[@]:-}
+    local args=(`$pre getblockchaininfo 2>/dev/null | grep -A 1 blocks | sed -nE 's/[^0-9]*([0-9]+).*/\1/p' | paste -sd ' '`)
+    status_text $args
 }
 
 lnd_status() {
@@ -108,17 +108,16 @@ nocolor() {
 }
 
 geth_status() {
-    local a=(`$geth --exec 'eth.syncing' attach 2>/dev/null | nocolor | grep -A 1 currentBlock | sed -nE 's/[^0-9]*([0-9]+).*/\1/p'`)
-    status_text ${a[@]:-}
+    local args=(`$geth --exec 'eth.syncing' attach 2>/dev/null | nocolor | grep -A 1 currentBlock | sed -nE 's/[^0-9]*([0-9]+).*/\1/p' | paste -sd ' '`)
+    status_text $args
 }
 
 parity_status() {
-    local a=(`curl -s -X POST -H "Content-Type: application/json"  \
+    local args=(`curl -s -X POST -H "Content-Type: application/json"  \
 --data '{"jsonrpc":"2.0","method":"eth_syncing","params":[],"id":1}' http://127.0.0.1:8545 | \
 sed -E 's/^.*"currentBlock":"0x([0-9a-f]+)","highestBlock":"0x([0-9a-f]+)".*$/\1\n\2/' | \
-tr 'a-f' 'A-F' | \
-xargs -n 1 -I {} sh -c "echo 'obase=10;ibase=16;{}' | bc"`)
-    status_text ${a[@]:-}
+tr 'a-f' 'A-F' | xargs -n 1 -I {} sh -c "echo 'obase=10;ibase=16;{}' | bc" | paste -sd ' '`)
+    status_text $args
 }
 
 raiden_status() {

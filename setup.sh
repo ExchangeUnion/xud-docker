@@ -81,28 +81,32 @@ install() {
 }
 
 get_running_networks() {
-    docker ps --format '{{.Names}}' | cut -d'_' -f 1 | sort | uniq | grep -E 'regtest|simnet|testnet|mainnet'
+    set +o pipefail
+    docker ps --format '{{.Names}}' | cut -d'_' -f 1 | sort | uniq | grep -E 'regtest|simnet|testnet|mainnet' | paste -sd " "
+    set -o pipefail
 }
 
 get_existing_networks() {
-    docker ps -a --format '{{.Names}}' | cut -d'_' -f 1 | sort | uniq | grep -E 'regtest|simnet|testnet|mainnet'
+    set +o pipefail
+    docker ps -a --format '{{.Names}}' | cut -d'_' -f 1 | sort | uniq | grep -E 'regtest|simnet|testnet|mainnet' | paste -sd " "
+    set -o pipefail
 }
 
 do_upgrade() {
-    running_networks=(`get_running_networks`)
-    existing_networks=(`get_existing_networks`)
-    for n in "${running_networks[@]:-}"; do
+    running_networks=`get_running_networks`
+    existing_networks=`get_existing_networks`
+    for n in $running_networks; do
         cd $home/$n
         echo "Shutdown $n environment"
         docker-compose down >/dev/null 2>>$logfile
     done
     download_files
-    for n in "${existing_networks[@]:-}"; do
+    for n in $existing_networks; do
         cd $home/$n
         echo "Pull $n images"
         docker-compose pull >/dev/null 2>>$logfile
     done
-    for n in "${running_networks[@]:-}"; do
+    for n in $running_networks; do
         cd $home/$n
         echo "Launch $n environment"
         docker-compose up -d >/dev/null 2>>$logfile

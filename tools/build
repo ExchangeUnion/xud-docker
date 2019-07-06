@@ -51,7 +51,7 @@ build_parity() {
 
 build_xud() {
     if [ "$xud" = "latest" ]; then
-        docker build -t $xud_tag --build-arg branch=master xud
+        docker build --no-cache -t $xud_tag --build-arg branch=master xud
     else
         docker build -t $xud_tag --build-arg branch=v$xud xud
     fi

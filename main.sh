@@ -31,32 +31,27 @@ shift $((OPTIND -1))
 home=`pwd`
 
 get_all_services() {
-    cat docker-compose.yml | sed -nE 's/^  ([a-z]+):$/\1/p'
+    cat docker-compose.yml | sed -nE 's/^  ([a-z]+):$/\1/p' | sort | paste -sd " "
 }
 
-bug_report() {
-    report="bug_report_$(date +%s).txt"
-    echo "Generating bug report file: $home/$report"
-    
+log_details() {
     commands=(
         "uname -a"
         "docker info"
         "docker stats --no-stream"
         "docker-compose ps"
     )
-    services=(`get_all_services`)
-    for s in "${services[@]:-}"; do
+    services=`get_all_services`
+    for s in $services; do
         commands+=("docker-compose logs --tail=100 $s")
     done
 
     set +e
-
     for cmd in "${commands[@]}"; do
-        echo $cmd >> $report
-        eval $cmd >> $report
-        echo "" >> $report
+        echo $cmd >> $logfile
+        eval $cmd >> $logfile
+        echo "" >> $logfile
     done
-
     set -e
 }
 
@@ -74,13 +69,17 @@ launch_xud_shell() {
 }
 
 get_up_services() {
-    docker-compose ps | grep Up | awk '{print $1}' | sed -E "s/${network}_//g" | sed -E 's/_1//g'
+    docker-compose ps | grep Up | awk '{print $1}' | sed -E "s/${network}_//g" | sed -E 's/_1//g' | sort | paste -sd " "
+}
+
+get_down_services() {
+    docker-compose ps | tail -n +3 | grep -v Up | awk '{print $1}' | sed -E "s/${network}_//g" | sed -E 's/_1//g' | sort | paste -sd " "
 }
 
 is_all_containers_up() {
-    up_services=(`get_up_services | sort`)
-    all_services=(`get_all_services | sort`)
-    [[ "${up_services[@]:-}" == "${all_services[@]:-}" ]]
+    up_services=`get_up_services`
+    all_services=`get_all_services`
+    [[ $up_services == $all_services ]]
 }
 
 run() {
@@ -89,7 +88,9 @@ run() {
         docker-compose up -d >/dev/null 2>>$logfile
         sleep 10
         if ! is_all_containers_up; then
-            bug_report
+            log_details
+            down_services=`get_down_services | tr ' ' ', '`
+            echo "Failed to start service(s): $down_services. See more details in $logfile"
             exit 1
         fi
     fi
