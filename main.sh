@@ -90,7 +90,7 @@ run() {
         if ! is_all_containers_up; then
             log_details
             down_services=`get_down_services | tr ' ' ', '`
-            echo "Failed to start service(s): $down_services. See more details in $logfile"
+            echo "Failed to start service(s): $down_services. For more details, see $logfile"
             exit 1
         fi
     fi
