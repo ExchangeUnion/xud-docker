@@ -94,21 +94,16 @@ get_existing_networks() {
 
 do_upgrade() {
     running_networks=`get_running_networks`
-    existing_networks=`get_existing_networks`
     for n in $running_networks; do
         cd $home/$n
         echo "Shutting down $n environment"
         docker-compose down >/dev/null 2>>$logfile
     done
     download_files
-    for n in $existing_networks; do
-        cd $home/$n
-        echo "Pulling $n images"
-        docker-compose pull >/dev/null 2>>$logfile
-    done
     for n in $running_networks; do
         cd $home/$n
         echo "Launching $n environment"
+        docker-compose pull >/dev/null 2>>$logfile
         docker-compose up -d >/dev/null 2>>$logfile
     done
 }
