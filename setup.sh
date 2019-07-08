@@ -19,7 +19,7 @@ emit_error() {
 branch=master
 debug=false
 
-while getopts "b:d" opt 2>/dev/null; do
+while getopts "b:d" opt; do
     case "$opt" in
         b) branch=$OPTARG;;
         d) set -x;;
@@ -82,13 +82,13 @@ install() {
 
 get_running_networks() {
     set +o pipefail
-    docker ps --format '{{.Names}}' | cut -d'_' -f 1 | sort | uniq | grep -E 'regtest|simnet|testnet|mainnet' | paste -sd " "
+    docker ps --format '{{.Names}}' | cut -d'_' -f 1 | sort | uniq | grep -E 'regtest|simnet|testnet|mainnet' | paste -sd " " -
     set -o pipefail
 }
 
 get_existing_networks() {
     set +o pipefail
-    docker ps -a --format '{{.Names}}' | cut -d'_' -f 1 | sort | uniq | grep -E 'regtest|simnet|testnet|mainnet' | paste -sd " "
+    docker ps -a --format '{{.Names}}' | cut -d'_' -f 1 | sort | uniq | grep -E 'regtest|simnet|testnet|mainnet' | paste -sd " " -
     set -o pipefail
 }
 
@@ -153,22 +153,35 @@ run() {
 
     PS3="Please choose the network: "
     options=("Simnet" "Testnet" "Mainnet")
+    shopt -s nocasematch
     select opt in "${options[@]}"; do
-        case $REPLY in
-            "1") network="simnet"
+        case "$REPLY" in
+            1|simnet) network="simnet"
                 break;;
-            "2") network="testnet"
+            2|testnet) network="testnet"
                 break;;
-            "3") network="mainnet"
+            3|mainnet) network="mainnet"
                 echo "Comming soon..."
                 ;;
-            *) echo "Invalid option: $REPLY";;
+            *) echo "Invalid option: \"$REPLY\"";;
         esac
     done
 
     cd $home/$network
 
-    ../main.sh -n $network -l $logfile
+    opts="-n $network -l $logfile"
+
+    if set -o | grep xtrace | grep on >/dev/null; then 
+        opts="$opts -d"
+    fi
+
+    if [[ $# -gt 0 && $1 == "shell" ]]; then
+        opts="$opts shell"
+    fi
+
+    if ! ../main.sh $opts; then
+        echo "Failed to launch $network environment. For more details, see $logfile"
+    fi
 }
 
-run
+run $@

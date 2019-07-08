@@ -15,7 +15,9 @@ signalListener() {
 
     cli="litecoin-cli -$NETWORK -rpcuser=xu -rpcpassword=xu"
 
-    $cli stop
+    while ! $cli stop; do
+        wait
+    done
 }
 
 signalListener litecoind $@
