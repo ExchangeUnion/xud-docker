@@ -5,6 +5,8 @@ set -euo pipefail
 network=testnet
 logfile=/dev/null
 
+direct_launch=false
+
 show_help() {
     cat <<EOF
 Usage: $0 [-n <network>]
@@ -16,7 +18,7 @@ EOF
     exit 0
 }
 
-while getopts "hn:l:" opt; do
+while getopts "hn:l:d" opt; do
     case "$opt" in
     h) 
         show_help ;;
@@ -24,14 +26,20 @@ while getopts "hn:l:" opt; do
         network=$OPTARG ;;
     l)
         logfile=$OPTARG ;;
+    d)
+        set -x ;;
     esac
 done
 shift $((OPTIND -1))
 
+if [[ $# -gt 0 && $1 == 'shell' ]]; then
+    direct_launch=true
+fi
+
 home=`pwd`
 
 get_all_services() {
-    cat docker-compose.yml | sed -nE 's/^  ([a-z]+):$/\1/p' | sort | paste -sd " "
+    cat docker-compose.yml | sed -nE 's/^  ([a-z]+):$/\1/p' | sort | paste -sd " " -
 }
 
 log_details() {
@@ -69,11 +77,12 @@ launch_xud_shell() {
 }
 
 get_up_services() {
-    docker-compose ps | grep Up | awk '{print $1}' | sed -E "s/${network}_//g" | sed -E 's/_1//g' | sort | paste -sd " "
+    # grep ${network} in case docekr-compose ps Ports column has multiple rows
+    docker-compose ps | grep ${network} | grep Up | awk '{print $1}' | sed -E "s/${network}_//g" | sed -E 's/_1//g' | sort | paste -sd " " -
 }
 
 get_down_services() {
-    docker-compose ps | tail -n +3 | grep -v Up | awk '{print $1}' | sed -E "s/${network}_//g" | sed -E 's/_1//g' | sort | paste -sd " "
+    docker-compose ps | grep ${network} | grep -v Up | awk '{print $1}' | sed -E "s/${network}_//g" | sed -E 's/_1//g' | sort | paste -sd " " -
 }
 
 is_all_containers_up() {
@@ -82,7 +91,7 @@ is_all_containers_up() {
     [[ $up_services == $all_services ]]
 }
 
-run() {
+launch_check() {
     if ! is_all_containers_up; then
         echo "Launching $network environment..."
         docker-compose pull >/dev/null 2>>$logfile
@@ -91,12 +100,18 @@ run() {
         if ! is_all_containers_up; then
             log_details
             down_services=`get_down_services | tr ' ' ', '`
-            echo "Failed to start service(s): $down_services. For more details, see $logfile"
+            echo "Failed to start service(s): $down_services."
             exit 1
         fi
+    fi
+}
+
+run() {
+    if ! $direct_launch; then
+        launch_check
     fi
 
     launch_xud_shell
 }
 
-run
+run $@

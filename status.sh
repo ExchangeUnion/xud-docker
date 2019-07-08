@@ -1,10 +1,6 @@
 #!/bin/bash
 
-set -eo pipefail
-
-if [[ ! -e tmp ]]; then
-    mkdir tmp;
-fi
+set -euo pipefail
 
 # using -T to solve docker-compose error:
 # the input device is not a TTY
@@ -68,8 +64,13 @@ btc_status() {
             local pre="$litecoind"
         fi
     fi
-    local args=(`$pre getblockchaininfo 2>/dev/null | grep -A 1 blocks | sed -nE 's/[^0-9]*([0-9]+).*/\1/p' | paste -sd ' '`)
-    status_text $args
+    local info=`$pre getblockchaininfo 2>&1`
+    local args=`echo "$info" | grep -A 1 blocks | sed -nE 's/[^0-9]*([0-9]+).*/\1/p' | paste -sd ' ' -`
+    if [[ -z $args ]]; then
+        echo "$info" | tail -1
+    else
+        status_text $args
+    fi
 }
 
 lnd_status() {
@@ -108,15 +109,15 @@ nocolor() {
 }
 
 geth_status() {
-    local args=(`$geth --exec 'eth.syncing' attach 2>/dev/null | nocolor | grep -A 1 currentBlock | sed -nE 's/[^0-9]*([0-9]+).*/\1/p' | paste -sd ' '`)
+    local args=`$geth --exec 'eth.syncing' attach 2>/dev/null | nocolor | grep -A 1 currentBlock | sed -nE 's/[^0-9]*([0-9]+).*/\1/p' | paste -sd ' ' -`
     status_text $args
 }
 
 parity_status() {
-    local args=(`curl -s -X POST -H "Content-Type: application/json"  \
+    local args=`curl -s -X POST -H "Content-Type: application/json"  \
 --data '{"jsonrpc":"2.0","method":"eth_syncing","params":[],"id":1}' http://127.0.0.1:8545 | \
-sed -E 's/^.*"currentBlock":"0x([0-9a-f]+)","highestBlock":"0x([0-9a-f]+)".*$/\1\n\2/' | \
-tr 'a-f' 'A-F' | xargs -n 1 -I {} sh -c "echo 'obase=10;ibase=16;{}' | bc" | paste -sd ' '`)
+sed -E 's/^.*"currentBlock":"0x([0-9a-f]+)","highestBlock":"0x([0-9a-f]+)".*$/\1 \2/' | \
+tr 'a-f' 'A-F' | xargs -n 1 -I {} sh -c "echo 'obase=10;ibase=16;{}' | bc" | paste -sd ' ' -`
     status_text $args
 }
 
@@ -131,10 +132,10 @@ raiden_status() {
 }
 
 xud_status() {
-    $xud getinfo > tmp/xud_getinfo 2>&1
-    local lndbtc_ok=`cat tmp/xud_getinfo | grep -A2 BTC | grep error | grep '""'`
-    local lndltc_ok=`cat tmp/xud_getinfo | grep -A2 LTC | grep error | grep '""'`
-    local raiden_ok=`cat tmp/xud_getinfo | grep -A1 raiden | grep error | grep '""'`
+    local info=`$xud getinfo 2>/dev/null`
+    local lndbtc_ok=`echo "$info" | grep -A2 BTC | grep error | grep '""'`
+    local lndltc_ok=`echo "$info" | grep -A2 LTC | grep error | grep '""'`
+    local raiden_ok=`echo "$info" | grep -A1 raiden | grep error | grep '""'`
 
     if [[ ! -z $lndbtc_ok && ! -z $lndltc_ok  && ! -z $raiden_ok ]]; then
         echo "Ready"
