@@ -18,10 +18,10 @@ if [ "$NETWORK" = "testnet" ]; then
     done
 
     addr="${addr: -40}"
+
     # Address must be EIP55 checksummed
     addr=`/opt/venv/bin/python3 /a.py $addr`
 else
-    
     if ! [ -e "addr.txt" ]; then
         addr=`python onboarder.py | tail -1 | awk '{print $2}'`
         echo "$addr" > addr.txt
@@ -30,5 +30,7 @@ else
         addr=`cat addr.txt`
     fi
 fi
+
+python configWriter.py $NETWORK
 
 python -m raiden --address $addr $@
