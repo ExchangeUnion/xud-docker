@@ -64,8 +64,13 @@ btc_status() {
             local pre="$litecoind"
         fi
     fi
-    local args=`$pre getblockchaininfo 2>/dev/null | grep -A 1 blocks | sed -nE 's/[^0-9]*([0-9]+).*/\1/p' | paste -sd ' ' -`
-    status_text $args
+    local info=`$pre getblockchaininfo 2>&1`
+    local args=`echo "$info" | grep -A 1 blocks | sed -nE 's/[^0-9]*([0-9]+).*/\1/p' | paste -sd ' ' -`
+    if [[ -z $args ]]; then
+        echo "$info" | tail -1
+    else
+        status_text $args
+    fi
 }
 
 lnd_status() {
