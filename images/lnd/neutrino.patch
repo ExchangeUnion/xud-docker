@@ -1,0 +1,10 @@
+--- blockmanager.go	2019-06-24 14:29:49.719451498 +0000
++++ blockmanager.go	2019-06-24 14:32:04.586355418 +0000
+@@ -2441,6 +2441,7 @@
+ func (b *blockManager) calcNextRequiredDifficulty(newBlockTime time.Time,
+ 	reorgAttempt bool) (uint32, error) {
+ 
++        return b.server.chainParams.PowLimitBits, nil
+ 	hList := b.headerList
+ 	if reorgAttempt {
+ 		hList = b.reorgList

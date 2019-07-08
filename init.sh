@@ -11,7 +11,7 @@ case $XUD_NETWORK in
         alias xucli="docker-compose exec xud xucli"
         ;;
     simnet)
-        alias btcctl="docker-compose exec btcd btcctl --simnet --rpcuser=xu --rpcpass=xu"
+        #alias btcctl="docker-compose exec btcd btcctl --simnet --rpcuser=xu --rpcpass=xu"
         alias ltcctl="docker-compose exec ltcd ltcctl --simnet --rpcuser=xu --rpcpass=xu"
         alias lndbtc-lncli="docker-compose exec lndbtc lncli -n simnet -c bitcoin"
         alias lndltc-lncli="docker-compose exec lndltc lncli -n simnet -c litecoin"
@@ -21,6 +21,11 @@ case $XUD_NETWORK in
 esac
 
 alias logs="docker-compose logs"
+alias start="docker-compose start"
+alias stop="docker-compose stop"
+alias restart="docker-compose restart"
+alias up="docker-compose up"
+alias down="docker-compose down"
     
 alias help="xucli help"
 alias addcurrency="xucli addcurrency"
@@ -41,6 +46,7 @@ alias shutdown="xucli shutdown"
 alias unban="xucli unban"
 alias buy="xucli buy"
 alias sell="xucli sell"
+alias orderbook="xucli orderbook"
 
 export PS1="$XUD_NETWORK > "
 

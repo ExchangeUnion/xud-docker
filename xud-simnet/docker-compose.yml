@@ -1,28 +1,8 @@
 version: "3.6"
 
 services:
-  btcd:
-    image: exchangeunion/btcd
-    # Let generated "rpc.cert" has "btcd" domain name,
-    # or it will deny lnd rpc connections
-    hostname: btcd
-    environment:
-      - NETWORK=simnet
-    command: >
-      --simnet
-      --txindex
-      --rpcuser=xu
-      --rpcpass=xu
-      --rpclisten=:18556
-      --nolisten
-      --addpeer=35.231.222.142:18555
-    ports:
-      - 18556:18556
-    volumes:
-      - ./data/btcd:/root/.btcd
-
   ltcd:
-    image: exchangeunion/ltcd
+    image: exchangeunion/ltcd:latest-simnet
     # Let generated "rpc.cert" has "ltcd" domain name,
     # or it will deny lnd rpc connections
     hostname: ltcd
@@ -35,14 +15,14 @@ services:
       --rpcpass=xu
       --rpclisten=:18556
       --nolisten
-      --addpeer=35.231.222.142:19555
+      --addpeer=35.231.222.142:29555
     ports:
       - 19556:18556
     volumes:
       - ./data/ltcd:/root/.ltcd
 
   lndbtc:
-    image: exchangeunion/lnd:0.6.1-beta
+    image: exchangeunion/lnd:0.6.1-beta-simnet
     hostname: lndbtc
     environment:
       - NETWORK=simnet
@@ -51,10 +31,8 @@ services:
       --alias=lndbtc
       --bitcoin.active
       --bitcoin.simnet
-      --bitcoin.node=btcd
-      --btcd.rpchost=btcd
-      --btcd.rpcuser=xu
-      --btcd.rpcpass=xu
+      --bitcoin.node=neutrino
+      --neutrino.connect=35.231.222.142:38555
       --debuglevel=debug
     ports:
       - 10010:10009
@@ -63,7 +41,7 @@ services:
       - ./data/btcd:/root/.btcd
 
   lndltc:
-    image: exchangeunion/lnd:0.6.1-beta
+    image: exchangeunion/lnd:0.6.1-beta-simnet
     hostname: lndltc
     environment:
       - NETWORK=simnet
@@ -99,9 +77,9 @@ services:
       --api-address 0.0.0.0:5001
       --matrix-server https://raidentransport.exchangeunion.com
       --no-sync-check
-      --tokennetwork-registry-contract-address 0x3A17B96809258523c4DED8e7F3f9364D13eBc2C5
-      --secret-registry-contract-address 0xddFecc25B8F834D14601A7e2359FB25189994cEE
-      --endpoint-registry-contract-address 0xe81091B6a83DC5479c99169ab0adB7092B8f0411
+      --tokennetwork-registry-contract-address 0x07679899f46422A2a9e5A3502815131Fe6d0dd0a
+      --secret-registry-contract-address 0x9B16762c9f6390a19208bDE8bd8AEc81D7C6BDaB
+      --endpoint-registry-contract-address 0xF6Ac1fE0421036e1f2DB6cC23CC2cFc36288d434
       --gas-price 10000000000
     ports:
       - 5002:5001

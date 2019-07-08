@@ -13,12 +13,14 @@ source versions
 bitcoind_tag=exchangeunion/bitcoind:$bitcoind
 litecoind_tag=exchangeunion/litecoind:$litecoind
 lnd_tag=exchangeunion/lnd:$lnd
+lnd_simnet_tag=exchangeunion/lnd:$lnd-simnet
 geth_tag=exchangeunion/geth:$geth
 raiden_tag=exchangeunion/raiden:$raiden
 xud_tag=exchangeunion/xud:$xud
 parity_tag=exchangeunion/parity:$parity
 btcd_tag=exchangeunion/btcd:$btcd
 ltcd_tag=exchangeunion/ltcd:$ltcd
+ltcd_simnet_tag=exchangeunion/ltcd:$ltcd-simnet
 
 build_bitcoind() {
     docker build -t $bitcoind_tag --build-arg version=$bitcoind bitcoind
@@ -32,7 +34,9 @@ build_litecoind() {
 
 build_lnd() {
     docker build -t $lnd_tag --build-arg version=$lnd lnd
-    docker push $lnd_tag
+    docker build -t $lnd_simnet_tag --build-arg version=$lnd -f lnd/Dockerfile.simnet lnd
+    docker push $lnd_tag 
+    docker push $lnd_simnet_tag
 }
 
 build_geth() {
@@ -47,10 +51,11 @@ build_parity() {
 
 build_xud() {
     if [ "$xud" = "latest" ]; then
-        docker build -t $xud_tag --build-arg branch=master xud
+        docker build --no-cache -t $xud_tag --build-arg branch=master xud
     else
         docker build -t $xud_tag --build-arg branch=v$xud xud
     fi
+    sleep 10
     docker push $xud_tag
 }
 
@@ -77,10 +82,13 @@ build_ltcd() {
     fi
     if [ "$ltcd" = "latest" ]; then
         docker build -t $ltcd_tag --build-arg branch=master ltcd
+        docker build -t $ltcd_simnet_tag --build-arg branch=master -f ltcd/Dockerfile.simnet ltcd
     else
         docker build -t $ltcd_tag --build-arg branch=v$ltcd ltcd
+        docker build -t $ltcd_simnet_tag --build-arg branch=v$ltcd -f ltcd/Dockerfile.simnet ltcd
     fi
     docker push $ltcd_tag
+    docker push $ltcd_simnet_tag
 }
 
 case $1 in

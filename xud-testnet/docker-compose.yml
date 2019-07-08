@@ -4,6 +4,8 @@ services:
   bitcoind:
     image: exchangeunion/bitcoind:0.17.1
     hostname: bitcoind
+    environment:
+      - NETWORK=testnet
     command: >
       -server
       -testnet
@@ -27,6 +29,8 @@ services:
   litecoind:
     image: exchangeunion/litecoind:0.17.1
     hostname: litecoind
+    environment:
+      - NETWORK=testnet
     # Use -reindex to solve "Failed to read block ... from disk" error
     # ref. https://bitcoin.stackexchange.com/questions/8787/failed-to-read-block
     # Disable this parameter because it will let litecoind sync from scratch after every restart
