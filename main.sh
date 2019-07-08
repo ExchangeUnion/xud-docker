@@ -84,7 +84,7 @@ is_all_containers_up() {
 
 run() {
     if ! is_all_containers_up; then
-        echo "Launching $network environment"
+        echo "Launching $network environment..."
         docker-compose pull >/dev/null 2>>$logfile
         docker-compose up -d >/dev/null 2>>$logfile
         sleep 10
