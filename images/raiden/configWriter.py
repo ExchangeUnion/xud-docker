@@ -3,7 +3,7 @@ import os
 import io
 
 network = sys.argv[1]
-configPath = "/home/root/.raiden/config.toml"
+configPath = os.environ['HOME'] + "/.raiden/config.toml"
 
 class ConfigVariables:
     def __init__(self, endpointRegistry, secretRegistry, tokenNetworkRegistry, matrixServer):
