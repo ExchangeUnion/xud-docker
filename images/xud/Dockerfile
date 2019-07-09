@@ -1,13 +1,13 @@
 # build stage
 FROM node:lts-alpine AS builder
-RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.nju.edu.cn/' /etc/apk/repositories
+#RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.nju.edu.cn/' /etc/apk/repositories
 ARG branch=master
 # RUN apk add --no-cache git rsync python bash make alpine-sdk
 RUN apk add --no-cache git rsync python bash make g++
 RUN git clone -b ${branch} https://github.com/ExchangeUnion/xud
 WORKDIR /xud
 RUN git show HEAD > git_head.txt
-RUN npm config set registry http://172.17.0.1:7000/repository/npm/
+#RUN npm config set registry http://172.17.0.1:7000/repository/npm/
 RUN npm install
 RUN npm run compile
 RUN npm prune --dev
@@ -27,4 +27,4 @@ COPY entrypoint.sh /app
 RUN ln -s /app/bin/xucli /bin/xucli
 WORKDIR /app
 ENTRYPOINT ./entrypoint.sh
-EXPOSE 8885 8886
+EXPOSE 8885 8886 8887

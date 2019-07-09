@@ -17,6 +17,10 @@ btcd="docker-compose exec btcd btcctl --$XUD_NETWORK --rpcuser=xu --rpcpass=xu"
 ltcd="docker-compose exec ltcd ltcctl --$XUD_NETWORK --rpcuser=xu --rpcpass=xu"
 
 status_text() {
+    if [[ $# -lt 2 ]]; then
+        echo "Error"
+        return
+    fi
     if [[ -z $1 || -z $2 ]]; then
         echo "Waiting for sync"
     else
@@ -116,8 +120,8 @@ geth_status() {
 parity_status() {
     local args=`curl -s -X POST -H "Content-Type: application/json"  \
 --data '{"jsonrpc":"2.0","method":"eth_syncing","params":[],"id":1}' http://127.0.0.1:8545 | \
-sed -E 's/^.*"currentBlock":"0x([0-9a-f]+)","highestBlock":"0x([0-9a-f]+)".*$/\1 \2/' | \
-tr 'a-f' 'A-F' | xargs -n 1 -I {} sh -c "echo 'obase=10;ibase=16;{}' | bc" | paste -sd ' ' -`
+sed -E 's/^.*"currentBlock":"0x([0-9a-f]+)","highestBlock":"0x([0-9a-f]+)".*$/\1;\2/' | \
+tr 'a-f' 'A-F' | xargs -I {} echo "ibase=16;{}" | bc | paste -sd ' ' -`
     status_text $args
 }
 

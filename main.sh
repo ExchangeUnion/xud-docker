@@ -57,7 +57,7 @@ log_details() {
     set +e
     for cmd in "${commands[@]}"; do
         echo $cmd >> $logfile
-        eval $cmd >> $logfile
+        eval $cmd >> $logfile 2>&1
         echo "" >> $logfile
     done
     set -e
