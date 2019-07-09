@@ -156,11 +156,11 @@ run() {
     shopt -s nocasematch
     select opt in "${options[@]}"; do
         case "$REPLY" in
-            1|simnet) network="simnet"
+            1|" 1"|" 1 "|"1 "|simnet|" simnet"|" simnet "|"simnet ") network="simnet"
                 break;;
-            2|testnet) network="testnet"
+            2|" 2"|" 2 "|"2 "|testnet|" testnet"|" testnet "|"testnet ") network="testnet"
                 break;;
-            3|mainnet) network="mainnet"
+            3|" 3"|" 3 "|"3 "|mainnet|" mainnet"|" mainnet "|"mainnet ") network="mainnet"
                 echo "Comming soon..."
                 ;;
             *) echo "Invalid option: \"$REPLY\"";;
