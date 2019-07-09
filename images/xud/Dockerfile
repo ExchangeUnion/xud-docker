@@ -13,7 +13,6 @@ RUN git show HEAD > git_head.txt
 RUN sed -Ei 's/argv.password/password1/g' lib/cli/commands/create.ts
 RUN npm install
 RUN npm run compile
-RUN npm prune --dev
 
 # Final stage
 FROM node:$NODE_VERSION

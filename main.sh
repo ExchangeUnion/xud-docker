@@ -21,9 +21,9 @@ EOF
 
 while getopts "hn:l:db:" opt; do
     case "$opt" in
-    h) 
+    h)
         show_help ;;
-    n) 
+    n)
         network=$OPTARG ;;
     l)
         logfile=$OPTARG ;;
@@ -64,14 +64,46 @@ log_details() {
     set -e
 }
 
-check_wallet() {
-    echo "Checking wallets..."
-    return 0
+no_wallets() {
+    lncli1="docker-compose exec lndbtc lncli -n $network -c bitcoin"
+    lncli2="docker-compose exec lndltc lncli -n $network -c litecoin"
+
+    r1=$($lncli1 getinfo | grep "unable to read macaroon path")
+    r2=$($lncli2 getinfo | grep "unable to read macaroon path")
+
+    [[ -n $r1 && -n $r2 ]]
+}
+
+check_wallets() {
+    if no_wallets; then
+        local xucli="docker-compose exec xud xucli"
+
+        #TODO NOT sure if we need to wait lndbtc, lndltc and raiden to be ready here
+        echo -n "Waiting for xud to be ready"
+        local RES
+        RES=$($xucli getinfo | grep "UNIMPLEMENTED")
+        while [[ -z $RES ]]; do
+            echo -n "."
+            sleep 3
+            RES=$($xucli getinfo | grep "UNIMPLEMENTED")
+        done
+        echo
+
+        local PYTHON="python3"
+        if ! which $PYTHON >/dev/null 2>&1; then
+            PYTHON="python"
+        fi
+
+        if ! $PYTHON ../xucli_create_wrapper.py; then
+            docker-compose down
+            exit 1
+        fi
+    fi
 }
 
 launch_xud_shell() {
-    if [[ $network == 'testnet' ]]; then
-        check_wallet
+    if [[ $network == 'testnet' || $network == 'mainnet' ]]; then
+        check_wallets
     fi
 
     bash --init-file ../init.sh
