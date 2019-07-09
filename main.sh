@@ -64,7 +64,7 @@ log_details() {
 }
 
 check_wallet() {
-    echo "Check wallet"
+    echo "Checking wallets..."
     return 0
 }
 
