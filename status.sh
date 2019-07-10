@@ -118,10 +118,17 @@ geth_status() {
 }
 
 parity_status() {
-    local args=`curl -s -X POST -H "Content-Type: application/json"  \
---data '{"jsonrpc":"2.0","method":"eth_syncing","params":[],"id":1}' http://127.0.0.1:8545 | \
+    local bnum=`curl -s -X POST -H "Content-Type: application/json"  --data '{"jsonrpc":"2.0","method":"eth_blockNumber","params":[],"id":1}' http://127.0.0.1:8545 | \
+sed -E 's/.*"result":"0x([0-9a-f]+)".*/\1/' | \
+tr 'a-f' 'A-F' | xargs -I {} echo "ibase=16;{}" | bc 2>/dev/null`
+    local args=`curl -s -X POST -H "Content-Type: application/json"  --data '{"jsonrpc":"2.0","method":"eth_syncing","params":[],"id":1}' http://127.0.0.1:8545 | \
 sed -E 's/^.*"currentBlock":"0x([0-9a-f]+)","highestBlock":"0x([0-9a-f]+)".*$/\1;\2/' | \
-tr 'a-f' 'A-F' | xargs -I {} echo "ibase=16;{}" | bc 2>/dev/null | paste -sd ' ' -`
+tr 'a-f' 'A-F' | xargs -I {} echo "ibase=16;{}" | bc 2>/dev/null | \
+paste -sd ' ' -`
+    if [[ -z $args && $bnum -gt 0 ]]; then
+        echo "Ready"
+        return
+    fi
     status_text $args
 }
 
