@@ -2,7 +2,8 @@ version: "3.6"
 
 services:
   ltcd:
-    image: exchangeunion/ltcd:latest-simnet
+    #image: exchangeunion/ltcd:latest-simnet
+    image: exchangeunion/ltcd
     # Let generated "rpc.cert" has "ltcd" domain name,
     # or it will deny lnd rpc connections
     hostname: ltcd

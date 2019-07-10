@@ -4,9 +4,9 @@ set -euo pipefail
 
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 
-images="$DIR/../images"
+images_dir="$DIR/../images"
 
-cd $images
+cd $images_dir
 
 source versions
 
@@ -24,28 +24,43 @@ ltcd_simnet_tag=exchangeunion/ltcd:$ltcd-simnet
 
 build_bitcoind() {
     docker build -t $bitcoind_tag --build-arg version=$bitcoind bitcoind
+}
+
+push_bitcoind() {
     docker push $bitcoind_tag
 }
 
 build_litecoind() {
     docker build -t $litecoind_tag --build-arg version=$litecoind litecoind
+}
+
+push_litecoind() {
     docker push $litecoind_tag
 }
 
 build_lnd() {
     docker build -t $lnd_tag --build-arg version=$lnd lnd
     docker build -t $lnd_simnet_tag --build-arg version=$lnd -f lnd/Dockerfile.simnet lnd
+}
+
+push_lnd() {
     docker push $lnd_tag 
     docker push $lnd_simnet_tag
 }
 
 build_geth() {
     docker build -t $geth_tag --build-arg version=$geth geth
+}
+
+push_geth() {
     docker push $geth_tag
 }
 
 build_parity() {
     docker build -t $parity_tag --build-arg version=$parity parity
+}
+
+push_parity() {
     docker push $parity_tag
 }
 
@@ -55,50 +70,86 @@ build_xud() {
     else
         docker build -t $xud_tag --build-arg branch=v$xud xud
     fi
-    sleep 10
+}
+
+push_xud() {
     docker push $xud_tag
 }
 
 build_raiden() {
     docker build -t $raiden_tag --build-arg version=$raiden raiden
+}
+
+push_raiden() {
     docker push $raiden_tag
 }
 
 build_btcd() {
-    if ! [ -e "$images/btcd/data.tar.gz" ]; then
-        touch $images/btcd/data.tar.gz
+    if ! [ -e "$images_dir/btcd/data.tar.gz" ]; then
+        touch $images_dir/btcd/data.tar.gz
     fi
     if [ "$btcd" = "latest" ]; then
         docker build -t $btcd_tag --build-arg branch=master btcd
     else
         docker build -t $btcd_tag --build-arg branch=v$btcd btcd
     fi
+}
+
+push_btcd() {
     docker push $btcd_tag
 }
 
 build_ltcd() {
-    if ! [ -e "$images/ltcd/data.tar.gz" ]; then
-        touch $images/ltcd/data.tar.gz
+    if ! [ -e "$images_dir/ltcd/data.tar.gz" ]; then
+        touch $images_dir/ltcd/data.tar.gz
     fi
     if [ "$ltcd" = "latest" ]; then
-        docker build -t $ltcd_tag --build-arg branch=master ltcd
-        docker build -t $ltcd_simnet_tag --build-arg branch=master -f ltcd/Dockerfile.simnet ltcd
+        docker build --no-cache -t $ltcd_tag --build-arg branch=master ltcd
+        docker build --no-cache -t $ltcd_simnet_tag --build-arg branch=master -f ltcd/Dockerfile.simnet ltcd
     else
         docker build -t $ltcd_tag --build-arg branch=v$ltcd ltcd
         docker build -t $ltcd_simnet_tag --build-arg branch=v$ltcd -f ltcd/Dockerfile.simnet ltcd
     fi
+}
+
+push_ltcd() {
     docker push $ltcd_tag
     docker push $ltcd_simnet_tag
 }
 
-case $1 in
-    bitcoind) build_bitcoind;;
-    litecoind) build_litecoind;;
-    lnd) build_lnd;;
-    raiden) build_raiden;;
-    geth) build_geth;;
-    parity) build_parity;;
-    xud) build_xud;;
-    btcd) build_btcd;;
-    ltcd) build_ltcd;;
-esac
+push=false
+images=(bitcoind litecoind lnd parity raiden xud ltcd)
+
+while getopts p opt; do
+    case $opt in
+        p) push=true;;
+    esac
+done
+shift $((OPTIND -1))
+
+contains_element () {
+  local e match="$1"
+  shift
+  for e; do [[ "$e" == "$match" ]] && return 0; done
+  return 1
+}
+
+if [[ $# -gt 0 ]]; then
+    if contains_element "$1" "${images[@]}"; then
+        if $push; then
+            push_$1
+        else
+            build_$1
+        fi
+    fi
+else
+    if $push; then
+        for img in ${images[@]}; do
+            push_$img
+        done
+    else
+        for img in ${images[@]}; do
+            build_$img
+        done
+    fi
+fi
