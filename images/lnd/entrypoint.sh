@@ -1,6 +1,7 @@
 #!/bin/bash
 
 set -euo pipefail
+set -m
 
 lncli="lncli -n $NETWORK -c $CHAIN"
 
@@ -52,21 +53,18 @@ post_actions() {
     set -eo pipefail
 }
 
+post_actions &
+
 unlock_wallet() {
     ./wallet.exp
     ./unlock.exp
-
     # TODO make sure wallet has been unlocked
 }
 
 start_lnd() {
-    set -m
-
     # macaroons is force enabled when listening on public interfaces (--no-macaroons)
     # specify 0.0.0.0:10009 instead of :10009 because `lncli -n simnet getinfo` will not work with ':10009'
     lnd --rpclisten=0.0.0.0:10009 --listen=0.0.0.0:9735 --restlisten=0.0.0.0:8080 $@ &
-
-    post_actions &
 
     sleep 3
 
