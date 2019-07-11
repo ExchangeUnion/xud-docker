@@ -16,7 +16,7 @@ services:
       --rpcpass=xu
       --rpclisten=:18556
       --nolisten
-      --addpeer=35.231.222.142:29555
+      --addpeer=35.231.222.142:39555
     ports:
       - 19556:18556
     volumes:
