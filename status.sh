@@ -23,6 +23,8 @@ status_text() {
     fi
     if [[ -z $1 || -z $2 ]]; then
         echo "Waiting for sync"
+    elif [[ $1 -gt $2 ]]; then
+        echo "Syncing 99.99%"
     else
         if [[ $1 == $2 ]]; then
             echo "Ready"
