@@ -4,23 +4,32 @@ set -euo pipefail
 
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 
-images_dir="$DIR/../images"
+cd "$DIR/.."
 
+branch=`git rev-parse --abbrev-ref HEAD`
+
+if [[ $branch != "master" ]]; then
+    suffix="__$branch"
+else
+    suffix=""
+fi
+
+images_dir="$DIR/../images"
 cd $images_dir
 
 source versions
 
-bitcoind_tag=exchangeunion/bitcoind:$bitcoind
-litecoind_tag=exchangeunion/litecoind:$litecoind
-lnd_tag=exchangeunion/lnd:$lnd
-lnd_simnet_tag=exchangeunion/lnd:$lnd-simnet
-geth_tag=exchangeunion/geth:$geth
-raiden_tag=exchangeunion/raiden:$raiden
-xud_tag=exchangeunion/xud:$xud
-parity_tag=exchangeunion/parity:$parity
-btcd_tag=exchangeunion/btcd:$btcd
-ltcd_tag=exchangeunion/ltcd:$ltcd
-ltcd_simnet_tag=exchangeunion/ltcd:$ltcd-simnet
+bitcoind_tag=exchangeunion/bitcoind:$bitcoind$suffix
+litecoind_tag=exchangeunion/litecoind:$litecoind$suffix
+lnd_tag=exchangeunion/lnd:$lnd$suffix
+lnd_simnet_tag=exchangeunion/lnd:$lnd-simnet$suffix
+geth_tag=exchangeunion/geth:$geth$suffix
+raiden_tag=exchangeunion/raiden:$raiden$suffix
+xud_tag=exchangeunion/xud:$xud$suffix
+parity_tag=exchangeunion/parity:$parity$suffix
+btcd_tag=exchangeunion/btcd:$btcd$suffix
+ltcd_tag=exchangeunion/ltcd:$ltcd$suffix
+ltcd_simnet_tag=exchangeunion/ltcd:$ltcd-simnet$suffix
 
 build_bitcoind() {
     docker build -t $bitcoind_tag --build-arg version=$bitcoind bitcoind
@@ -104,8 +113,8 @@ build_ltcd() {
         touch $images_dir/ltcd/data.tar.gz
     fi
     if [ "$ltcd" = "latest" ]; then
-        docker build --no-cache -t $ltcd_tag --build-arg branch=master ltcd
-        docker build --no-cache -t $ltcd_simnet_tag --build-arg branch=master -f ltcd/Dockerfile.simnet ltcd
+        docker build -t $ltcd_tag --build-arg branch=master ltcd
+        docker build -t $ltcd_simnet_tag --build-arg branch=master -f ltcd/Dockerfile.simnet ltcd
     else
         docker build -t $ltcd_tag --build-arg branch=v$ltcd ltcd
         docker build -t $ltcd_simnet_tag --build-arg branch=v$ltcd -f ltcd/Dockerfile.simnet ltcd
