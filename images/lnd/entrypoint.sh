@@ -27,9 +27,9 @@ post_actions() {
     )
 
     ltc_peers=(
-        "027cd7ac85c2196a2002420f1316f0e3b9b5a73920cb21874fd63bb28fe778101b@xud1.test.exchangeunion.com:10011"
-        "0394b67ac4cb352536c5f7c21b901799f6f9fd01e15755004a58d095cc580f6407@xud2.test.exchangeunion.com:10011"
-        "02aa940a340082386ef88553c52c5fd574298774aa1868e323072bcfad1dafa85e@xud3.test.exchangeunion.com:10011"
+        "0270e8254e07649cdde230c9e09de6ff63c28a6d275c30b0a6863028d9db0e7c6f@xud1.test.exchangeunion.com:10011"
+        "027dbb21be00a4cace0ce73761449f4d329cd400c08d556e2df4c65cf530c4e689@xud2.test.exchangeunion.com:10011"
+        "03e26345aa5d7024668e1f16adc2ecd85907a930820ad5a32736946cb824067eeb@xud3.test.exchangeunion.com:10011"
     )
 
     if [ "$NETWORK" = "simnet" ]; then
