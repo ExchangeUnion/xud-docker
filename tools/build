@@ -25,6 +25,7 @@ lnd_tag=exchangeunion/lnd:$lnd$suffix
 lnd_simnet_tag=exchangeunion/lnd:$lnd-simnet$suffix
 geth_tag=exchangeunion/geth:$geth$suffix
 raiden_tag=exchangeunion/raiden:$raiden$suffix
+raiden_simnet_tag=exchangeunion/raiden:simnet$suffix
 xud_tag=exchangeunion/xud:$xud$suffix
 parity_tag=exchangeunion/parity:$parity$suffix
 btcd_tag=exchangeunion/btcd:$btcd$suffix
@@ -87,10 +88,12 @@ push_xud() {
 
 build_raiden() {
     docker build -t $raiden_tag --build-arg version=$raiden raiden
+    docker build -t $raiden_simnet_tag raiden -f raiden/Dockerfile.simnet
 }
 
 push_raiden() {
     docker push $raiden_tag
+    docker push $raiden_simnet_tag
 }
 
 build_btcd() {

@@ -63,7 +63,7 @@ services:
       - ./data/ltcd:/root/.ltcd
 
   raiden:
-    image: exchangeunion/raiden:0.100.3
+    image: exchangeunion/raiden:simnet
     hostname: raiden
     environment:
       - NETWORK=simnet
