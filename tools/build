@@ -2,142 +2,102 @@
 
 set -euo pipefail
 
-DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+toolsdir="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
+projectdir=$(realpath "$toolsdir/..") # Resolve docker "unable to prepare context: unable to evaluate symlinks in Dockerfile path"
+projectgithub="https://github.com/exchangeunion/xud-docker"
+imagesdir="$projectdir/images"
+supportsdir="$projectdir/supports"
+labelprefix="com.exchangeunion.image"
+tagprefix="exchangeunion"
+push=false
+images=(bitcoind litecoind lnd lnd-simnet parity raiden raiden-simnet ltcd-simnet xud xud-simnet)
 
-cd "$DIR/.."
-
+cd $projectdir
 branch=`git rev-parse --abbrev-ref HEAD`
+created=`date -u +"%Y-%m-%dT%H:%M:%SZ"` # 2019-07-24T20:59:00Z
+revision=`git rev-parse HEAD`
 
-if [[ $branch != "master" ]]; then
-    suffix="__$branch"
-else
-    suffix=""
+is_git_dirty() {
+  ! git diff --quiet
+}
+
+if is_git_dirty; then
+    revision="$revision-dirty"
 fi
 
-images_dir="$DIR/../images"
-cd $images_dir
+cd $imagesdir
 
-source versions
-
-bitcoind_tag=exchangeunion/bitcoind:$bitcoind$suffix
-litecoind_tag=exchangeunion/litecoind:$litecoind$suffix
-lnd_tag=exchangeunion/lnd:$lnd$suffix
-lnd_simnet_tag=exchangeunion/lnd:$lnd-simnet$suffix
-geth_tag=exchangeunion/geth:$geth$suffix
-raiden_tag=exchangeunion/raiden:$raiden$suffix
-raiden_simnet_tag=exchangeunion/raiden:simnet$suffix
-xud_tag=exchangeunion/xud:$xud$suffix
-parity_tag=exchangeunion/parity:$parity$suffix
-btcd_tag=exchangeunion/btcd:$btcd$suffix
-ltcd_tag=exchangeunion/ltcd:$ltcd$suffix
-ltcd_simnet_tag=exchangeunion/ltcd:$ltcd-simnet$suffix
-
-build_bitcoind() {
-    docker build -t $bitcoind_tag --build-arg version=$bitcoind bitcoind
+getversion() {
+    cat versions | grep "$1" | cut -d'=' -f 2
 }
 
-push_bitcoind() {
-    docker push $bitcoind_tag
+build_xud_simnet() {
+    pushd $supportsdir > /dev/null
+    docker build . -t xud-simnet
+    popd > /dev/null
 }
 
-build_litecoind() {
-    docker build -t $litecoind_tag --build-arg version=$litecoind litecoind
-}
-
-push_litecoind() {
-    docker push $litecoind_tag
-}
-
-build_lnd() {
-    docker build -t $lnd_tag --build-arg version=$lnd lnd
-    docker build -t $lnd_simnet_tag --build-arg version=$lnd -f lnd/Dockerfile.simnet lnd
-}
-
-push_lnd() {
-    docker push $lnd_tag 
-    docker push $lnd_simnet_tag
-}
-
-build_geth() {
-    docker build -t $geth_tag --build-arg version=$geth geth
-}
-
-push_geth() {
-    docker push $geth_tag
-}
-
-build_parity() {
-    docker build -t $parity_tag --build-arg version=$parity parity
-}
-
-push_parity() {
-    docker push $parity_tag
-}
-
-build_xud() {
-    if [ "$xud" = "latest" ]; then
-        docker build --no-cache -t $xud_tag --build-arg branch=feat/resolver-interface xud
+build() {
+    labels=(
+        "$labelprefix.branch=$branch"
+        "$labelprefix.created=$created"
+        "$labelprefix.revision=$revision"
+    )
+    if [[ ! $revision =~ ^.*-dirty$ ]]; then
+        labels+=(
+            "$labelprefix.source=$projectgithub/blob/$revision/images/$1/Dockerfile"
+        )
+    fi
+    if [[ $1 =~ ^.*-simnet$ ]]; then
+        tag="$tagprefix/$1"
+        opts=""
+        build_xud_simnet
     else
-        docker build -t $xud_tag --build-arg branch=v$xud xud
+        version=`getversion $1`
+        tag="$tagprefix/$1:$version"
+        opts="--build-arg version=$version"
     fi
+    docker build -t $tag $1 \
+        $opts \
+        `for i in ${labels[@]}; do echo "--label $i"; done`
 }
 
-push_xud() {
-    docker push $xud_tag
-}
-
-build_raiden() {
-    docker build -t $raiden_tag --build-arg version=$raiden raiden
-    docker build -t $raiden_simnet_tag raiden -f raiden/Dockerfile.simnet
-}
-
-push_raiden() {
-    docker push $raiden_tag
-    docker push $raiden_simnet_tag
-}
-
-build_btcd() {
-    if ! [ -e "$images_dir/btcd/data.tar.gz" ]; then
-        touch $images_dir/btcd/data.tar.gz
-    fi
-    if [ "$btcd" = "latest" ]; then
-        docker build -t $btcd_tag --build-arg branch=master btcd
+push() {
+    if [[ $1 =~ ^.*-simnet$ ]]; then
+        tag="$tagprefix/$1"
     else
-        docker build -t $btcd_tag --build-arg branch=v$btcd btcd
+        version=`getversion $1`
+        tag="$tagprefix/$1:$version"
     fi
-}
-
-push_btcd() {
-    docker push $btcd_tag
-}
-
-build_ltcd() {
-    if ! [ -e "$images_dir/ltcd/data.tar.gz" ]; then
-        touch $images_dir/ltcd/data.tar.gz
+    imgbranch=`docker image inspect -f "{{index .Config.Labels \"$labelprefix.branch\"}}" $tag`
+    if [[ $imgbranch != 'master' ]]; then
+        echo "The image $tag is not built from master"
+        exit 1
     fi
-    if [ "$ltcd" = "latest" ]; then
-        docker build --no-cache -t $ltcd_tag --build-arg branch=master ltcd
-        docker build --no-cache -t $ltcd_simnet_tag --build-arg branch=master -f ltcd/Dockerfile.simnet ltcd
-    else
-        docker build -t $ltcd_tag --build-arg branch=v$ltcd ltcd
-        docker build -t $ltcd_simnet_tag --build-arg branch=v$ltcd -f ltcd/Dockerfile.simnet ltcd
-    fi
+    echo docker push $tag
 }
 
-push_ltcd() {
-    docker push $ltcd_tag
-    docker push $ltcd_simnet_tag
+print_usage() {
+    echo "Usage: $0 [<image>] [<version>]"
+    exit 0
 }
 
-push=false
-images=(bitcoind litecoind lnd parity raiden xud ltcd)
-
-while getopts p opt; do
+while getopts ph opt; do
     case $opt in
-        p) push=true;;
+        p) 
+            push=true
+            ;;
+        h) 
+            print_usage
+            ;;
     esac
 done
 shift $((OPTIND -1))
+
+if [[ $branch != "master" && $push == 'true' ]]; then
+    echo "Push image from other branch (not master) is prohibited"
+    exit 1
+fi
 
 contains_element () {
   local e match="$1"
@@ -148,20 +108,21 @@ contains_element () {
 
 if [[ $# -gt 0 ]]; then
     if contains_element "$1" "${images[@]}"; then
-        if $push; then
-            push_$1
+        if [[ $push == true ]]; then
+            push $1
         else
-            build_$1
+            build $1
         fi
     fi
 else
-    if $push; then
+    if [[ $push == true ]]; then
         for img in ${images[@]}; do
-            push_$img
+            push $img
         done
     else
         for img in ${images[@]}; do
-            build_$img
+            echo -e "\n\n\nBuilding $img\n\n"
+            build $img
         done
     fi
 fi

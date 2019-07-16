@@ -1,7 +1,7 @@
 FROM golang:alpine as build-stage
-ARG version=0.6.1-beta-rc2
-RUN apk add --no-cache alpine-sdk
-RUN git clone -b v${version} https://github.com/lightningnetwork/lnd $GOPATH/src/github.com/lightningnetwork/lnd
+ARG version
+RUN apk add --no-cache git bash make
+RUN git clone -b v$version https://github.com/lightningnetwork/lnd $GOPATH/src/github.com/lightningnetwork/lnd
 WORKDIR $GOPATH/src/github.com/lightningnetwork/lnd
 RUN make && make install
 

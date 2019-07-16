@@ -1,6 +1,5 @@
-ARG version=2.4.7-stable
-FROM parity/parity:v${version}
-#RUN apk add --no-cache bash expect
+ARG version
+FROM parity/parity:v$version
 USER root
 RUN apt-get update && apt-get install -y bash expect
 WORKDIR /
