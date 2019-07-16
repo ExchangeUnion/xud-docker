@@ -70,6 +70,7 @@ services:
     command: >
       --keystore-path /root/.raiden/keystore
       --accept-disclaimer
+      --resolver-endpoint http://xud:8887/resolveraiden
       --eth-rpc-endpoint 35.231.222.142:8546
       --network-id 4321
       --password-file /root/.raiden/password.txt
