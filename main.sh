@@ -51,7 +51,7 @@ log_details() {
     )
     services=`get_all_services`
     for s in $services; do
-        commands+=("docker-compose logs --tail=100 $s")
+        commands+=("docker-compose logs --tail=1000 $s")
     done
 
     set +e
