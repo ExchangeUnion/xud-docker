@@ -68,11 +68,11 @@ services:
     environment:
       - NETWORK=simnet
     command: >
-      --keystore-path /keystore
+      --keystore-path /root/.raiden/keystore
       --accept-disclaimer
       --eth-rpc-endpoint 35.231.222.142:8546
       --network-id 4321
-      --password-file /password.txt
+      --password-file /root/.raiden/password.txt
       --datadir /root/.raiden
       --rpc
       --api-address 0.0.0.0:5001

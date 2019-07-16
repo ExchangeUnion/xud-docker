@@ -34,15 +34,16 @@ if [ "$NETWORK" = "testnet" ]; then
     # Address must be EIP55 checksummed
     addr=`/opt/venv/bin/python3 /checksum.py $addr`
 else
-    if ! [ -e "/root/.raiden/addr.txt" ]; then
-        addr=`python onboarder.py | tail -1 | awk '{print $2}'`
-        echo "$addr" > /root/.raiden/addr.txt
-        echo "123123123" > /root/.raiden/password.txt
+    cd /root/.raiden
+    if ! [ -e "addr.txt" ]; then
+        addr=`python /onboarder.py | tail -1 | awk '{print $2}'`
+        echo "$addr" > addr.txt
+        echo "123123123" > password.txt
     else
-        addr=`cat /root/.raiden/addr.txt`
+        addr=`cat addr.txt`
     fi
 fi
 
-python configWriter.py $NETWORK
+python /configWriter.py $NETWORK
 
 python -m raiden --address $addr $@
