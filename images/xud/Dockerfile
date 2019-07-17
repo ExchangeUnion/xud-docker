@@ -7,7 +7,7 @@ ARG branch=master
 #RUN apk add --no-cache git rsync python bash make g++
 # Use pure JS implemented secp256k1 bindings
 RUN apk add --no-cache git rsync
-RUN git clone -b feat/resolver-interface https://github.com/ExchangeUnion/xud
+RUN git clone -b $branch https://github.com/ExchangeUnion/xud
 WORKDIR /xud
 RUN git show HEAD > git_head.txt
 RUN npm install
