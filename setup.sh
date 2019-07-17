@@ -92,6 +92,12 @@ get_existing_networks() {
     set -o pipefail
 }
 
+safe_pull() {
+    if ! docker-compose pull >/dev/null 2>>$logfile; then 
+        echo "Failed to pull some images"
+    fi
+}
+
 do_upgrade() {
     running_networks=`get_running_networks`
     for n in $running_networks; do
@@ -103,7 +109,7 @@ do_upgrade() {
     for n in $running_networks; do
         cd $home/$n
         echo "Launching $n environment..."
-        docker-compose pull >/dev/null 2>>$logfile
+        safe_pull
         docker-compose up -d >/dev/null 2>>$logfile
     done
 }

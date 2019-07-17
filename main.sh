@@ -91,10 +91,16 @@ is_all_containers_up() {
     [[ $up_services == $all_services ]]
 }
 
+safe_pull() {
+    if ! docker-compose pull >/dev/null 2>>$logfile; then 
+        echo "Failed to pull some images"
+    fi
+}
+
 launch_check() {
     if ! is_all_containers_up; then
         echo "Launching $network environment..."
-        docker-compose pull >/dev/null 2>>$logfile
+        safe_pull
         docker-compose up -d >/dev/null 2>>$logfile
         sleep 10
         if ! is_all_containers_up; then
