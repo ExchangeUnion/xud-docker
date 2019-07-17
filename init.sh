@@ -54,4 +54,10 @@ export XUD_DOCKER_HOME=~/.xud-docker
 
 alias status="$XUD_DOCKER_HOME/status.sh"
 
+report() {
+    echo "Please click on https://github.com/ExchangeUnion/xud/issues/new?assignees=kilrau&labels=bug&template=bug-report.md&title=Short%2C+concise+description+of+the+bug, describe your issue, drag and drop the file \"xud-docker.log\" which is usually located in ~/.xud-docker into your browser window and submit your issue."
+}
+
+alias report="report"
+
 cat ../banner.txt
