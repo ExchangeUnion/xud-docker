@@ -2,12 +2,12 @@
 FROM node:lts-alpine AS builder
 #RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.nju.edu.cn/' /etc/apk/repositories
 #RUN npm config set registry http://172.17.0.1:7000/repository/npm/
-ARG branch=feat/resolver-interface
+ARG branch=master
 #RUN apk add --no-cache git rsync python bash make alpine-sdk
 #RUN apk add --no-cache git rsync python bash make g++
 # Use pure JS implemented secp256k1 bindings
 RUN apk add --no-cache git rsync
-RUN git clone -b ${branch} https://github.com/ExchangeUnion/xud
+RUN git clone -b feat/resolver-interface https://github.com/ExchangeUnion/xud
 WORKDIR /xud
 RUN git show HEAD > git_head.txt
 RUN npm install
