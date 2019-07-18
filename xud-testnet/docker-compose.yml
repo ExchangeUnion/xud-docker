@@ -138,7 +138,7 @@ services:
       - ./data/raiden:/root/.raiden
   
   xud:
-    image: exchangeunion/xud
+    image: exchangeunion/xud:1.0.0-testnet.1
     hostname: xud
     environment:
       - NETWORK=testnet
