@@ -109,6 +109,7 @@ services:
     ports:
       - 8885:8885
       - 8886:8886
+      - 8887:8887
   
   geth:
     image: exchangeunion/geth:1.8.27
@@ -133,6 +134,7 @@ services:
       - NETWORK=mainnet
     command: >
       --keystore-path /root/.ethereum/testnet/keystore
+      --resolver-endpoint http://xud:8887/resolveraiden
       --accept-disclaimer
       --eth-rpc-endpoint http://geth:8545
       --network-id 0
