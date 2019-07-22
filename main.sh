@@ -39,7 +39,7 @@ fi
 home=`pwd`
 
 get_all_services() {
-    cat docker-compose.yml | sed -nE 's/^  ([a-z]+):$/\1/p' | sort | paste -sd " " -
+    cat docker-compose.yml | tail -n +9 | sed -nE 's/^  ([a-z]+):$/\1/p' | sort | paste -sd " " -
 }
 
 log_details() {
@@ -78,11 +78,11 @@ launch_xud_shell() {
 
 get_up_services() {
     # grep ${network} in case docekr-compose ps Ports column has multiple rows
-    docker-compose ps | grep ${network} | grep Up | awk '{print $1}' | sed -E "s/${network}_//g" | sed -E 's/_1//g' | sort | paste -sd " " -
+    docker-compose ps | grep "$network" | grep Up | awk '{print $1}' | sed -E "s/${network}_//g" | sed -E 's/_1//g' | sort | paste -sd " " -
 }
 
 get_down_services() {
-    docker-compose ps | grep ${network} | grep -v Up | awk '{print $1}' | sed -E "s/${network}_//g" | sed -E 's/_1//g' | sort | paste -sd " " -
+    docker-compose ps | grep "$network" | grep -v Up | awk '{print $1}' | sed -E "s/${network}_//g" | sed -E 's/_1//g' | sort | paste -sd " " -
 }
 
 is_all_containers_up() {

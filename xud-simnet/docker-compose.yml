@@ -1,4 +1,10 @@
 version: "3.6"
+x-logging:
+  &default-logging
+  options:
+    max-size: '20m'
+    max-file: '5'
+  driver: json-file
 
 services:
   ltcd:
@@ -21,6 +27,7 @@ services:
       - 19556:18556
     volumes:
       - ./data/ltcd:/root/.ltcd
+    logging: *default-logging
 
   lndbtc:
     image: exchangeunion/lnd:0.6.1-beta-simnet
@@ -40,6 +47,7 @@ services:
     volumes:
       - ./data/lndbtc:/root/.lnd
       - ./data/btcd:/root/.btcd
+    logging: *default-logging
 
   lndltc:
     image: exchangeunion/lnd:0.6.1-beta-simnet
@@ -61,6 +69,7 @@ services:
     volumes:
       - ./data/lndltc:/root/.lnd
       - ./data/ltcd:/root/.ltcd
+    logging: *default-logging
 
   raiden:
     image: exchangeunion/raiden:simnet
@@ -87,6 +96,7 @@ services:
       - 5002:5001
     volumes:
       - ./data/raiden:/root/.raiden
+    logging: *default-logging
 
   xud:
     image: exchangeunion/xud:1.0.0-testnet.1
@@ -101,3 +111,4 @@ services:
       - 9885:8885
       - 9886:8886
       - 9887:8887
+    logging: *default-logging

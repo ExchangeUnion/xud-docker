@@ -1,4 +1,10 @@
 version: "3.6"
+x-logging:
+  &default-logging
+  options:
+    max-size: '20m'
+    max-file: '5'
+  driver: json-file
 
 services:
   bitcoind:
@@ -25,6 +31,7 @@ services:
       - 28333:28333
     volumes:
       - ./data/bitcoind:/root/.bitcoin
+    logging: *default-logging
 
   litecoind:
     image: exchangeunion/litecoind:0.17.1
@@ -53,6 +60,7 @@ services:
       - 29333:29333
     volumes:
       - ./data/litecoind:/root/.litecoin
+    logging: *default-logging
 
   lndbtc:
     image: exchangeunion/lnd:0.6.1-beta
@@ -76,6 +84,7 @@ services:
       - 10009:10009
     volumes:
       - ./data/lndbtc:/root/.lnd
+    logging: *default-logging
 
   lndltc:
     image: exchangeunion/lnd:0.6.1-beta
@@ -99,6 +108,7 @@ services:
       - 20009:10009
     volumes:
       - ./data/lndltc:/root/.lnd
+    logging: *default-logging
 
   parity:
     image: exchangeunion/parity:2.4.7-stable
@@ -115,6 +125,7 @@ services:
       - 8545:8545
       - 8546:8546
       - 30303:30303/udp
+    logging: *default-logging
 
   raiden:
     image: exchangeunion/raiden:0.100.3
@@ -136,6 +147,7 @@ services:
     volumes:
       - ./data/parity:/root/.ethereum
       - ./data/raiden:/root/.raiden
+    logging: *default-logging
   
   xud:
     image: exchangeunion/xud:1.0.0-testnet.1
@@ -150,3 +162,4 @@ services:
       - 8885:8885
       - 8886:8886
       - 8887:8887
+    logging: *default-logging
