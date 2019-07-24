@@ -135,6 +135,7 @@ services:
     command: >
       --keystore-path /root/.ethereum/keys/ropsten
       --accept-disclaimer
+      --resolver-endpoint http://xud:8887/resolveraiden
       --eth-rpc-endpoint parity:8545
       --network-id ropsten
       --password-file /root/.ethereum/passphrase.txt
