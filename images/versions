@@ -4,6 +4,6 @@ lnd=0.6.1-beta
 geth=1.8.27
 raiden=0.100.3
 xud=1.0.0-testnet.1
-parity=2.4.7-stable
+parity=2.6.0-beta
 btcd=latest
 ltcd=latest
