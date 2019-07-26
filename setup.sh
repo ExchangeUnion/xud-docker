@@ -16,7 +16,7 @@ emit_error() {
     >&2 echo $1
 }
 
-branch=main-log-file-fix
+branch=master
 debug=false
 
 while getopts "b:d" opt; do
