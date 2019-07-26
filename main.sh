@@ -20,9 +20,9 @@ EOF
 
 while getopts "hn:l:d" opt; do
     case "$opt" in
-    h) 
+    h)
         show_help ;;
-    n) 
+    n)
         network=$OPTARG ;;
     l)
         logfile=$OPTARG ;;
@@ -73,6 +73,7 @@ launch_xud_shell() {
         check_wallet
     fi
 
+    log_details
     bash --init-file ../init.sh
 }
 
@@ -92,7 +93,7 @@ is_all_containers_up() {
 }
 
 safe_pull() {
-    if ! docker-compose pull >/dev/null 2>>$logfile; then 
+    if ! docker-compose pull >/dev/null 2>>$logfile; then
         echo "Failed to pull some images"
     fi
 }
