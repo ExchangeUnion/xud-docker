@@ -73,7 +73,7 @@ launch_xud_shell() {
         check_wallet
     fi
 
-    log_details
+    docker-compose logs -f >> $logfile &
     bash --init-file ../init.sh
 }
 
