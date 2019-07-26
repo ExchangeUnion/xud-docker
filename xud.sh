@@ -2,7 +2,7 @@
 
 set -euo pipefail
 
-branch=master
+branch=main-log-file-fix
 
 while getopts b: opt 2>/dev/null; do
     case "$opt" in

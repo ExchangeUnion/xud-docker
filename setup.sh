@@ -16,7 +16,7 @@ emit_error() {
     >&2 echo $1
 }
 
-branch=master
+branch=main-log-file-fix
 debug=false
 
 while getopts "b:d" opt; do
@@ -93,7 +93,7 @@ get_existing_networks() {
 }
 
 safe_pull() {
-    if ! docker-compose pull >/dev/null 2>>$logfile; then 
+    if ! docker-compose pull >/dev/null 2>>$logfile; then
         echo "Failed to pull some images"
     fi
 }
@@ -177,7 +177,7 @@ run() {
 
     opts="-n $network -l $logfile"
 
-    if set -o | grep xtrace | grep on >/dev/null; then 
+    if set -o | grep xtrace | grep on >/dev/null; then
         opts="$opts -d"
     fi
 
