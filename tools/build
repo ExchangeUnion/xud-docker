@@ -13,9 +13,9 @@ push=false
 images=(bitcoind litecoind lnd lnd-simnet parity raiden raiden-simnet ltcd-simnet xud xud-simnet)
 
 cd $projectdir
-branch=`git rev-parse --abbrev-ref HEAD`
-created=`date -u +"%Y-%m-%dT%H:%M:%SZ"` # 2019-07-24T20:59:00Z
-revision=`git rev-parse HEAD`
+branch=$(git rev-parse --abbrev-ref HEAD)
+created=$(date -u +'%Y-%m-%dT%H:%M:%SZ') # 2019-07-24T20:59:00Z
+revision=$(git rev-parse HEAD)
 
 is_git_dirty() {
   ! git diff --quiet
@@ -27,9 +27,12 @@ fi
 
 cd $imagesdir
 
-getversion() {
+get_version() {
     cat versions | grep "$1" | cut -d'=' -f 2
 }
+
+alpine_version="$(get_version alpine)"
+golang_version="$(get_version golang)"
 
 build_xud_simnet() {
     pushd $supportsdir > /dev/null
@@ -48,28 +51,28 @@ build() {
             "$labelprefix.source=$projectgithub/blob/$revision/images/$1/Dockerfile"
         )
     fi
+    opts=("--build-arg ALPINE_VERSION=$alpine_version")
     if [[ $1 =~ ^.*-simnet$ ]]; then
         tag="$tagprefix/$1"
-        opts=""
         build_xud_simnet
     else
-        version=`getversion $1`
+        version=$(get_version $1)
         tag="$tagprefix/$1:$version"
-        opts="--build-arg version=$version"
+        opts+=("--build-arg VERSION=$version")
     fi
     docker build -t $tag $1 \
-        $opts \
-        `for i in ${labels[@]}; do echo "--label $i"; done`
+        ${opts[@]} \
+        $(for i in ${labels[@]}; do echo "--label $i"; done)
 }
 
 push() {
     if [[ $1 =~ ^.*-simnet$ ]]; then
         tag="$tagprefix/$1"
     else
-        version=`getversion $1`
+        version=$(get_version $1)
         tag="$tagprefix/$1:$version"
     fi
-    imgbranch=`docker image inspect -f "{{index .Config.Labels \"$labelprefix.branch\"}}" $tag`
+    imgbranch=$(docker image inspect -f "{{index .Config.Labels \"$labelprefix.branch\"}}" $tag)
     if [[ $imgbranch != 'master' ]]; then
         echo "The image $tag is not built from master"
         exit 1
