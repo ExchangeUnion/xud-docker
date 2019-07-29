@@ -1,5 +1,7 @@
-FROM alpine:3.9.3 as builder
-ARG version
+ARG ALPINE_VERSION
+
+FROM alpine:$ALPINE_VERSION as builder
+ARG VERSION
 
 COPY --from=boltz/berkeley-db /opt /opt
 
@@ -19,13 +21,13 @@ RUN apk --no-cache add \
     protobuf-dev \
     linux-headers
 
-ENV LITECOIN_PREFIX=/opt/litecoin-$version
+ENV LITECOIN_PREFIX=/opt/litecoin-$VERSION
 
-RUN wget https://github.com/litecoin-project/litecoin/archive/v$version.tar.gz
+RUN wget https://github.com/litecoin-project/litecoin/archive/v$VERSION.tar.gz
 
 RUN tar -xzf *.tar.gz
 
-WORKDIR /litecoin-$version
+WORKDIR /litecoin-$VERSION
 
 RUN sed -i '/AC_PREREQ/a\AR_FLAGS=cr' src/univalue/configure.ac
 RUN sed -i '/AX_PROG_CC_FOR_BUILD/a\AR_FLAGS=cr' src/secp256k1/configure.ac
@@ -53,8 +55,9 @@ RUN strip ${LITECOIN_PREFIX}/bin/litecoin-tx
 RUN strip ${LITECOIN_PREFIX}/bin/litecoin-cli
 
 # Assemble the final image
-FROM alpine:3.9.3
-ARG version
+FROM alpine:$ALPINE_VERSION
+ARG VERSION
+
 RUN apk update && apk upgrade
 RUN apk --no-cache add \
     boost \
@@ -63,7 +66,7 @@ RUN apk --no-cache add \
     libressl \
     boost-program_options
 RUN apk --no-cache add bash
-COPY --from=builder /opt/litecoin-$version/bin /bin
+COPY --from=builder /opt/litecoin-$VERSION/bin /bin
 COPY entrypoint.sh /
 ENTRYPOINT [ "./entrypoint.sh" ]
 EXPOSE 9332 19332 29332 29333

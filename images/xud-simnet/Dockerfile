@@ -1,4 +1,6 @@
-FROM node:lts-alpine
+ARG NODE_VERSION
+
+FROM node:$NODE_VERSION
 RUN apk add --no-cache bash
 RUN mkdir /root/.xud
 VOLUME [ "/root/.xud" ]

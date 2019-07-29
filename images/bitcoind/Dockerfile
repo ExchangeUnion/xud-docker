@@ -1,7 +1,7 @@
-ARG VERSION
 ARG ALPINE_VERSION
 
 FROM alpine:$ALPINE_VERSION as builder
+ARG VERSION
 
 COPY --from=boltz/berkeley-db /opt /opt
 
@@ -61,6 +61,8 @@ RUN strip ${BITCOIN_PREFIX}/bin/bitcoin-cli
 
 # Assemble the final image
 FROM alpine:$ALPINE_VERSION
+ARG VERSION
+
 RUN apk update && apk upgrade
 RUN apk --no-cache add \
     boost \

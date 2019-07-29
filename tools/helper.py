@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
-from os import chdir, system, popen, getcwd
-from os.path import dirname, abspath, join
+from os import chdir, system, popen, getcwd, listdir
+from os.path import dirname, abspath, join, isdir
 from configparser import ConfigParser
 from argparse import ArgumentParser
 from contextlib import contextmanager
@@ -37,19 +37,7 @@ if is_git_dirty:
 chdir(imagesdir)
 
 versions = parse_versions()
-
-images = [
-    "bitcoind",
-    "litecoind",
-    "lnd",
-    "lnd-simnet",
-    "parity",
-    "raiden",
-    "raiden-simnet",
-    "ltcd-simnet",
-    "xud",
-    "xud-simnet"
-]
+images = list(filter(isdir, listdir(".")))
 
 ####################################################################
 
@@ -84,21 +72,27 @@ def build(image):
         "--label {}.created={}".format(labelprefix, created),
         "--label {}.revision={}".format(labelprefix, revision),
     ]
-    if revision.endswith("-dirty"):
+    if not revision.endswith("-dirty"):
         source = "{}/blob/{}/images/{}/Dockerfile".format(
             projectgithub, revision, image)
         labels += [
             "--label {}.source={}".format(labelprefix, source)
         ]
     build_args = [
-        "--build-arg ALPINE_VERSION={}".format(versions["base"]["alpine"])
+        "--build-arg ALPINE_VERSION={}".format(versions["base"]["alpine"]),
+        "--build-arg GOLANG_VERSION={}".format(versions["base"]["golang"]),
+        "--build-arg PYTHON_VERSION={}".format(versions["base"]["python"]),
+        "--build-arg NODE_VERSION={}".format(versions["base"]["node"]),
     ]
     if image.endswith("-simnet"):
         tag = "{}/{}".format(tagprefix, image)
         build_xud_simnet()
         print(getcwd())
     else:
-        version = versions["application"][image]
+        if image not in versions["application"]:
+            version = "latest"
+        else:
+            version = versions["application"][image]
         tag = "{}/{}:{}".format(tagprefix, image, version)
         build_args += [
             "--build-arg VERSION={}".format(version)
@@ -109,6 +103,7 @@ def build(image):
         " ".join(build_args),
         " ".join(labels),
     ]
+    print("docker build", " ".join(args))
     system("docker build {}".format(" ".join(args)))
 
 
@@ -117,7 +112,7 @@ def push(image):
 
 
 def test(network, command):
-    pass
+    print("Test", network)
 
 
 def main():
@@ -140,11 +135,19 @@ def main():
     args = parser.parse_args()
 
     if args.command == "build":
-        for image in args.images:
+        if len(args.images) == 0:
+            x = images
+        else:
+            x = list(filter(lambda i: i in images, args.images))
+        for image in x:
             build(image)
     elif args.command == "push":
-        for image in args.images:
-            build(image)
+        if len(args.images) == 0:
+            x = images
+        else:
+            x = list(filter(lambda i: i in images, args.images))
+        for image in x:
+            push(image)
     elif args.command == "test":
         test(args.network, args.test_command)
 

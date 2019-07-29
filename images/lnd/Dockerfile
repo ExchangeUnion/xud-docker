@@ -1,14 +1,18 @@
-FROM golang:alpine as build-stage
-ARG version
-RUN apk add --no-cache git bash make
-RUN git clone -b v$version https://github.com/lightningnetwork/lnd $GOPATH/src/github.com/lightningnetwork/lnd
+ARG GOLANG_VERSION
+ARG ALPINE_VERSION
+
+FROM golang:$GOLANG_VERSION as builder
+ARG VERSION
+RUN apk add --no-cache bash git make
+ADD download_source.sh /tmp
+RUN /tmp/download_source.sh $VERSION
 WORKDIR $GOPATH/src/github.com/lightningnetwork/lnd
 RUN make && make install
 
 # Final stage
-FROM alpine
+FROM alpine:$ALPINE_VERSION
 RUN apk add --no-cache bash expect
-COPY --from=build-stage /go/bin/lnd /go/bin/lncli /bin/
+COPY --from=builder /go/bin/lnd /go/bin/lncli /bin/
 COPY entrypoint.sh wallet.exp unlock.exp /
 VOLUME [ "/root/.lnd" ]
 ENTRYPOINT [ "./entrypoint.sh" ]

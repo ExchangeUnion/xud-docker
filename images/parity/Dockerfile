@@ -1,5 +1,6 @@
-ARG version
-FROM parity/parity:v$version
+ARG VERSION
+
+FROM parity/parity:v$VERSION
 USER root
 RUN apt-get update && apt-get install -y bash expect
 WORKDIR /

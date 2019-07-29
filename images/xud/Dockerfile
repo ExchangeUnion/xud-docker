@@ -1,17 +1,18 @@
-# build stage
-FROM node:lts-alpine AS builder
-ARG version
+ARG NODE_VERSION
+
+FROM node:$NODE_VERSION AS builder
+ARG VERSION
 # Use pure JS implemented secp256k1 bindings
 RUN apk add --no-cache git rsync bash
 ADD download_source.sh /tmp
-RUN /tmp/download_source.sh $version
+RUN /tmp/download_source.sh $VERSION
 WORKDIR /xud
 RUN npm install
 RUN npm run compile
 RUN npm prune --dev
 
-# final stage
-FROM node:lts-alpine
+# Final stage
+FROM node:$NODE_VERSION
 RUN apk add --no-cache bash
 RUN mkdir /root/.xud
 VOLUME [ "/root/.xud" ]
