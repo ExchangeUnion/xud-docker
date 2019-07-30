@@ -42,6 +42,22 @@ get_all_services() {
     cat docker-compose.yml | tail -n +9 | sed -nE 's/^  ([a-z]+):$/\1/p' | sort | paste -sd " " -
 }
 
+start_log() {
+    services=`get_all_services`
+    for s in $services; do
+        commands+=("docker-compose logs --tail=1000 $s")
+    done
+
+    counter=2
+    set +e
+    for cmd in "${commands[@]}"; do
+        awk "NR >=$counter && NR <=$((counter + 1002)) {print $(eval $cmd)}" file > $logfile
+        counter=$((counter + 1003))
+    done
+
+    set -e
+}
+
 log_details() {
     commands=(
         "uname -a"
@@ -73,7 +89,7 @@ launch_xud_shell() {
         check_wallet
     fi
 
-    docker-compose logs -f >> $logfile &
+    start_log
     bash --init-file ../init.sh
 }
 
