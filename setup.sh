@@ -4,7 +4,6 @@ set -euo pipefail
 set -E # error trap
 
 home=${XUD_DOCKER_HOME:-~/.xud-docker}
-logfile=$home/xud-docker.log
 
 failure() {
 	local lineno=$1
@@ -93,7 +92,7 @@ get_existing_networks() {
 }
 
 safe_pull() {
-    if ! docker-compose pull >/dev/null 2>>$logfile; then 
+    if ! docker-compose pull >/dev/null 2>>$logfile; then
         echo "Failed to pull some images"
     fi
 }
@@ -140,6 +139,24 @@ fix_content() {
 run() {
     check_system
 
+    PS3="Please choose the network: "
+    options=("Simnet" "Testnet" "Mainnet")
+    shopt -s nocasematch
+    select opt in "${options[@]}"; do
+        case "$REPLY" in
+            1|" 1"|" 1 "|"1 "|simnet|" simnet"|" simnet "|"simnet ") network="simnet"
+                break;;
+            2|" 2"|" 2 "|"2 "|testnet|" testnet"|" testnet "|"testnet ") network="testnet"
+                break;;
+            3|" 3"|" 3 "|"3 "|mainnet|" mainnet"|" mainnet "|"mainnet ") network="mainnet"
+                echo "Comming soon..."
+                ;;
+            *) echo "Invalid option: \"$REPLY\"";;
+        esac
+    done
+
+    logfile=$home/$network/xud-docker.log
+
     if [[ -e $home ]]; then
         cd $home
         if ! integrity_check; then
@@ -157,27 +174,11 @@ run() {
         install
     fi
 
-    PS3="Please choose the network: "
-    options=("Simnet" "Testnet" "Mainnet")
-    shopt -s nocasematch
-    select opt in "${options[@]}"; do
-        case "$REPLY" in
-            1|" 1"|" 1 "|"1 "|simnet|" simnet"|" simnet "|"simnet ") network="simnet"
-                break;;
-            2|" 2"|" 2 "|"2 "|testnet|" testnet"|" testnet "|"testnet ") network="testnet"
-                break;;
-            3|" 3"|" 3 "|"3 "|mainnet|" mainnet"|" mainnet "|"mainnet ") network="mainnet"
-                echo "Comming soon..."
-                ;;
-            *) echo "Invalid option: \"$REPLY\"";;
-        esac
-    done
-
     cd $home/$network
 
     opts="-n $network -l $logfile"
 
-    if set -o | grep xtrace | grep on >/dev/null; then 
+    if set -o | grep xtrace | grep on >/dev/null; then
         opts="$opts -d"
     fi
 
