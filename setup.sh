@@ -124,9 +124,9 @@ upgrade() {
         b=""
     fi
     if [[ $a != $b ]]; then
-        read -p "A new version is available. Would you like to upgrade (Warning: this will restart your environment and cancel all open orders)? y/n?" -n 1 -r
+        read -p "A new version is available. Would you like to upgrade (Warning: this will restart your environment and cancel all open orders)? Y/n?" -n 1 -r
         echo    # (optional) move to a new line
-        if [[ $REPLY =~ ^[Yy]$ ]]
+        if [[ $REPLY =~ ^Y$ ]]
         then
             do_upgrade
         fi
