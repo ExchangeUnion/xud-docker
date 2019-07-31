@@ -93,7 +93,7 @@ get_existing_networks() {
 }
 
 safe_pull() {
-    if ! docker-compose pull >/dev/null 2>>$logfile; then 
+    if ! docker-compose pull >/dev/null 2>>$logfile; then
         echo "Failed to pull some images"
     fi
 }
@@ -124,8 +124,12 @@ upgrade() {
         b=""
     fi
     if [[ $a != $b ]]; then
-        echo "New version detected, upgrading..."
-        do_upgrade
+        read -p "A new version is available. Would you like to upgrade (Warning: this will restart your environment and cancel all open orders)? y/n?" -n 1 -r
+        echo    # (optional) move to a new line
+        if [[ $REPLY =~ ^[Yy]$ ]]
+        then
+            do_upgrade
+        fi
     fi
 }
 
@@ -177,7 +181,7 @@ run() {
 
     opts="-n $network -l $logfile"
 
-    if set -o | grep xtrace | grep on >/dev/null; then 
+    if set -o | grep xtrace | grep on >/dev/null; then
         opts="$opts -d"
     fi
 
