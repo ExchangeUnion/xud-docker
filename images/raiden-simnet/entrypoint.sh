@@ -9,7 +9,7 @@ fi
 cd /root/.raiden
 
 if [[ ! -e "addr.txt" ]]; then
-    addr=`python onboarder.py | tail -1 | awk '{print $2}'`
+    addr=`python /opt/onboarder.py | tail -1 | awk '{print $2}'`
     echo "$addr" > addr.txt
     echo "123123123" > password.txt
 else
