@@ -3,21 +3,33 @@
 set -euo pipefail
 set -m
 
+args="$@"
+
 lncli="lncli -n $NETWORK -c $CHAIN"
+walletfile="~/.lnd/data/chain/$CHAIN/$NETWORK/wallet.db"
+logfile="~/.lnd/logs/$CHAIN/$NETWORK/lnd.log"
 
 check_lnd() {
     n=`ps | grep "lnd " | grep -v grep | wc -l`
     [ $n -eq "1" ] && $lncli getinfo > /dev/null 2>&1
 }
 
-post_actions() {
+get_running_lnd_count() {
+    ps | grep "lnd " | grep -v grep | wc -l
+}
 
-    set +e
-    set +o pipefail
+is_lnd_running() {
+    [[ $(get_running_lnd_count) -gt 0 ]]
+}
+
+open_channels() {
 
     while ! check_lnd; do
-        echo "[DEBUG] Sleep 10 seconds to check lnd then perform post actions"
-        sleep 10
+        if ! is_lnd_running; then
+            echo "Lnd is dead!!!"
+            return 0;
+        fi
+        sleep 3
     done
 
     btc_peers=(
@@ -49,57 +61,63 @@ post_actions() {
             $lncli connect $connectstr
         fi
     fi
-
-    set -eo pipefail
 }
 
-post_actions &
-
 unlock_wallet() {
-    ./wallet.exp
+    if [[ ! -e $walletfile ]]; then
+        ./wallet.exp
+    fi
+
     ./unlock.exp
     # TODO make sure wallet has been unlocked
+
+    # 2019-07-15 19:00:41.217 [INF] LTND: Waiting for wallet encryption password. Use `lncli create` to create a wallet, 
+    # `lncli unlock` to unlock an existing wallet, or `lncli changepassword` to change the password of an existing wallet and unlock it.
+
+    if ! tail -1 $logfile | grep 'Waiting for wallet entryption password'; then
+        echo "Wallet unlocked!!!"
+        return 0
+    else
+        echo "Failed to unlock wallet!!!"
+        return 1
+    fi
 }
 
 start_lnd() {
     # macaroons is force enabled when listening on public interfaces (--no-macaroons)
     # specify 0.0.0.0:10009 instead of :10009 because `lncli -n simnet getinfo` will not work with ':10009'
-    lnd --rpclisten=0.0.0.0:10009 --listen=0.0.0.0:9735 --restlisten=0.0.0.0:8080 $@ &
-
-    sleep 3
+    lnd $args --rpclisten=0.0.0.0:10009 --listen=0.0.0.0:9735 --restlisten=0.0.0.0:8080 >>lnd.log 2>&1 &
 
     unlock_wallet
+
+    open_channels
 }
 
+
+
+stop_lnd() {
+    n=`get_running_lnd_count`
+    while [[ $n -gt 0 ]]; do
+        ps | grep "lnd " | grep -v grep | awk '{print $1}' | xargs kill -9
+        sleep 10
+        n=`get_running_lnd_count`
+    done
+}
 
 restart_lnd() {
-    set +e
-    echo "[DEBUG] Enter restart_lnd function"
-    n=`ps | grep "lnd " | grep -v grep | wc -l`
-    echo "[DEBUG] We got $n lnd process(es) at first"
-    while [ "$n" -gt "0" ]; do
-        ps | grep "lnd " | grep -v grep | awk '{print $1}' | xargs kill -9
-        echo "[DEBUG] Sleep 10 seconds to see if we kill all lnd processes"
-        sleep 10
-        n=`ps | grep "lnd " | grep -v grep | wc -l`
-        echo "[DEBUG] Now we got $n lnd process(es) running"
-    done
-    echo "[DEBUG] All lnd process has been killed"
-    sleep 10
-    start_lnd $@
+    stop_lnd
+    start_lnd
 }
 
-
 run() {
-    start_lnd $@ &
-    echo "[DEBUG] Wait 30 seconds then do regular health check"
+    start_lnd &
     sleep 30
     while true; do
         if ! check_lnd; then
-            restart_lnd $@
+            restart_lnd
         fi
         sleep 10
     done
 }
 
-run $@
+run

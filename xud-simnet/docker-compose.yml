@@ -8,8 +8,7 @@ x-logging:
 
 services:
   ltcd:
-    #image: exchangeunion/ltcd:latest-simnet
-    image: exchangeunion/ltcd:latest-simnet
+    image: exchangeunion/ltcd-simnet
     # Let generated "rpc.cert" has "ltcd" domain name,
     # or it will deny lnd rpc connections
     hostname: ltcd
@@ -30,7 +29,7 @@ services:
     logging: *default-logging
 
   lndbtc:
-    image: exchangeunion/lnd:0.6.1-beta-simnet
+    image: exchangeunion/lnd-simnet
     hostname: lndbtc
     environment:
       - NETWORK=simnet
@@ -50,7 +49,7 @@ services:
     logging: *default-logging
 
   lndltc:
-    image: exchangeunion/lnd:0.6.1-beta-simnet
+    image: exchangeunion/lnd-simnet
     hostname: lndltc
     environment:
       - NETWORK=simnet
@@ -72,7 +71,7 @@ services:
     logging: *default-logging
 
   raiden:
-    image: exchangeunion/raiden:simnet
+    image: exchangeunion/raiden-simnet
     hostname: raiden
     environment:
       - NETWORK=simnet
@@ -86,12 +85,16 @@ services:
       --datadir /root/.raiden
       --rpc
       --api-address 0.0.0.0:5001
-      --matrix-server https://raidentransport.exchangeunion.com
+      --environment-type production
+      --password-file /root/.raiden/password.txt
       --no-sync-check
       --tokennetwork-registry-contract-address 0x07679899f46422A2a9e5A3502815131Fe6d0dd0a
       --secret-registry-contract-address 0x9B16762c9f6390a19208bDE8bd8AEc81D7C6BDaB
       --endpoint-registry-contract-address 0xF6Ac1fE0421036e1f2DB6cC23CC2cFc36288d434
       --gas-price 10000000000
+      --eth-rpc-endpoint 35.231.222.142:8546
+      --matrix-server https://raidentransport.exchangeunion.com
+      --resolver-endpoint http://localhost:8887/resolveraiden
     ports:
       - 5002:5001
     volumes:
@@ -99,7 +102,7 @@ services:
     logging: *default-logging
 
   xud:
-    image: exchangeunion/xud:1.0.0-testnet.1
+    image: exchangeunion/xud-simnet
     hostname: xud
     environment:
       - NETWORK=simnet
