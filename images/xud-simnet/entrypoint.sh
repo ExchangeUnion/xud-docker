@@ -42,21 +42,25 @@ set_weth() {
     xucli listpairs
 }
 
-cp /tmp/xud.conf ~/.xud
+write_config() {
+	cp /tmp/xud.conf ~/.xud
+	
+	hn="$(hostname)"
+	n="${hn:3}"
 
-hn="$(hostname)"
-echo $hn
-n="${hn:3}"
-echo $n
+	if [[ -z $n ]]; then 
+    	insid="0"
+	else 
+    	insid="$n"
+	fi
 
-if [ -z "$n" ]; then 
-    insid="0"
-else 
-    insid="$n"
+	sed -i "s/<instance_id>/$insid/g" ~/.xud/xud.conf
+	sed -i "s/<network>/$NETWORK/g" ~/.xud/xud.conf
+}
+
+if [[ $XUD_REWRITE_CONFIG || ! -e ~/.xud/xud.conf ]]; then
+	write_config
 fi
-
-sed -i "s/<instance_id>/$insid/g" ~/.xud/xud.conf
-sed -i "s/<network>/$NETWORK/g" ~/.xud/xud.conf
 
 while ! [ -e "/root/.lndbtc/data/chain/bitcoin/$NETWORK/admin.macaroon" ]; do
     echo "Waiting for lndbtc admin.macaroon"
