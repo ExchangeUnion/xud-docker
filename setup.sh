@@ -4,7 +4,6 @@ set -euo pipefail
 set -E # error trap
 
 home=${XUD_DOCKER_HOME:-~/.xud-docker}
-logfile=$home/xud-docker.log
 
 failure() {
 	local lineno=$1
@@ -144,6 +143,24 @@ fix_content() {
 run() {
     check_system
 
+    PS3="Please choose the network: "
+    options=("Simnet" "Testnet" "Mainnet")
+    shopt -s nocasematch
+    select opt in "${options[@]}"; do
+        case "$REPLY" in
+            1|" 1"|" 1 "|"1 "|simnet|" simnet"|" simnet "|"simnet ") network="simnet"
+                break;;
+            2|" 2"|" 2 "|"2 "|testnet|" testnet"|" testnet "|"testnet ") network="testnet"
+                break;;
+            3|" 3"|" 3 "|"3 "|mainnet|" mainnet"|" mainnet "|"mainnet ") network="mainnet"
+                echo "Comming soon..."
+                ;;
+            *) echo "Invalid option: \"$REPLY\"";;
+        esac
+    done
+
+    logfile=$home/$network/xud-docker.log
+
     if [[ -e $home ]]; then
         cd $home
         if ! integrity_check; then
@@ -160,22 +177,6 @@ run() {
         trap 'failure ${LINENO} "$BASH_COMMAND"' ERR
         install
     fi
-
-    PS3="Please choose the network: "
-    options=("Simnet" "Testnet" "Mainnet")
-    shopt -s nocasematch
-    select opt in "${options[@]}"; do
-        case "$REPLY" in
-            1|" 1"|" 1 "|"1 "|simnet|" simnet"|" simnet "|"simnet ") network="simnet"
-                break;;
-            2|" 2"|" 2 "|"2 "|testnet|" testnet"|" testnet "|"testnet ") network="testnet"
-                break;;
-            3|" 3"|" 3 "|"3 "|mainnet|" mainnet"|" mainnet "|"mainnet ") network="mainnet"
-                echo "Comming soon..."
-                ;;
-            *) echo "Invalid option: \"$REPLY\"";;
-        esac
-    done
 
     cd $home/$network
 
