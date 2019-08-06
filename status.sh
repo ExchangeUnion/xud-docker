@@ -32,7 +32,7 @@ status_text() {
             local x=`echo "$1/$2*100" | bc -l`
             local y=`echo "$x*100/1" | bc`
             local z=`echo "$y/100" | bc -l`
-            printf "Syncing %.2f%% (%d/%d)\n" $z $1 $2
+            LC_NUMERIC="en_US.UTF-8" printf "Syncing %.2f%% (%d/%d)\n" $z $1 $2
         fi
     fi
 }
