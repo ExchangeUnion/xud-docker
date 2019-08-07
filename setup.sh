@@ -69,6 +69,7 @@ download_files() {
     curl -s $url/banner.txt > banner.txt
     curl -s $url/init.sh > init.sh
     curl -s $url/status.sh > status.sh
+    curl -s $url/status.py > status.py
     curl -s $url/main.sh > main.sh
     curl -s $url/pull.py > pull.py
     chmod u+x status.sh main.sh pull.py
@@ -94,7 +95,7 @@ get_existing_networks() {
 
 safe_pull() {
     command="python"
-    if ! which python; then
+    if ! which python >/dev/null 2>&1; then
         command="python3"
     fi
     if ! $command ../pull.py "$branch" "$1"; then
