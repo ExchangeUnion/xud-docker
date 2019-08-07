@@ -170,7 +170,7 @@ run() {
         trap 'failure ${LINENO} "$BASH_COMMAND"' ERR
         upgrade
     else
-        mkdir -p $home
+        mkdir -p $home/$network
         touch $logfile
         cd $home
         echo "$(date)">$logfile
