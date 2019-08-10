@@ -1,12 +1,12 @@
 export XUD_NETWORK=`basename $(pwd)`
 
 case $XUD_NETWORK in
-    testnet)
+    testnet|mainnet)
         alias bitcoin-cli="docker-compose exec bitcoind bitcoin-cli -testnet -rpcuser=xu -rpcpassword=xu"
         alias litecoin-cli="docker-compose exec litecoind litecoin-cli -testnet -rpcuser=xu -rpcpassword=xu"
         alias lndbtc-lncli="docker-compose exec lndbtc lncli -n testnet -c bitcoin"
         alias lndltc-lncli="docker-compose exec lndltc lncli -n testnet -c litecoin"
-        #alias geth="docker-compose exec geth geth --testnet"
+        alias geth="docker-compose exec geth geth --testnet"
         alias parity="docker-compose exec parity parity --chain ropsten"
         alias xucli="docker-compose exec xud xucli"
         ;;
@@ -33,20 +33,24 @@ alias addpair="xucli addpair"
 alias ban="xucli ban"
 alias channelbalance="xucli channelbalance"
 alias connect="xucli connect"
+alias create="xucli create"
+alias discovernodes="xucli discovernodes"
 alias executeswap="xucli executeswap"
 alias getinfo="xucli getinfo"
 alias getnodeinfo="xucli getnodeinfo"
 alias listorders="xucli listorders"
 alias listpairs="xucli listpairs"
 alias listpeers="xucli listpeers"
+alias openchannel="xucli openchannel"
+alias orderbook="xucli orderbook"
 alias removecurrency="xucli removecurrency"
 alias removeorder="xucli removeorder"
 alias removepair="xucli removepair"
 alias shutdown="xucli shutdown"
 alias unban="xucli unban"
+alias unlock="xucli unlock"
 alias buy="xucli buy"
 alias sell="xucli sell"
-alias orderbook="xucli orderbook"
 
 export PS1="$XUD_NETWORK > "
 
