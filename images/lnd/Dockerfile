@@ -13,7 +13,7 @@ RUN make && make install
 FROM alpine:$ALPINE_VERSION
 RUN apk add --no-cache bash expect
 COPY --from=builder /go/bin/lnd /go/bin/lncli /bin/
-COPY entrypoint.sh wallet.exp unlock.exp /
+COPY entrypoint.sh wallet.exp unlock.exp unlocker.sh wait-file.sh /
 VOLUME [ "/root/.lnd" ]
-ENTRYPOINT [ "./entrypoint.sh" ]
+ENTRYPOINT ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]
 EXPOSE 10009

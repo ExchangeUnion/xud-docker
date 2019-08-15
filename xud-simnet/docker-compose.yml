@@ -29,18 +29,11 @@ services:
     logging: *default-logging
 
   lndbtc:
-    image: exchangeunion/lnd-simnet
+    image: exchangeunion/lnd-simnet:latest
     hostname: lndbtc
     environment:
       - NETWORK=simnet
       - CHAIN=bitcoin
-    command: >
-      --alias=lndbtc
-      --bitcoin.active
-      --bitcoin.simnet
-      --bitcoin.node=neutrino
-      --neutrino.connect=35.231.222.142:38555
-      --debuglevel=debug
     ports:
       - 10010:10009
     volumes:
@@ -49,20 +42,11 @@ services:
     logging: *default-logging
 
   lndltc:
-    image: exchangeunion/lnd-simnet
+    image: exchangeunion/lnd-simnet:latest
     hostname: lndltc
     environment:
       - NETWORK=simnet
       - CHAIN=litecoin
-    command: >
-      --alias=lndltc
-      --litecoin.active
-      --litecoin.simnet
-      --litecoin.node=ltcd
-      --ltcd.rpchost=ltcd
-      --ltcd.rpcuser=xu
-      --ltcd.rpcpass=xu
-      --debuglevel=debug
     ports:
       - 20010:10009
     volumes:
@@ -102,7 +86,7 @@ services:
     logging: *default-logging
 
   xud:
-    image: exchangeunion/xud-simnet
+    image: exchangeunion/xud-simnet:latest
     hostname: xud
     environment:
       - NETWORK=simnet
