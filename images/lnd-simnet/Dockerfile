@@ -1,11 +1,13 @@
-FROM xud-simnet as build
+ARG ALPINE_VERSION
 
-FROM exchangeunion/lnd
-COPY --from=build /root/xud-simnet/go/bin/lnd /root/xud-simnet/go/bin/lncli /usr/local/bin/
-RUN apk add --no-cache bash supervisor tor
-COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
-COPY lnd-btc.conf /root/lnd-btc.conf
-COPY lnd-ltc.conf /root/lnd-ltc.conf
-COPY torrc /etc/tor/torrc
-COPY peers.sh /
+FROM alpine:$ALPINE_VERSION
+RUN apk add --no-cache bash expect supervisor tor
+COPY --from=xud-simnet /root/xud-simnet/go/bin/lnd /root/xud-simnet/go/bin/lncli /usr/local/bin/
+COPY entrypoint.sh wallet.exp unlock.exp unlocker.sh wait-file.sh peers.sh /
+COPY lnd-btc.conf lnd-ltc.conf /root/
+COPY supervisord.conf /etc/supervisor/conf.d/
+COPY torrc /etc/tor/
+VOLUME ["/root/.lnd"]
 RUN mkdir /root/.lnd/tor
+ENTRYPOINT ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]
+EXPOSE 10009
