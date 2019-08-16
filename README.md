@@ -57,3 +57,24 @@ Then push your local changes to remote branch
 git push origin your-feature-branch
 ```
 
+Ask other people to run your-feature-branch on their machine
+
+```bash
+./xud.sh -b your-feature-branch
+```
+
+Or they need to build images of your-feature-branch test like you do it locally.
+
+### Test on cloud
+
+We know running simnet, testnet and mainnet simultaneously on personal computer is nearly impossible. So we provide a convenient `tools/test` to let your test your-feature-branch on cloud (We only support Google Cloud for now)
+
+1. Download `google-cloud-sdk` on your machine.
+2. Running `gcloud init` to login to your Google account and choose the project and region
+
+```
+$PROJECT_DIR/tools/test --on-cloud <network>
+```
+
+The value of `<network>` should be simnet, testnet and mainnet
+

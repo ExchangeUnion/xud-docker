@@ -4,6 +4,7 @@ set -euo pipefail
 
 network=testnet
 logfile=/dev/null
+branch=master
 
 direct_launch=false
 
@@ -28,6 +29,8 @@ while getopts "hn:l:d" opt; do
         logfile=$OPTARG ;;
     d)
         set -x ;;
+    b)
+        branch=$OPTARG ;;
     esac
 done
 shift $((OPTIND -1))
@@ -39,7 +42,7 @@ fi
 home=`pwd`
 
 get_all_services() {
-    cat docker-compose.yml | tail -n +9 | sed -nE 's/^  ([a-z]+):$/\1/p' | sort | paste -sd " " -
+    cat docker-compose.yml | grep -A -1 services | sed -nE 's/^  ([a-z]+):$/\1/p' | sort | paste -sd " " -
 }
 
 log_details() {
@@ -92,9 +95,7 @@ is_all_containers_up() {
 }
 
 safe_pull() {
-    if ! docker-compose pull >/dev/null 2>>$logfile; then 
-        echo "Failed to pull some images"
-    fi
+    ../pull.py "$branch" "$network"
 }
 
 launch_check() {
@@ -120,4 +121,4 @@ run() {
     launch_xud_shell
 }
 
-run $@
+run "$@"
