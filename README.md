@@ -45,7 +45,7 @@ Test locally
 $PROJECT_DIR/xud.sh -b your-feature-branch
 ```
 
-Push images of your-feature-branch and let others test without build images by themselves
+To let others test without building the images by themselves push the images of your-feature-branch.
 
 ```bash
 $PROJECT_DIR/tools/push <image_name>
@@ -63,14 +63,12 @@ Ask other people to run your-feature-branch on their machine
 ./xud.sh -b your-feature-branch
 ```
 
-Or they need to build images of your-feature-branch test like you do it locally.
-
 ### Test on cloud
 
-We know running simnet, testnet and mainnet simultaneously on personal computer is nearly impossible. So we provide a convenient `tools/test` to let your test your-feature-branch on cloud (We only support Google Cloud for now)
+Running simnet, testnet and mainnet simultaneously is resource heavy. We provide a convenient `tools/test` script to test your-feature-branch in the cloud. Currently, only Google Cloud is supported.
 
 1. Download `google-cloud-sdk` on your machine.
-2. Running `gcloud init` to login to your Google account and choose the project and region
+2. Run `gcloud init` to login to your Google account and choose the project and region
 
 ```
 $PROJECT_DIR/tools/test --on-cloud <network>

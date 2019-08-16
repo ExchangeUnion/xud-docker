@@ -93,7 +93,14 @@ get_existing_networks() {
 }
 
 safe_pull() {
-    ./pull.py "$branch" "$1"
+    command="python"
+    if ! which python; then
+        command="python3"
+    fi
+    if ! $command ../pull.py "$branch" "$1"; then
+        echo "Failed to pull images"
+        exit 1
+    fi
 }
 
 do_upgrade() {
@@ -101,14 +108,16 @@ do_upgrade() {
     for n in $running_networks; do
         cd "$home/$n"
         echo "Shutting down $n environment..."
-        docker-compose down >/dev/null 2>>$logfile
+        # docker-compose normal output prints into stderr, so we hide redirect fd(2) to /dev/null
+        docker-compose down >/dev/null 2>&1
     done
     download_files
     for n in $running_networks; do
         cd "$home/$n"
         echo "Launching $n environment..."
         safe_pull "$n"
-        docker-compose up -d >/dev/null 2>>$logfile
+        # docker-compose normal output prints into stderr, so we hide redirect fd(2) to /dev/null
+        docker-compose up -d >/dev/null 2>&1
     done
 }
 

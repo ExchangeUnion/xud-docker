@@ -15,7 +15,7 @@ def parse_versions():
 
 
 def is_git_dirty():
-    system("git diff --quiet") != 0
+    return system("git diff --quiet") != 0
 
 
 projectdir = abspath(dirname(dirname(__file__)))
@@ -39,6 +39,7 @@ chdir(imagesdir)
 versions = parse_versions()
 images = list(filter(isdir, listdir(".")))
 
+
 ####################################################################
 
 @contextmanager
@@ -57,7 +58,9 @@ def dir(new_dir):
         def wrapper(*args, **kwargs):
             with pushd(supportsdir):
                 function(*args, **kwargs)
+
         return wrapper
+
     return inner_function
 
 
@@ -87,7 +90,6 @@ def build(image):
     if image.endswith("-simnet"):
         tag = "{}/{}".format(tagprefix, image)
         build_xud_simnet()
-        print(getcwd())
     else:
         if image not in versions["application"]:
             version = "latest"
@@ -108,11 +110,34 @@ def build(image):
 
 
 def push(image):
-    pass
+    if image.endswith("-simnet"):
+        tag = "{}/{}:latest".format(tagprefix, image)
+    else:
+        if image not in versions["application"]:
+            version = "latest"
+        else:
+            version = versions["application"][image]
+        tag = "{}/{}:{}".format(tagprefix, image, version)
+
+    if branch == "master":
+        system("docker push {}".format(tag))
+    else:
+        newtag = tag + "__" + branch.replace('/', '-')
+        system("docker tag {} {}".format(tag, newtag))
+        system("docker push {}".format(newtag))
 
 
-def test(network, command):
-    print("Test", network)
+def test(args):
+    if args.on_cloud:
+        chdir(projectdir + "/tools/gcloud")
+        cmd = "NETWORK={} MACHINE_TYPE={} DISK_SIZE={} NAME_SUFFIX={} ./test.sh {}".format(
+            args.network, args.gcloud_machine_type, args.gcloud_disk_size, args.gcloud_name_suffix,
+            args.test_script)
+        system(cmd)
+    else:
+        chdir(projectdir)
+        cmd = "./xud.sh -b {}".format(branch)
+        system(cmd)
 
 
 def main():
@@ -127,10 +152,12 @@ def main():
     push_parser.add_argument("images", type=str, nargs="*")
 
     test_parser = subparsers.add_parser("test")
-    test_parser.add_argument("network", type=str, choices=[
-                             "regtest", "simnet", "testnet", "mainnet"])
-    test_parser.add_argument("-c", "--command", type=str,
-                             nargs="?", dest="test_command")
+    test_parser.add_argument("network", type=str, choices=["simnet", "testnet", "mainnet"])
+    test_parser.add_argument("--on-cloud", action="store_true")
+    test_parser.add_argument("--gcloud-machine-type", type=str, default="n1-standard-1")
+    test_parser.add_argument("--gcloud-disk-size", type=str, default="10GB")
+    test_parser.add_argument("--gcloud-name-suffix", type=str, default="")
+    test_parser.add_argument("--test-script", type=str, default="test-branch.sh " + branch)
 
     args = parser.parse_args()
 
@@ -149,7 +176,7 @@ def main():
         for image in x:
             push(image)
     elif args.command == "test":
-        test(args.network, args.test_command)
+        test(args)
 
 
 if __name__ == "__main__":

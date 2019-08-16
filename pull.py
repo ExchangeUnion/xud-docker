@@ -6,13 +6,14 @@ from subprocess import check_output
 import sys
 import os
 import json
+import threading
+import logging
 
 if sys.version_info[0] == 2:
-    from urllib2 import Request, urlopen
+    from urllib2 import Request, urlopen, HTTPError
 else:
     from urllib.request import Request, urlopen
-
-import threading
+    from urllib.error import HTTPError
 
 try:
     from subprocess import DEVNULL  # not available when python < 3.3
@@ -34,6 +35,10 @@ class Image(object):
 
     def __eq__(self, other):
         return self.group == other.group and self.name == other.name and self.tag == other.tag
+
+
+class ImageNotFound(Exception):
+    pass
 
 
 class Service(object):
@@ -62,12 +67,12 @@ class Service(object):
 
 
 def get_service_images():
-    cmd = "cat docker-compose.yml | grep -A -1 services | grep -A 1 -E '^  [a-z]*:' | sed -E 's/ +//g' | sed -E 's/image://g' | sed -E '/--/d'"
+    cmd = "cat docker-compose.yml | grep -A 999 services | grep -A 1 -E '^  [a-z]*:' | sed -E 's/ +//g' | sed -E 's/image://g' | sed -E '/--/d'"
     return check_output(cmd, shell=True).decode().splitlines()
 
 
 def get_all_services():
-    cmd = "cat docker-compose.yml | grep -A -1 services | sed -nE 's/^  ([a-z]+):$/\\1/p'"
+    cmd = "cat docker-compose.yml | grep -A 999 services | sed -nE 's/^  ([a-z]+):$/\\1/p'"
     services = check_output(cmd, shell=True).decode().splitlines()
     return [Service(s) for s in services]
 
@@ -89,7 +94,8 @@ def get_local_image_metadata(image):
     try:
         text = check_output(cmd, shell=True, stderr=DEVNULL).decode().strip()
         return json.loads(text)[0]["Config"]
-    except:
+    except Exception as e:
+        logging.debug("Failed to fetch the metadata of %s from local environment, reason: %s, %s", image, type(e), e)
         return None
 
 
@@ -102,6 +108,7 @@ def get_token(image):
 
 def get_cloud_image_metadata(image):
     token = get_token(image)
+    # TODO fetch image metadata from the registry of `docker info`
     req = Request("https://{}/v2/{}/{}/manifests/{}".format(REGISTRY1, image.group, image.name, image.tag))
     req.add_header("Authorization", "Bearer " + token)
     try:
@@ -111,12 +118,14 @@ def get_cloud_image_metadata(image):
         text = j["history"][0]["v1Compatibility"]
         j = json.loads(text)
         return j["config"]
-    except:
-        return None
+    except HTTPError as e:
+        if e.code == 404:
+            return None
+        else:
+            raise ImageNotFound("{} {}", REGISTRY1, image)
 
 
 def get_image_created_timestamp(metadata):
-
     return metadata["Labels"]["com.exchangeunion.image.created"]
 
 
@@ -124,33 +133,41 @@ def get_image_digest(metadata):  # sha256
     return metadata["Image"]
 
 
+def get_cloud_image_metadata_with_branch(image, branch):
+    if branch == 'master':
+        return image, get_cloud_image_metadata(image)
+    branch_image = Image(image.group, image.name, image.tag + "__" + branch.replace('/', '-'))
+    m = get_cloud_image_metadata(branch_image)
+    if m is None:
+        return image, get_cloud_image_metadata(image)
+    return branch_image, m
+
+
+
+
+
 def get_pull_image(branch, image):
-    branch_image = Image(image.group, image.name, image.tag + "__" + branch)
 
     m1 = get_local_image_metadata(image)
-    m2 = get_cloud_image_metadata(branch_image)
-
-    if m2 is None:
-        if branch != 'master':
-            m2 = get_cloud_image_metadata(image)
-        else:
-            raise Exception("Image not found: {}".format(image))
+    return_image, m2 = get_cloud_image_metadata_with_branch(image, branch)
 
     if m1 is None:
         if m2 is None:
-            raise Exception("Image not found: {}".format(image))
+            raise ImageNotFound(image)
         else:
-            return m2
+            return return_image
 
     d1 = get_image_digest(m1)
     d2 = get_image_digest(m2)
+    logging.debug("(%s) comparing digests\n    LOCAL:  (%s) %s\n    REMOTE: (%s) %s", image.name, image, d1, return_image, d2)
 
     if d1 != d2:
         t1 = get_image_created_timestamp(m1)
         t2 = get_image_created_timestamp(m2)
+        logging.debug("(%s) comparing created timestamps\n    LOCAL:  (%s) %s\n    REMOTE: (%s) %s", image.name, image, t1, return_image, t2)
 
         if t1 < t2:
-            return m2
+            return return_image
 
     return None
 
@@ -178,11 +195,16 @@ def get_images(servies):
 
 
 def update(branch, image):
-    result = get_pull_image(branch, image)
-    if result is None:
-        print(image, "is up-to-date")
-    else:
-        pull_image(result)
+    try:
+        result = get_pull_image(branch, image)
+        if result is None:
+            # print(image, "is up-to-date")
+            pass
+        else:
+            pull_image(result)
+    except ImageNotFound as e:
+        logging.error("Image not found: %s", e)
+        exit(1)
 
 
 def update_images(branch, network):
@@ -202,4 +224,13 @@ if __name__ == '__main__':
         exit(1)
     branch = sys.argv[1]
     network = sys.argv[2]
+    os.chdir(os.path.expanduser("~/.xud-docker/" + network))
+    LOG_TIME = '%(asctime)s.%(msecs)03d'
+    LOG_LEVEL = '%(levelname)5s'
+    LOG_PID = '%(process)d'
+    LOG_THREAD = '[%(threadName)15s]'
+    LOG_LOGGER = '%(name)10s'
+    LOG_MESSAGE = '%(message)s'
+    LOG_FORMAT = '%s %s %s --- %s %s: %s' % (LOG_TIME, LOG_LEVEL, LOG_PID, LOG_THREAD, LOG_LOGGER, LOG_MESSAGE)
+    logging.basicConfig(filename="xud-docker.log", filemode="w", format=LOG_FORMAT, level=logging.DEBUG)
     update_images(branch, network)
