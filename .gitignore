@@ -6,4 +6,7 @@ venv/
 .vagrant/
 
 # Config of Visual Studio Code
-.vscode
+.vscode/
+
+# Config of PyCharm
+.idea/

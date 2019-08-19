@@ -143,31 +143,31 @@ def get_cloud_image_metadata_with_branch(image, branch):
     return branch_image, m
 
 
-
-
-
 def get_pull_image(branch, image):
 
     m1 = get_local_image_metadata(image)
-    return_image, m2 = get_cloud_image_metadata_with_branch(image, branch)
+    remote_image, m2 = get_cloud_image_metadata_with_branch(image, branch)
 
     if m1 is None:
         if m2 is None:
             raise ImageNotFound(image)
         else:
-            return return_image
+            return remote_image
+    else:
+        if m2 is None:
+            return None
 
     d1 = get_image_digest(m1)
     d2 = get_image_digest(m2)
-    logging.debug("(%s) comparing digests\n    LOCAL:  (%s) %s\n    REMOTE: (%s) %s", image.name, image, d1, return_image, d2)
+    logging.debug("(%s) comparing digests\n    LOCAL:  (%s) %s\n    REMOTE: (%s) %s", image.name, image, d1, remote_image, d2)
 
     if d1 != d2:
         t1 = get_image_created_timestamp(m1)
         t2 = get_image_created_timestamp(m2)
-        logging.debug("(%s) comparing created timestamps\n    LOCAL:  (%s) %s\n    REMOTE: (%s) %s", image.name, image, t1, return_image, t2)
+        logging.debug("(%s) comparing created timestamps\n    LOCAL:  (%s) %s\n    REMOTE: (%s) %s", image.name, image, t1, remote_image, t2)
 
         if t1 < t2:
-            return return_image
+            return remote_image
 
     return None
 
