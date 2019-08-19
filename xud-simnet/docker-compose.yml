@@ -38,7 +38,6 @@ services:
       - 10010:10009
     volumes:
       - ./data/lndbtc:/root/.lnd
-      - ./data/btcd:/root/.btcd
     logging: *default-logging
 
   lndltc:

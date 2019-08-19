@@ -63,22 +63,11 @@ services:
     logging: *default-logging
 
   lndbtc:
-    image: exchangeunion/lnd:0.6.1-beta
+    image: exchangeunion/lnd:0.7.1-beta
     hostname: lndbtc
     environment:
       - NETWORK=testnet
       - CHAIN=bitcoin
-    command: >
-      --alias=lndbtc
-      --bitcoin.active
-      --bitcoin.testnet
-      --bitcoin.node=bitcoind
-      --bitcoind.rpchost=bitcoind
-      --bitcoind.rpcuser=xu
-      --bitcoind.rpcpass=xu
-      --bitcoind.zmqpubrawblock=tcp://bitcoind:28332
-      --bitcoind.zmqpubrawtx=tcp://bitcoind:28333
-      --debuglevel=debug
     ports:
       - 9735:9735
       - 10009:10009
@@ -87,22 +76,11 @@ services:
     logging: *default-logging
 
   lndltc:
-    image: exchangeunion/lnd:0.6.1-beta
+    image: exchangeunion/lnd:0.7.1-beta
     hostname: lndltc
     environment:
       - NETWORK=testnet
       - CHAIN=litecoin
-    command: >
-      --alias=lndltc
-      --litecoin.active
-      --litecoin.testnet
-      --litecoin.node=litecoind
-      --litecoind.rpchost=litecoind
-      --litecoind.rpcuser=xu
-      --litecoind.rpcpass=xu
-      --litecoind.zmqpubrawblock=tcp://litecoind:29332
-      --litecoind.zmqpubrawtx=tcp://litecoind:29333
-      --debuglevel=debug
     ports:
       - 10735:9735
       - 20009:10009
