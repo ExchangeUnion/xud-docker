@@ -70,7 +70,8 @@ download_files() {
     curl -s $url/init.sh > init.sh
     curl -s $url/status.sh > status.sh
     curl -s $url/main.sh > main.sh
-    chmod u+x status.sh main.sh
+    curl -s $url/pull.py > pull.py
+    chmod u+x status.sh main.sh pull.py
 }
 
 install() {
@@ -92,24 +93,31 @@ get_existing_networks() {
 }
 
 safe_pull() {
-    if ! docker-compose pull >/dev/null 2>>$logfile; then
-        echo "Failed to pull some images"
+    command="python"
+    if ! which python; then
+        command="python3"
+    fi
+    if ! $command ../pull.py "$branch" "$1"; then
+        echo "Failed to pull images"
+        exit 1
     fi
 }
 
 do_upgrade() {
     running_networks=`get_running_networks`
     for n in $running_networks; do
-        cd $home/$n
+        cd "$home/$n"
         echo "Shutting down $n environment..."
-        docker-compose down >/dev/null 2>>$logfile
+        # docker-compose normal output prints into stderr, so we hide redirect fd(2) to /dev/null
+        docker-compose down >/dev/null 2>&1
     done
     download_files
     for n in $running_networks; do
-        cd $home/$n
+        cd "$home/$n"
         echo "Launching $n environment..."
-        safe_pull
-        docker-compose up -d >/dev/null 2>>$logfile
+        safe_pull "$n"
+        # docker-compose normal output prints into stderr, so we hide redirect fd(2) to /dev/null
+        docker-compose up -d >/dev/null 2>&1
     done
 }
 
@@ -180,7 +188,7 @@ run() {
 
     cd $home/$network
 
-    opts="-n $network -l $logfile"
+    opts="-n $network -l $logfile -b $branch"
 
     if set -o | grep xtrace | grep on >/dev/null; then
         opts="$opts -d"
@@ -195,4 +203,4 @@ run() {
     fi
 }
 
-run $@
+run "$@"

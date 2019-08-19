@@ -4,6 +4,7 @@ set -euo pipefail
 
 network=testnet
 logfile=/dev/null
+branch=master
 
 direct_launch=false
 
@@ -18,7 +19,7 @@ EOF
     exit 0
 }
 
-while getopts "hn:l:d" opt; do
+while getopts "hn:l:db:" opt; do
     case "$opt" in
     h) 
         show_help ;;
@@ -28,6 +29,8 @@ while getopts "hn:l:d" opt; do
         logfile=$OPTARG ;;
     d)
         set -x ;;
+    b)
+        branch=$OPTARG ;;
     esac
 done
 shift $((OPTIND -1))
@@ -39,7 +42,7 @@ fi
 home=`pwd`
 
 get_all_services() {
-    cat docker-compose.yml | tail -n +9 | sed -nE 's/^  ([a-z]+):$/\1/p' | sort | paste -sd " " -
+    cat docker-compose.yml | grep -A 999 services | sed -nE 's/^  ([a-z]+):$/\1/p' | sort | paste -sd " " -
 }
 
 log_details() {
@@ -92,8 +95,13 @@ is_all_containers_up() {
 }
 
 safe_pull() {
-    if ! docker-compose pull >/dev/null 2>>$logfile; then 
-        echo "Failed to pull some images"
+    command="python"
+    if ! which python; then
+        command="python3"
+    fi
+    if ! $command ../pull.py "$branch" "$network"; then
+        echo "Failed to pull images"
+        exit 1
     fi
 }
 
@@ -101,7 +109,8 @@ launch_check() {
     if ! is_all_containers_up; then
         echo "Launching $network environment..."
         safe_pull
-        docker-compose up -d >/dev/null 2>>$logfile
+        # docker-compose normal output prints into stderr, so we redirect fd(2) to /dev/null
+        docker-compose up -d >/dev/null 2>&1
         sleep 10
         if ! is_all_containers_up; then
             log_details
@@ -117,7 +126,7 @@ run() {
         launch_check
     fi
 
-    launch_xud_shell
+    launch_xud_shell || true
 }
 
-run $@
+run "$@"

@@ -5,35 +5,74 @@ A 0-install [xud](https://github.com/ExchangeUnion/xud) environment using [docke
 Description and usage:
 * [xud wiki](https://github.com/ExchangeUnion/xud/wiki/Docker)
 
-### Developing
+## Developing
 The following chapter is meant for developers.
 
-#### Initial setup
-`git clone https://github.com/ExchangeUnion/xud-docker.git ~/xud-docker`
+### Initial setup
+
+```bash
+git clone https://github.com/ExchangeUnion/xud-docker.git $PROJECT_DIR
+```
 
 Init and fetch git submodules
-`git submodule init`
-`git submodule update --recursive --remote`
 
-#### Developing a feature
+```bash
+cd $PROJECT_DIR
+git submodule init
+git submodule update --recursive --remote
+```
+
+### Developing a feature
+
 Create a feature branch
-`git checkout -b your-feature-branch`
+
+```
+git checkout -b your-feature-branch
+```
 
 Make your desired changes to the images located at:
 `~/xud-docker/images`
 
 Build the updated image(s)
-`~/xud-docker/tools/build image_name`
 
-Tag the image with local suffix:
-`docker tag image_name image_name__local`
+```bash
+$PROJECT_DIR/tools/build <image_name>
+```
 
-Change `docker-compose.yml` to use the updated image tag. Commit and push the changes.
+Test locally
 
-Start the Docker environment using your feature branch:
-- `bash ~/xud.sh -b your-feature-branch`
+```bash
+$PROJECT_DIR/xud.sh -b your-feature-branch
+```
 
-#### Workflow
-1. Change the image and rebuild it
-2. docker-compose down
-3. docker-compose up -d
+To let others test without building the images by themselves push the images of your-feature-branch.
+
+```bash
+$PROJECT_DIR/tools/push <image_name>
+```
+
+Then push your local changes to remote branch
+
+```bash
+git push origin your-feature-branch
+```
+
+Ask other people to run your-feature-branch on their machine
+
+```bash
+./xud.sh -b your-feature-branch
+```
+
+### Test on cloud
+
+Running simnet, testnet and mainnet simultaneously is resource heavy. We provide a convenient `tools/test` script to test your-feature-branch in the cloud. Currently, only Google Cloud is supported.
+
+1. Download `google-cloud-sdk` on your machine.
+2. Run `gcloud init` to login to your Google account and choose the project and region
+
+```
+$PROJECT_DIR/tools/test --on-cloud <network>
+```
+
+The value of `<network>` should be simnet, testnet and mainnet
+
