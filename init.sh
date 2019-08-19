@@ -58,7 +58,34 @@ export XUD_DOCKER_HOME=~/.xud-docker
 
 alias status="$XUD_DOCKER_HOME/status.sh"
 
+function get_all_services() {
+    cat docker-compose.yml | grep -A 999 services | sed -nE 's/^  ([a-z]+):$/\1/p' | sort | paste -sd " " -
+}
+
+function log_details() {
+    logfile="$XUD_DOCKER_HOME/$XUD_NETWORK/xud-docker.log"
+    commands=(
+        "uname -a"
+        "docker info"
+        "docker stats --no-stream"
+        "docker-compose ps"
+    )
+    services=$(get_all_services)
+    for s in $services; do
+        commands+=("docker-compose logs --tail=1000 $s")
+    done
+
+    set +e
+    for cmd in "${commands[@]}"; do
+        echo $cmd >> $logfile
+        eval $cmd >> $logfile 2>&1
+        echo "" >> $logfile
+    done
+    set -e
+}
+
 report() {
+    log_details
     echo "Please click on https://github.com/ExchangeUnion/xud/issues/new?assignees=kilrau&labels=bug&template=bug-report.md&title=Short%2C+concise+description+of+the+bug, describe your issue, drag and drop the file \"xud-docker.log\" which is located in $HOME/.xud-docker into your browser window and submit your issue."
 }
 
