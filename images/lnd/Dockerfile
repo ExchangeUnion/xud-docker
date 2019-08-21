@@ -7,7 +7,7 @@ RUN apk add --no-cache bash git make
 ADD download_source.sh /tmp
 RUN /tmp/download_source.sh $VERSION
 WORKDIR $GOPATH/src/github.com/lightningnetwork/lnd
-RUN make && make install
+RUN make tags="invoicesrpc" install
 
 # Final stage
 FROM alpine:$ALPINE_VERSION
