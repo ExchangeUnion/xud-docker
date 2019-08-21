@@ -8,7 +8,7 @@ x-logging:
 
 services:
   bitcoind:
-    image: exchangeunion/bitcoind:0.17.1
+    image: exchangeunion/bitcoind:0.18.1
     hostname: bitcoind
     environment:
       - NETWORK=testnet
