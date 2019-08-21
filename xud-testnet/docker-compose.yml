@@ -88,17 +88,19 @@ services:
       - ./data/lndltc:/root/.lnd
     logging: *default-logging
 
-  parity:
-    image: exchangeunion/parity:2.4.7-stable
+  geth:
+    image: exchangeunion/geth:1.9.1
     environment:
       - NETWORK=testnet
     command: >
-      --no-warp
-      --chain ropsten
-      --jsonrpc-apis eth,net,web3,parity,personal
-      --jsonrpc-interface 0.0.0.0
+      --syncmode fast
+      --rpc
+      --testnet
+      --rpcapi eth,net,web3,txpool,personal,admin
+      --rpcaddr 0.0.0.0
+      --rpcvhosts=*
     volumes: 
-      - ./data/parity:/root/.local/share/io.parity.ethereum
+      - ./data/geth:/root/.ethereum
     ports:
       - 8545:8545
       - 8546:8546
@@ -106,25 +108,26 @@ services:
     logging: *default-logging
 
   raiden:
-    image: exchangeunion/raiden:0.100.3
+    image: exchangeunion/raiden:0.100.5-dev0
     hostname: raiden
     environment:
       - NETWORK=testnet
     command: >
-      --keystore-path /root/.ethereum/keys/ropsten
+      --keystore-path /root/.ethereum/testnet/keystore
       --accept-disclaimer
       --resolver-endpoint http://xud:8887/resolveraiden
-      --eth-rpc-endpoint parity:8545
+      --eth-rpc-endpoint geth:8545
       --network-id ropsten
       --password-file /root/.ethereum/passphrase.txt
       --datadir /root/.raiden
       --rpc
       --api-address 0.0.0.0:5001
       --matrix-server https://raidentransport.exchangeunion.com
+      --routing-mode local
     ports:
       - 5001:5001
     volumes:
-      - ./data/parity:/root/.ethereum
+      - ./data/geth:/root/.ethereum
       - ./data/raiden:/root/.raiden
     logging: *default-logging
   

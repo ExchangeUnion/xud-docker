@@ -10,21 +10,15 @@ if [[ ! -e ~/.raiden/config.toml ]]; then
     touch ~/.raiden/config.toml
 fi
 
-getaddr() {
-    addr=`cat /root/.ethereum/account-$NETWORK.txt | head -1`
-}
-
 source /opt/venv/bin/activate
 
-if [[ $NETWORK == "testnet" ]]; then
-    getaddr
-
-    while [ -z "$addr" ]; do
+if [ "$NETWORK" = "testnet" ]; then
+    while [ ! -f /root/.ethereum/account-$NETWORK.txt ]; do
         sleep 3
-        echo "Waiting for the parity $NETWORK account"
-        getaddr
+        echo "Waiting for the GETH $NETWORK account"
     done
 
+    addr=`cat /root/.ethereum/account-$NETWORK.txt | head -1`
     addr="${addr: -40}"
 
     # Address must be EIP55 checksummed

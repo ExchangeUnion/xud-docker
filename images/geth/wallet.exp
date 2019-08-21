@@ -1,6 +1,7 @@
 #!/usr/bin/expect -f
 
-set passphrase ""
+set chain      [lindex $argv 0]
+set passphrase [lindex $argv 1]
 
 spawn geth --$env(NETWORK) account new
 expect "Passphrase: "

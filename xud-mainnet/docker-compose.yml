@@ -112,7 +112,7 @@ services:
       - 8887:8887
   
   geth:
-    image: exchangeunion/geth:1.8.27
+    image: exchangeunion/geth:1.9.1
     environment:
       - NETWORK=mainnet
     command: >

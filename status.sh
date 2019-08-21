@@ -11,7 +11,6 @@ litecoind="docker-compose exec -T litecoind litecoin-cli -$XUD_NETWORK -rpcuser=
 lndbtc="docker-compose exec -T lndbtc lncli -n $XUD_NETWORK -c bitcoin"
 lndltc="docker-compose exec -T lndltc lncli -n $XUD_NETWORK -c litecoin"
 geth="docker-compose exec -T geth geth --$XUD_NETWORK"
-parity="docker-compose exec -T parity parity --chain ropsten"
 xud="docker-compose exec -T xud xucli"
 btcd="docker-compose exec btcd btcctl --$XUD_NETWORK --rpcuser=xu --rpcpass=xu"
 ltcd="docker-compose exec ltcd ltcctl --$XUD_NETWORK --rpcuser=xu --rpcpass=xu"
@@ -115,23 +114,19 @@ nocolor() {
 }
 
 geth_status() {
-    local args=`$geth --exec 'eth.syncing' attach 2>/dev/null | nocolor | grep -A 1 currentBlock | sed -nE 's/[^0-9]*([0-9]+).*/\1/p' | paste -sd ' ' -`
-    status_text $args
-}
+    local status=`$geth --exec 'eth.syncing' attach 2>/dev/null`
 
-parity_status() {
-    local bnum=`curl -s -X POST -H "Content-Type: application/json"  --data '{"jsonrpc":"2.0","method":"eth_blockNumber","params":[],"id":1}' http://127.0.0.1:8545 | \
-sed -E 's/.*"result":"0x([0-9a-f]+)".*/\1/' | \
-tr 'a-f' 'A-F' | xargs -I {} echo "ibase=16;{}" | bc 2>/dev/null`
-    local args=`curl -s -X POST -H "Content-Type: application/json"  --data '{"jsonrpc":"2.0","method":"eth_syncing","params":[],"id":1}' http://127.0.0.1:8545 | \
-sed -E 's/^.*"currentBlock":"0x([0-9a-f]+)","highestBlock":"0x([0-9a-f]+)".*$/\1;\2/' | \
-tr 'a-f' 'A-F' | xargs -I {} echo "ibase=16;{}" | bc 2>/dev/null | \
-paste -sd ' ' -`
-    if [[ -z $args && $bnum -gt 0 ]]; then
-        echo "Ready"
-        return
+    if [[ $status != "false" ]]; then
+        status=`echo "$status" | nocolor | grep -A 1 currentBlock | sed -nE 's/[^0-9]*([0-9]+).*/\1/p' | paste -sd ' ' -`
+	    status_text $status
+    else
+        # If 'eth.syncing' is false and 'eth.blockNumber' is 0 the sync has not started yet
+        if [[ `$geth --exec 'eth.blockNumber' attach 2>/dev/null` == "0" ]]; then
+            status_text
+        else
+    	    status_text2 $status $status
+        fi
     fi
-    status_text $args
 }
 
 raiden_status() {
@@ -175,7 +170,7 @@ all_status() {
     echo -e "ltc\t$(check_container $ltc_service && btc_status ltc)"
     echo -e "lndltc\t$(check_container lndltc && lnd_status ltc)"
     if [[ $XUD_NETWORK != "simnet" ]]; then
-        echo -e "parity\t$(check_container parity && parity_status)"
+        echo -e "geth\t$(check_container geth && geth_status)"
     fi
     echo -e "raiden\t$(check_container raiden && raiden_status)"
     echo -e "xud\t$(check_container xud && xud_status)"
