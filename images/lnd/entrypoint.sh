@@ -1,32 +1,40 @@
 #!/bin/bash
+
 set -euo pipefail
-set -m
-. /wait-file.sh
 
-SCRIPT_PATH=$(dirname "$0")
-cd "$SCRIPT_PATH" || exit 1
+LND_DIR="$HOME/.lnd"
+TOR_HOSTNAME="$HOME/.tor/service/hostname"
 
-LND_DIR="/root/.lnd"
+function wait_file() {
+    local FILE="$1"
+    while [[ ! -e $FILE ]]; do
+        sleep 1
+    done
+}
+
+function wait_9050() {
+    while ! nc -z tor 9050; do
+        sleep 1
+    done
+}
+
+###############################################################################
+
 mkdir -p $LND_DIR
-
-if [ "$CHAIN" = "bitcoin" ]; then
-  echo "[DEBUG] Using configuration for bitcoin"
-  cp /root/lnd-btc.conf $LND_DIR/lnd.conf
+if [[ $CHAIN == "bitcoin" ]]; then
+    echo "Using configuration for bitcoin"
+    cp /tmp/lnd-btc.conf $LND_DIR/lnd.conf
 else
-  echo "[DEBUG] Using configuration for litecoin"
-  cp /root/lnd-ltc.conf $LND_DIR/lnd.conf
+    echo "Using configuration for litecoin"
+    cp /tmp/lnd-ltc.conf $LND_DIR/lnd.conf
 fi
 
-LND_HOSTNAME="$HOME/.lnd/tor/hostname"
-echo "Waiting for lnd-$CHAIN onion address..."
+echo "Waiting for LND ($CHAIN) onion address..."
+wait_file "$TOR_HOSTNAME"
+LND_ONION_ADDRESS=$(cat "$TOR_HOSTNAME")
+echo "Onion address for LND ($CHAIN) is $LND_ONION_ADDRESS"
 
-wait_file "$LND_HOSTNAME" && {
-	LND_ONION_ADDRESS=$(cat "$LND_HOSTNAME")
-	echo "Onion address for lnd-$CHAIN is $LND_ONION_ADDRESS"
-  # mark lnd as locked before starting
-  touch "$HOME/.lnd/wallet.lock"
-  # notify peers.sh to bootstrap peers
-  touch "$HOME/.lnd/peers.lock"
+echo "Waiting for tor 9050 socks port to be open..."
+wait_9050
 
-  lnd --$CHAIN.$NETWORK --lnddir=$LND_DIR --externalip="$LND_ONION_ADDRESS"
-} || exit 1
+lnd --lnddir=$LND_DIR --externalip="$LND_ONION_ADDRESS" --$CHAIN.$NETWORK $@

@@ -1,44 +1,34 @@
 #!/bin/bash
 
-set -m
+set -euo pipefail
 
-check_xud() {
-    xucli getinfo > /tmp/xud_getinfo 2>&1
-    local lndbtc_ok=`cat /tmp/xud_getinfo | grep -A2 BTC | grep error | grep '""'`
-    local lndltc_ok=`cat /tmp/xud_getinfo | grep -A2 LTC | grep error | grep '""'`
-    local raiden_ok=`cat /tmp/xud_getinfo | grep -A1 raiden | grep error | grep '""'`
+XUD_DIR="$HOME/.xud"
+TOR_HOSTNAME="$HOME/.tor/service/hostname"
 
-    ! [ -z "$lndbtc_ok" ] && ! [ -z "$lndltc_ok" ] && ! [ -z "$raiden_ok" ]
+function wait_file() {
+    local FILE="$1"
+    while [[ ! -e $FILE ]]; do
+        sleep 1
+    done
 }
 
-write_config() {
-	cp /tmp/xud.conf ~/.xud
-
-	hn="$(hostname)"
-	n="${hn:3}"
-
-	if [[ -z $n ]]; then
-    	insid="0"
-	else
-    	insid="$n"
-	fi
-
-	sed -i "s/<instance_id>/$insid/g" ~/.xud/xud.conf
-	sed -i "s/<network>/$NETWORK/g" ~/.xud/xud.conf
+function wait_9050() {
+    while ! nc -z tor 9050; do
+        sleep 1
+    done
 }
 
-if [[ $XUD_REWRITE_CONFIG || ! -e ~/.xud/xud.conf ]]; then
-	write_config
-fi
+function write_config() {
+    cp /tmp/xud.conf $XUD_DIR
+    sed -i "s/<network>/$NETWORK/g" $XUD_DIR/xud.conf
+    sed -i "s/<onion_address>/$XUD_ONION_ADDRESS/g" $XUD_DIR/xud.conf
+}
 
-while ! [ -e "/root/.lndbtc/data/chain/bitcoin/$NETWORK/admin.macaroon" ]; do
-    echo "Waiting for lndbtc admin.macaroon"
-    sleep 3
-done
+function resolve_ip() {
+    local HOSTNAME="$1"
+    getent hosts "$HOSTNAME" | awk '{ print $1 }'
+}
 
-while ! [ -e "/root/.lndltc/data/chain/litecoin/$NETWORK/admin.macaroon" ]; do
-    echo "Waiting for lndltc admin.macaroon"
-    sleep 3
-done
+###############################################################################
 
 exec ./bin/xud $@

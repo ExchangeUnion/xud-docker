@@ -60,6 +60,7 @@ services:
       - 9735:9735
     volumes:
       - ./data/lndbtc:/root/.lnd
+      - ./data/tor:/root/.tor
     logging: *default-logging
 
   lndltc:
@@ -72,6 +73,7 @@ services:
       - 10735:10735
     volumes:
       - ./data/lndltc:/root/.lnd
+      - ./data/tor:/root/.tor
     logging: *default-logging
 
   geth:
@@ -124,11 +126,19 @@ services:
     hostname: xud
     environment:
       - NETWORK=mainnet
+      - PRESERVE_CONFIG=0
     volumes:
       - ./data/xud:/root/.xud
       - ./data/lndbtc:/root/.lndbtc
       - ./data/lndltc:/root/.lndltc
+      - ./data/tor:/root/.tor
     ports:
       - 8885:8885
+    logging: *default-logging
+
+  tor:
+    image: exchangeunion/tor
+    volumes:
+      - ./data/tor:/root/.tor
     logging: *default-logging
 

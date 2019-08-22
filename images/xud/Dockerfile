@@ -17,7 +17,7 @@ RUN npm prune --dev
 
 # Final stage
 FROM node:$NODE_VERSION
-RUN apk add --no-cache bash
+RUN apk add --no-cache bash proxychains-ng
 RUN mkdir /root/.xud
 VOLUME [ "/root/.xud" ]
 COPY --from=builder /xud/dist /app/dist
@@ -26,8 +26,9 @@ COPY --from=builder /xud/package.json /app/
 COPY --from=builder /xud/node_modules /app/node_modules
 COPY --from=builder /xud/git_head.txt /app/
 COPY xud.conf /tmp/
+COPY proxychains.conf /etc/proxychains/
 COPY entrypoint.sh /app
-RUN ln -s /app/bin/xucli /bin/xucli
+RUN ln -s /app/bin/xucli /usr/local/bin/xucli
 WORKDIR /app
 ENTRYPOINT ./entrypoint.sh
 EXPOSE 8885 8886 8887
