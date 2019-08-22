@@ -3,7 +3,8 @@
 set -euo pipefail
 
 if [[ $1 == 'latest' ]]; then
-    branch="feat/resolver-interface"
+    #branch="feat/resolver-interface"
+    branch="master"
 else
     branch="v$1"
 fi
