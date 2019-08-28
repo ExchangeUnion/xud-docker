@@ -6,14 +6,22 @@ set -euo pipefail
 # the input device is not a TTY
 # ref. https://github.com/docker/compose/issues/5696
 
-bitcoind="docker-compose exec -T bitcoind bitcoin-cli -$XUD_NETWORK -rpcuser=xu -rpcpassword=xu"
-litecoind="docker-compose exec -T litecoind litecoin-cli -$XUD_NETWORK -rpcuser=xu -rpcpassword=xu"
+bitcoind="docker-compose exec -T bitcoind bitcoin-cli -rpcuser=xu -rpcpassword=xu"
+litecoind="docker-compose exec -T litecoind litecoin-cli -rpcuser=xu -rpcpassword=xu"
+
 lndbtc="docker-compose exec -T lndbtc lncli -n $XUD_NETWORK -c bitcoin"
 lndltc="docker-compose exec -T lndltc lncli -n $XUD_NETWORK -c litecoin"
-geth="docker-compose exec -T geth geth --$XUD_NETWORK"
+geth="docker-compose exec -T geth geth"
 xud="docker-compose exec -T xud xucli"
+
 btcd="docker-compose exec btcd btcctl --$XUD_NETWORK --rpcuser=xu --rpcpass=xu"
 ltcd="docker-compose exec ltcd ltcctl --$XUD_NETWORK --rpcuser=xu --rpcpass=xu"
+
+if [ "$XUD_NETWORK" != "mainnet" ]; then
+    bitcoind+=" -$XUD_NETWORK"
+    litecoind+=" -$XUD_NETWORK"
+    geth+=" --$XUD_NETWORK"
+fi
 
 status_text() {
     if [[ $# -lt 2 ]]; then

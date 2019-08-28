@@ -161,8 +161,7 @@ run() {
             2|" 2"|" 2 "|"2 "|testnet|" testnet"|" testnet "|"testnet ") network="testnet"
                 break;;
             3|" 3"|" 3 "|"3 "|mainnet|" mainnet"|" mainnet "|"mainnet ") network="mainnet"
-                echo "Comming soon..."
-                ;;
+                break;;
             *) echo "Invalid option: \"$REPLY\"";;
         esac
     done

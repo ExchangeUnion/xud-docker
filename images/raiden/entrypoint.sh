@@ -12,18 +12,16 @@ fi
 
 source /opt/venv/bin/activate
 
-if [ "$NETWORK" = "testnet" ]; then
-    while [ ! -f /root/.ethereum/account-$NETWORK.txt ]; do
-        sleep 3
-        echo "Waiting for the GETH $NETWORK account"
-    done
+while [ ! -f /root/.ethereum/account-$NETWORK.txt ]; do
+    sleep 3
+    echo "Waiting for the GETH $NETWORK account"
+done
 
-    addr=`cat /root/.ethereum/account-$NETWORK.txt | head -1`
-    addr="${addr: -40}"
+addr=`cat /root/.ethereum/account-$NETWORK.txt | head -1`
+addr="${addr: -40}"
 
-    # Address must be EIP55 checksummed
-    addr=`python /checksum.py $addr`
-fi
+# Address must be EIP55 checksummed
+addr=`python /checksum.py $addr`
 
 python /configWriter.py $NETWORK
 
