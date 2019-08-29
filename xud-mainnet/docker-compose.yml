@@ -1,14 +1,20 @@
 version: "3.6"
 
+x-logging:
+  &default-logging
+  options:
+    max-size: '20m'
+    max-file: '5'
+  driver: json-file
+
 services:
   bitcoind:
     image: exchangeunion/bitcoind:0.18.1
-    # Let generated "rpc.cert" has "btcd" domain name,
-    # or it will deny lnd rpc connections
     hostname: bitcoind
+    environment:
+      - NETWORK=mainnet
     command: >
       -server
-      -mainnet
       -rpcuser=xu
       -rpcpassword=xu
       -disablewallet
@@ -25,15 +31,15 @@ services:
       - 28333:28333
     volumes:
       - ./data/bitcoind:/root/.bitcoin
+    logging: *default-logging
 
   litecoind:
     image: exchangeunion/litecoind:0.17.1
-    # Let generated "rpc.cert" has "ltcd" domain name,
-    # or it will deny lnd rpc connections
     hostname: litecoind
+    environment:
+      - NETWORK=testnet
     command: >
       -server
-      -mainnet
       -rpcuser=xu
       -rpcpassword=xu
       -disablewallet
@@ -50,69 +56,37 @@ services:
       - 29333:29333
     volumes:
       - ./data/litecoind:/root/.litecoin
+    logging: *default-logging
 
   lndbtc:
-    image: exchangeunion/lnd:0.6.1-beta-rc2
+    image: exchangeunion/lnd:0.7.1-beta
+    hostname: lndbtc
     environment:
       - NETWORK=mainnet
       - CHAIN=bitcoin
-    hostname: lndbtc
-    command: >
-      --alias=lndbtc
-      --bitcoin.active
-      --bitcoin.mainnet
-      --bitcoin.node=bitcoind
-      --bitcoind.rpchost=bitcoind
-      --bitcoind.rpcuser=xu
-      --bitcoind.rpcpass=xu
-      --bitcoind.zmqpubrawblock=tcp://bitcoind:28332
-      --bitcoind.zmqpubrawtx=tcp://bitcoind:28333
-      --debuglevel=debug
     ports:
+      - 9735:9735
       - 10009:10009
     volumes:
       - ./data/lndbtc:/root/.lnd
-    restart: on-failure:10
+    logging: *default-logging
 
   lndltc:
-    image: exchangeunion/lnd:0.6.1-beta-rc2
+    image: exchangeunion/lnd:0.7.1-beta
+    hostname: lndltc
     environment:
       - NETWORK=mainnet
       - CHAIN=litecoin
-    hostname: lndltc
-    command: >
-      --alias=lndltc
-      --litecoin.active
-      --litecoin.mainnet
-      --litecoin.node=litecoind
-      --litecoind.rpchost=litecoind
-      --litecoind.rpcuser=xu
-      --litecoind.rpcpass=xu
-      --litecoind.zmqpubrawblock=tcp://litecoind:29332
-      --litecoind.zmqpubrawtx=tcp://litecoind:29333
-      --debuglevel=debug
     ports:
+      - 10735:9735
       - 20009:10009
     volumes:
       - ./data/lndltc:/root/.lnd
-    restart: on-failure:10
+    logging: *default-logging
 
-  xud:
-    image: exchangeunion/xudctl:1.0.0-alpha.11
-    hostname: xud
-    environment:
-      - NETWORK=mainnet
-    volumes:
-      - ./data/xud:/root/.xud
-      - ./data/lndbtc:/root/.lndbtc
-      - ./data/lndltc:/root/.lndltc
-    ports:
-      - 8885:8885
-      - 8886:8886
-      - 8887:8887
-  
   geth:
     image: exchangeunion/geth:1.9.1
+    hostname: geth
     environment:
       - NETWORK=mainnet
     command: >
@@ -127,20 +101,44 @@ services:
       - 8545:8545
       - 8546:8546
       - 30303:30303/udp
-
+    logging: *default-logging
+  
   raiden:
-    image: exchangeunion/raiden:0.100.3
+    image: exchangeunion/raiden:0.100.5-dev0
+    hostname: raiden
     environment:
       - NETWORK=mainnet
     command: >
-      --keystore-path /root/.ethereum/testnet/keystore
-      --resolver-endpoint http://xud:8887/resolveraiden
+      --keystore-path /root/.ethereum/keystore
       --accept-disclaimer
-      --eth-rpc-endpoint http://geth:8545
-      --network-id 0
-      --password-file /root/.raiden/password.txt
+      --resolver-endpoint http://xud:8887/resolveraiden
+      --eth-rpc-endpoint geth:8545
+      --network-id 1
+      --password-file /root/.ethereum/passphrase.txt
+      --datadir /root/.raiden
+      --rpc
+      --api-address 0.0.0.0:5001
+      --matrix-server https://raidentransport.exchangeunion.com
+      --routing-mode local
     ports:
       - 5001:5001
     volumes:
       - ./data/geth:/root/.ethereum
-    restart: on-failure:10
+      - ./data/raiden:/root/.raiden
+    logging: *default-logging
+
+  xud:
+    image: exchangeunion/xud:latest
+    hostname: xud
+    environment:
+      - NETWORK=mainnet
+    volumes:
+      - ./data/xud:/root/.xud
+      - ./data/lndbtc:/root/.lndbtc
+      - ./data/lndltc:/root/.lndltc
+    ports:
+      - 8885:8885
+      - 8886:8886
+      - 8887:8887
+    logging: *default-logging
+

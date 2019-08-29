@@ -1,4 +1,5 @@
 version: "3.6"
+
 x-logging:
   &default-logging
   options:
@@ -38,9 +39,6 @@ services:
     hostname: litecoind
     environment:
       - NETWORK=testnet
-    # Use -reindex to solve "Failed to read block ... from disk" error
-    # ref. https://bitcoin.stackexchange.com/questions/8787/failed-to-read-block
-    # Disable this parameter because it will let litecoind sync from scratch after every restart
     command: >
       -server
       -testnet
@@ -90,6 +88,7 @@ services:
 
   geth:
     image: exchangeunion/geth:1.9.1
+    hostname: geth
     environment:
       - NETWORK=testnet
     command: >
@@ -132,7 +131,7 @@ services:
     logging: *default-logging
   
   xud:
-    image: exchangeunion/xud
+    image: exchangeunion/xud:latest
     hostname: xud
     environment:
       - NETWORK=testnet

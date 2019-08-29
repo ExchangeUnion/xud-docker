@@ -3,7 +3,7 @@
 set chain      [lindex $argv 0]
 set passphrase [lindex $argv 1]
 
-spawn geth --$env(NETWORK) account new
+spawn geth --$chain account new
 expect "Passphrase: "
 send "$passphrase\r"
 expect "Repeat passphrase: "

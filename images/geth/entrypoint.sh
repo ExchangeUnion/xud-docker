@@ -8,11 +8,22 @@ geth $@ &
 
 sleep 3
 
-n=`ls -1 /root/.ethereum/$NETWORK/keystore | wc -l`
+ethereumPath='/root/.ethereum'
+
+if [ "$NETWORK" == "testnet" ]; then
+    ethereumPath+="/testnet"
+fi
+
+n=`ls -1 $ethereumPath/keystore | wc -l`
 
 if [ "$n" -eq "0" ]; then
-    ./wallet.exp
-    echo "0x$(ls /root/.ethereum/$NETWORK/keystore | awk '{split($0,a,"--"); print a[3]}')" > /root/.ethereum/account-$NETWORK.txt
+    if [ "$NETWORK" == "testnet" ]; then
+        ./wallet.exp testnet
+    else
+        ./wallet.exp networkid=1
+    fi
+
+    echo "0x$(ls $ethereumPath/keystore | awk '{split($0,a,"--"); print a[3]}')" > /root/.ethereum/account-$NETWORK.txt
 fi
 
 fg %1
