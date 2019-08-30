@@ -126,11 +126,17 @@ def get_cloud_image_metadata(image):
 
 
 def get_image_created_timestamp(metadata):
-    return metadata["Labels"]["com.exchangeunion.image.created"]
+    try:
+        return metadata["Labels"]["com.exchangeunion.image.created"]
+    except:
+        return "0000-00-00T00:00:00Z"
 
 
 def get_image_digest(metadata):  # sha256
-    return metadata["Image"]
+    try:
+        return metadata["Image"]
+    except:
+        return ""
 
 
 def get_cloud_image_metadata_with_branch(image, branch):
@@ -180,7 +186,7 @@ def retag_image(image):
 
 def pull_image(image):
     print("Pulling {}".format(image))
-    cmd = "docker pull {}".format(image)
+    cmd = "docker pull {} >/dev/null 2>&1".format(image)
     os.system(cmd)
     if "__" in image.tag:
         retag_image(image)
