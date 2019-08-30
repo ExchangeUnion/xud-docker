@@ -1,20 +1,25 @@
 export XUD_NETWORK=`basename $(pwd)`
 
 case $XUD_NETWORK in
-    testnet|mainnet)
+    mainnet)
+        alias bitcoin-cli="docker-compose exec bitcoind bitcoin-cli -rpcuser=xu -rpcpassword=xu"
+        alias litecoin-cli="docker-compose exec litecoind litecoin-cli -rpcuser=xu -rpcpassword=xu"
+        alias lndbtc-lncli="docker-compose exec lndbtc lncli -n mainnet -c bitcoin"
+        alias lndltc-lncli="docker-compose exec lndltc lncli -n mainnet -c litecoin"
+        alias geth="docker-compose exec geth geth"
+        ;;
+    mainnet)
         alias bitcoin-cli="docker-compose exec bitcoind bitcoin-cli -testnet -rpcuser=xu -rpcpassword=xu"
         alias litecoin-cli="docker-compose exec litecoind litecoin-cli -testnet -rpcuser=xu -rpcpassword=xu"
         alias lndbtc-lncli="docker-compose exec lndbtc lncli -n testnet -c bitcoin"
         alias lndltc-lncli="docker-compose exec lndltc lncli -n testnet -c litecoin"
         alias geth="docker-compose exec geth geth --testnet"
-        alias xucli="docker-compose exec xud xucli"
         ;;
     simnet)
         alias btcctl="docker-compose exec btcd btcctl --simnet --rpcuser=xu --rpcpass=xu"
         alias ltcctl="docker-compose exec ltcd ltcctl --simnet --rpcuser=xu --rpcpass=xu"
         alias lndbtc-lncli="docker-compose exec lndbtc lncli -n simnet -c bitcoin"
         alias lndltc-lncli="docker-compose exec lndltc lncli -n simnet -c litecoin"
-        alias xucli="docker-compose exec xud xucli"
         ;;
 esac
 
@@ -24,7 +29,9 @@ alias stop="docker-compose stop"
 alias restart="docker-compose restart"
 alias up="docker-compose up"
 alias down="docker-compose down"
-    
+
+alias xucli="docker-compose exec xud xucli"
+
 alias help="xucli help"
 alias addcurrency="xucli addcurrency"
 alias addpair="xucli addpair"
