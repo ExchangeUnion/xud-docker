@@ -94,21 +94,9 @@ is_all_containers_up() {
     [[ $up_services == $all_services ]]
 }
 
-safe_pull() {
-    command="python"
-    if ! which python; then
-        command="python3"
-    fi
-    if ! $command ../pull.py "$branch" "$network"; then
-        echo "Failed to pull images"
-        exit 1
-    fi
-}
-
 launch_check() {
     if ! is_all_containers_up; then
         echo "Launching $network environment..."
-        safe_pull
         # docker-compose normal output prints into stderr, so we redirect fd(2) to /dev/null
         docker-compose up -d >/dev/null 2>&1
         sleep 10

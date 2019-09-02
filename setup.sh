@@ -93,49 +93,65 @@ get_existing_networks() {
 }
 
 safe_pull() {
-    command="python"
+    local PYTHON
+
+    PYTHON="python"
     if ! which python; then
-        command="python3"
+        PYTHON="python3"
     fi
-    if ! $command ../pull.py "$branch" "$1"; then
+
+    if [[ $1 == "--dry-run" ]]; then
+        $PYTHON ../pull.py --dry-run "$branch" "$2"
+        return
+    fi
+
+    if ! $PYTHON ../pull.py "$branch" "$1"; then
         echo "Failed to pull images"
         exit 1
     fi
 }
 
-do_upgrade() {
-    running_networks=`get_running_networks`
-    for n in $running_networks; do
-        cd "$home/$n"
-        echo "Shutting down $n environment..."
-        # docker-compose normal output prints into stderr, so we hide redirect fd(2) to /dev/null
-        docker-compose down >/dev/null 2>&1
-    done
-    download_files
-    for n in $running_networks; do
-        cd "$home/$n"
-        echo "Launching $n environment..."
-        safe_pull "$n"
-        # docker-compose normal output prints into stderr, so we hide redirect fd(2) to /dev/null
-        docker-compose up -d >/dev/null 2>&1
-    done
-}
-
 upgrade() {
     $debug && return
+
+    local RUNNING_NETWORKS
+    local XUD_DOCKER_HAS_UPDATE
+    local RUNNING_IMAGES_HAS_UPDATE
+
+    RUNNING_NETWORKS=$(get_running_networks)
+
     fetch_github_metadata
-    a=`echo -e "$revision" | tail -1`
+    a=$(echo -e "$revision" | tail -1)
     if [[ -e revision.txt ]]; then
-        b=`cat revision.txt | tail -1`
+        b=$(cat revision.txt | tail -1)
     else
         b=""
     fi
-    if [[ $a != $b ]]; then
-        read -p "A new version is available. Would you like to upgrade (Warning: this will restart your environment and cancel all open orders)? Y/n?" -n 1 -r
+    XUD_DOCKER_HAS_UPDATE=$([[ $a != $b ]])
+
+    RUNNING_IMAGES_HAS_UPDATE=false
+    for n in $RUNNING_NETWORKS; do
+        RUNNING_NETWORKS=$($RUNNING_NETWORKS || safe_pull --dry-run "$n")
+    done
+
+    if $XUD_DOCKER_HAS_UPDATE || $RUNNING_IMAGES_HAS_UPDATE; then
+        read -p "A new version is available. Would you like to upgrade (Warning: this will restart your environment and cancel all open orders)? [Y/n] " -n 1 -r
         echo    # (optional) move to a new line
-        if [[ $REPLY =~ ^Y$ ]]
-        then
-            do_upgrade
+        if [[ $REPLY =~ ^Y$ ]]; then
+            for n in $RUNNING_NETWORKS; do
+                cd "$home/$n"
+                echo "Shutting down $n environment..."
+                # docker-compose normal output prints into stderr, so we need to redirect fd(2) to /dev/null
+                docker-compose down >/dev/null 2>&1
+            done
+            download_files
+            for n in $RUNNING_NETWORKS; do
+                cd "$home/$n"
+                echo "Launching $n environment..."
+                safe_pull "$n"
+                # docker-compose normal output prints into stderr, so we need to redirect fd(2) to /dev/null
+                docker-compose up -d >/dev/null 2>&1
+            done
         fi
     fi
 }

@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
 from __future__ import print_function
@@ -204,10 +203,14 @@ def update(branch, image):
     try:
         result = get_pull_image(branch, image)
         if result is None:
-            # print(image, "is up-to-date")
-            pass
+            # the image is up-to-date
+            if DRY_RUN:
+                RESULTS[image] = False
         else:
-            pull_image(result)
+            if DRY_RUN:
+                RESULTS[image] = True
+            else:
+                pull_image(result)
     except ImageNotFound as e:
         logging.error("Image not found: %s", e)
         exit(1)
@@ -215,9 +218,19 @@ def update(branch, image):
 
 def update_images(branch, network):
     services = load_services(network)
+    threads = []
     for image in get_images(services):
         t = threading.Thread(target=update, args=(branch, image))
+        threads.append(t)
         t.start()
+    if DRY_RUN:
+        for t in threads:
+            t.join()
+        for r in RESULTS.values():
+            if r:
+                print("true")
+                return
+        print("false")
 
 
 def eprint(*args, **kwargs):
@@ -226,10 +239,16 @@ def eprint(*args, **kwargs):
 
 if __name__ == '__main__':
     if len(sys.argv) < 3:
-        eprint("Usage: {} <branch> <network>".format(sys.argv[0]))
+        eprint("Usage: {} [--dry-run] <branch> <network> ".format(sys.argv[0]))
         exit(1)
-    branch = sys.argv[1]
-    network = sys.argv[2]
+    if sys.argv[1] == "--dry-run":
+        DRY_RUN = True
+        branch = sys.argv[2]
+        network = sys.argv[3]
+    else:
+        DRY_RUN = False
+        branch = sys.argv[1]
+        network = sys.argv[2]
     os.chdir(os.path.expanduser("~/.xud-docker/" + network))
     LOG_TIME = '%(asctime)s.%(msecs)03d'
     LOG_LEVEL = '%(levelname)5s'
@@ -239,4 +258,5 @@ if __name__ == '__main__':
     LOG_MESSAGE = '%(message)s'
     LOG_FORMAT = '%s %s %s --- %s %s: %s' % (LOG_TIME, LOG_LEVEL, LOG_PID, LOG_THREAD, LOG_LOGGER, LOG_MESSAGE)
     logging.basicConfig(filename="xud-docker.log", filemode="w", format=LOG_FORMAT, level=logging.DEBUG)
+    RESULTS = {}
     update_images(branch, network)
