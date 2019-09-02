@@ -30,7 +30,9 @@ alias restart="docker-compose restart"
 alias up="docker-compose up"
 alias down="docker-compose down"
 
-alias xucli="docker-compose exec xud xucli"
+function xucli() {
+    docker-compose exec xud xucli $@ | sed -n '1!p'
+}
 
 alias help="xucli help"
 alias addcurrency="xucli addcurrency"
