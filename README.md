@@ -1,9 +1,8 @@
 xud-docker
 ==========
-A 0-install [xud](https://github.com/ExchangeUnion/xud) environment using [docker](https://www.docker.com/)
+A full [xud](https://github.com/ExchangeUnion/xud) environment using [docker](https://www.docker.com/)
 
-Description and usage:
-* [xud wiki](https://github.com/ExchangeUnion/xud/wiki/Docker)
+Get started [here](https://docs.exchangeunion.com/start-trading/user-guide)
 
 ## Developing
 The following chapter is meant for developers.
