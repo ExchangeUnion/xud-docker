@@ -126,13 +126,13 @@ geth_status() {
 
     if [[ $status != "false" ]]; then
         status=`echo "$status" | nocolor | grep -A 1 currentBlock | sed -nE 's/[^0-9]*([0-9]+).*/\1/p' | paste -sd ' ' -`
-	    status_text $status
+	      status_text $status
     else
         # If 'eth.syncing' is false and 'eth.blockNumber' is 0 the sync has not started yet
         if [[ `$geth --exec 'eth.blockNumber' attach 2>/dev/null` == "0" ]]; then
-            status_text
+            echo "Waiting for sync"
         else
-    	    status_text2 $status $status
+    	      echo "Ready"
         fi
     fi
 }

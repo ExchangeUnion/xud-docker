@@ -1,48 +1,52 @@
-#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
 from __future__ import print_function
-import os
-import shlex
-from subprocess import Popen, PIPE
-import sys
+
 import argparse
-import threading
-import signal
 import json
 import logging
+import os
+import shlex
+import signal
+import sys
+import threading
+from subprocess import Popen, PIPE
+import time
+import re
+
+try:
+    from queue import Queue
+except ImportError:
+    from Queue import Queue
+
+try:
+    from urllib.request import urlopen, HTTPError
+except ImportError:
+    from urllib2 import urlopen, HTTPError
 
 PYTHON2 = (sys.version_info[0] == 2)
 
-if PYTHON2:
-    from Queue import Queue, Empty
-elif sys.version_info[0] == 3:
-    from queue import Queue, Empty
 
 class Service(object):
     def __init__(self, display_name, name):
+        # type: (str, str) -> None
         self.display_name = display_name
         self.name = name
-        self._listeners = []
-        self._lock = threading.RLock()
-        self._status = None
 
-    def _run(self):
-        self._status = get_status(self)
-        for listener in self._listeners:
-            listener(self, self._status)
+    def start_status_query_thread(self, stop_event, queue):
+        # type: (threading.Event, Queue) -> threading.Thread
+        def run():
+            while not stop_event.is_set():
+                status = get_status(self, stop_event)
+                queue.put((self, status))
+                # stop_event.wait(5)
+                break
+            logging.debug("stop")
 
-    @property
-    def status(self):
-        if self._status is None:
-            if self._lock.acquire(blocking=False):
-                t = threading.Thread(target=self._run)
-                t.start()
-            return "Fetching..."
-        return self._status
-
-    def add_status_listener(self, listener):
-        self._listeners.append(listener)
+        t = threading.Thread(target=run)
+        queue.put((self, "Fetching..."))
+        t.start()
+        return t
 
 
 networks = {
@@ -59,7 +63,7 @@ networks = {
         Service("lndbtc", "lndbtc"),
         Service("ltc", "litecoind"),
         Service("lndltc", "lndltc"),
-        Service("parity", "parity"),
+        Service("geth", "geth"),
         Service("raiden", "raiden"),
         Service("xud", "xud"),
     ],
@@ -69,26 +73,29 @@ networks = {
         Service("lndbtc", "lndbtc"),
         Service("ltc", "litecoind"),
         Service("lndltc", "lndltc"),
-        Service("parity", "parity"),
+        Service("geth", "geth"),
         Service("raiden", "raiden"),
         Service("xud", "xud"),
     ],
 }
 
 
-class MyException(Exception):
-    def __init(self, command, returncode, details):
-        super(MyException, self).__init__("Failed to execute: {}".format(command))
+class InvocationException(Exception):
+    def __init__(self, command, returncode, details):
+        super(InvocationException, self).__init__("Failed to execute: {}".format(command))
         self.command = command
         self.returncode = returncode
         self.details = details
 
+    def __repr__(self):
+        return "\n%s\nexit code = %s\n%s\n" % (self.command, self.returncode, self.details)
+
 
 def get_output(command):
-    p = Popen(shlex.split(command), stdin=None, stdout=PIPE, stderr=PIPE, shell=False)
+    p = Popen(command, stdin=None, stdout=PIPE, stderr=PIPE, shell=True)
     out, err = p.communicate()
     if p.returncode != 0:
-        raise MyException(command, p.returncode, err)
+        raise InvocationException(command, p.returncode, err.decode().strip())
     return out.decode().strip()
 
 
@@ -100,15 +107,17 @@ def get_status_text(blocks, headers):
 
 
 def get_bitcoind_kind_status(cli):
-    cmd = ltcctl + " getblockchaininfo"
+    # type: (str) -> str
+    cmd = cli + " getblockchaininfo"
     info = json.loads(get_output(cmd))
     blocks = info["blocks"]
     headers = info["headers"]
     return get_status_text(blocks, headers)
 
 
-def get_lndbtc_status():
-    cmd = lndbtc_lncli + " getinfo"
+def get_lnd_kind_status(cli):
+    # type: (str) -> str
+    cmd = cli + " getinfo"
     info = json.loads(get_output(cmd))
     synced_to_chain = info["synced_to_chain"]
     if synced_to_chain:
@@ -117,38 +126,61 @@ def get_lndbtc_status():
         return "Waiting for sync"
 
 
-def get_lndltc_status():
-    cmd = lndltc_lncli + " getinfo"
-    info = json.loads(get_output(cmd))
-    block_height = info["block_height"]
-    cmd = ltcctl + " getblockchaininfo"
-    info = json.loads(get_output(cmd))
-    blocks = info["blocks"]
-    return get_status_text(block_height, blocks)
+def remove_ansi_escape_sequence(s):
+    # type: (str) -> str
+    ansi_escape = re.compile(r'(\x9B|\x1B\[)[0-?]*[ -\/]*[@-~]')
+    return ansi_escape.sub('', s)
 
 
-def get_geth_status():
-    raise NotImplementedError()
-
-
-def get_parity_status():
-    raise NotImplementedError()
+def get_geth_status(cli):
+    # type: (str) -> str
+    cmd = cli + " --exec 'eth.syncing' attach"
+    syncing = remove_ansi_escape_sequence(get_output(cmd))
+    logging.debug("syncing is %s", syncing)
+    if syncing != 'false':
+        j = json.loads(syncing)
+        return get_status_text(j["currentBlock"], j["highestBlock"])
+    else:
+        cmd = cli + " --exec 'eth.blockNumber' attach"
+        n = remove_ansi_escape_sequence(get_output(cmd))
+        if n == "0":
+            return "Waiting for sync"
+        else:
+            return "Ready"
 
 
 def get_raiden_status():
-    raise NotImplementedError()
+    # type: () -> str
+    cmd = "docker-compose ps | grep raiden | sed -nE 's/.*:([0-9]+)-.*/\\1/p'"
+    port = get_output(cmd)
+    try:
+        r = urlopen("http://localhost:%s/api/v1/tokens" % port)
+        if r.getcode() == 200:
+            return "Ready"
+        else:
+            return "Waiting for sync"
+    except HTTPError:
+        return "Waiting for sync"
 
 
-def get_xud_status():
-    raise NotImplementedError()
+def get_xud_status(cli):
+    # type: (str) -> str
+    cmd = cli + " getinfo -j | sed -n '1!p'"
+    info = json.loads(get_output(cmd))
+    lndMap = {x[0]: x[1] for x in info["lndMap"]}
+    lndbtc_ok = lndMap["BTC"]["error"] == ""
+    lndltc_ok = lndMap["LTC"]["error"] == ""
+    raiden_ok = info["raiden"]["error"] == ""
+    if lndbtc_ok and lndltc_ok and raiden_ok:
+        return "Ready"
+    else:
+        return "Waiting for sync"
 
 
-def get_status(service):
+def get_status(service, stop_event):
+    # type: (Service, threading.Event) -> str
     try:
         name = service.name
-
-        logging.debug("get_status %s", name)
-
         cmd = "docker-compose ps -q {}".format(name)
         container_id = get_output(cmd)
         if len(container_id) == 0:
@@ -160,50 +192,52 @@ def get_status(service):
             return "Container down"
 
         if name == "bitcoind":
-            return get_bitcoind_kind_status(bitcoin_cli)
+            cli = "docker-compose exec bitcoind bitcoin-cli -{} -rpcuser=xu -rpcpassword=xu".format(network)
+            return get_bitcoind_kind_status(cli)
         elif name == "btcd":
-            return get_bitcoind_kind_status(btcctl)
+            cli = "docker-compose exec btcd btcctl --{} --rpcuser=xu --rpcpass=xu".format(network)
+            return get_bitcoind_kind_status(cli)
         elif name == "litecoind":
-            return get_bitcoind_kind_status(litecoin_cli)
+            cli = "docker-compose exec -T litecoind litecoin-cli -{} -rpcuser=xu -rpcpassword=xu".format(network)
+            return get_bitcoind_kind_status(cli)
         elif name == "ltcd":
-            return get_bitcoind_kind_status(ltcctl)
+            cli = "docker-compose exec ltcd ltcctl --{} --rpcuser=xu --rpcpass=xu".format(network)
+            return get_bitcoind_kind_status(cli)
         elif name == "lndbtc":
-            return get_lndbtc_status()
+            cli = "docker-compose exec lndbtc lncli -n {} -c bitcoin".format(network)
+            stop_event.wait(1)  # hacks to prevent concurrent getting status causing Ctrl-C not responding
+            return get_lnd_kind_status(cli)
         elif name == "lndltc":
-            return get_lndltc_status()
+            cli = "docker-compose exec lndltc lncli -n {} -c litecoin".format(network)
+            stop_event.wait(2)  # hacks to prevent concurrent getting status causing Ctrl-C not responding
+            return get_lnd_kind_status(cli)
         elif name == "geth":
-            return get_geth_status()
-        elif name == "parity":
-            return get_parity_status()
+            cli = "docker-compose exec geth geth --{}".format(network)
+            return get_geth_status(cli)
         elif name == "raiden":
+            stop_event.wait(3)  # hacks to prevent concurrent getting status causing Ctrl-C not responding
             return get_raiden_status()
         elif name == "xud":
-            return get_xud_status()
-        else:
-            return ""
-    except MyException as e:
-        return "ERROR: [{}] {}".format(e.command, e.details)
+            stop_event.wait(4)  # hacks to prevent concurrent getting status causing Ctrl-C not responding
+            cli = "docker-compose exec xud xucli"
+            return get_xud_status(cli)
+    except:
+        logging.exception("Failed to fetch status for " + service.name)
+    return ""
 
 
-def pretty_print_statuses(services):
-    q = Queue()
-
-    def on_change(service, status):
-        q.put((service, status))
-
-    for service in services:
-        service.add_status_listener(on_change)
-
+def draw_table(services):
+    # type: ([Service]) -> (int, int)
     padding = 2
     headers = ["SERVICE", "STATUS"]
     w1 = max([len(s.display_name) for s in services] +
              [len(headers[0])]) + padding * 2
 
-    w2 = max([len(s.status) for s in services] +
+    w2 = max([len("") for s in services] +
              [len(headers[1]), 40]) + padding * 2
 
-    # os.system("tput civis")  # hide cursor
-    # os.system("stty -echo")
+    #os.system("tput civis")  # hide cursor
+    os.system("stty -echo")
 
     # sys.stdout.write("\033[6n")  # show cursor position
 
@@ -219,58 +253,79 @@ def pretty_print_statuses(services):
         print("┠{}┼{}┨".format(("─" * w1), ("─" * w2)))
         print("┃{}│{}┃".format(
             f(s.display_name, w1, padding),
-            f(s.status, w2, padding),
+            f("", w2, padding),
         ))
     print("┗{}┷{}┛".format(("━" * w1), ("━" * w2)))
 
+    return padding, w2
+
+
+def redraw_table(services, w2, padding, service, status):
+    # type: ([Service], int, int, Service, str) -> None
+    n = 0
+    for i, s in enumerate(services):
+        if s.name == service.name:
+            n = (len(services) - i) * 2
+            break
+
+    s1 = "\033[{}A".format(n)
+    s2 = "\033[{}B".format(n)
+    content_format = "{{:{}s}}".format(w2 - padding * 2)
+    content = content_format.format(status)
+    update = "{}\033[15C{}\033[{}D{}".format(s1, content, 15 + len(content), s2)
+    print(update, end="")
+    sys.stdout.flush()
+
+
+def gracefully_shutdown(stop_event, exit_code):
+    stop_event.set()
+
     while True:
-        logging.debug("waiting queue")
-
-        if PYTHON2:
-            try:
-                service, status = q.get(timeout=1)
-            except Empty:
-                continue
+        n = len(threading.enumerate())
+        logging.debug("running threads: %s", n)
+        if n > 1:
+            time.sleep(1)
         else:
-            service, status = q.get(block=True)
+            break
 
-        logging.debug("get: %s, %s", service.name, status)
+    logging.debug("only one thread now")
 
-        n = 0
-        for i, s in enumerate(services):
-            if s.name == service.name:
-                n = (len(services) - i) * 2
-                break
+    #logging.debug("bash show cursor: tput cnorm")
+    #os.system("tput cnorm")  # show cursor
 
-        s1 = "\033[{}A".format(n)
-        s2 = "\033[{}B".format(n)
-        content_format = "{{:{}s}}".format(w2 - padding * 2)
-        status = "{}".format(status)
-        content = content_format.format(status)
-        update = "{}\033[15C{}\033[{}D{}".format(s1, content, 15 + len(content), s2)
-        print(update, end="")
-        sys.stdout.flush()
+    logging.debug("bash show input: stty sane")
+    os.system("stty sane")
+    #os.system("stty echo")
+
+    # TODO clear stdin buffer
+    exit(exit_code)
 
 
-def get_all_services():
-    services = []
-    for service in networks[network]:
-        services.append(service)
-    return services
+def pretty_print_statuses(services):
+    q = Queue()
+    stop_event = threading.Event()
+
+    for service in services:
+        service.start_status_query_thread(stop_event, q)
+
+    padding, w2 = draw_table(services)
+
+    try:
+        ready_count = 0
+        while ready_count < len(services):
+            service, status = q.get()
+            logging.debug("[STATUS] %s: %s", service.name, status)
+            redraw_table(services, w2, padding, service, status)
+            if status == "Ready":
+                ready_count = ready_count + 1
+    except KeyboardInterrupt:
+        logging.debug("Ctrl-C detected")
+        gracefully_shutdown(stop_event, 1)
+    gracefully_shutdown(stop_event, 0)
 
 
 def show_status():
-    shutdown_event = threading.Event()
-    try:
-        services = get_all_services(shutdown_event)
-        pretty_print_statuses(services)
-    except KeyboardInterrupt:
-        logging.debug("Ctrl-C detected")
-        # os.system("stty echo")
-        # os.system("tput cnorm")  # show cursor
-        shutdown_event.set()
-        # TODO clear stdin buffer
-        exit(1)
+    pretty_print_statuses(networks[network])
 
 
 def get_active_channels_count(result):
@@ -327,7 +382,7 @@ def launch_check():
         t2 = threading.Thread(target=check_channel, args=(stop2, "litecoin"))
         t3 = threading.Thread(target=print_dots, args=(stop3,))
         t1.start()
-        #t2.start()  # When t1 t2 start at the same time it will break the bash prompt! WTF???
+        # t2.start()  # When t1 t2 start at the same time it will break the bash prompt! WTF???
         t3.start()
 
         t1.join()
@@ -355,16 +410,6 @@ try:
 except KeyError:
     print("Missing environment variable XUD_NETWORK", file=sys.stderr)
     exit(1)
-
-bitcoin_cli = "docker-compose exec bitcoind bitcoin-cli -{} -rpcuser=xu -rpcpassword=xu".format(network)
-litecoin_cli = "docker-compose exec -T litecoind litecoin-cli -{} -rpcuser=xu -rpcpassword=xu".format(network)
-ltcctl = "docker-compose exec ltcd ltcctl --{} --rpcuser=xu --rpcpass=xu".format(network)
-btcctl = "docker-compose exec btcd btcctl --{} --rpcuser=xu --rpcpass=xu".format(network)
-lndbtc_lncli = "docker-compose exec lndbtc lncli -n {} -c bitcoin".format(network)
-lndltc_lncli = "docker-compose exec lndltc lncli -n {} -c litecoin".format(network)
-geth = "docker-compose exec geth geth --{}".format(network)
-parity = "docker-compose exec parity parity --chain ropsten"
-xud = "docker-compose exec xud xucli"
 
 os.chdir(os.path.expanduser(home + "/" + network))
 LOG_TIME = '%(asctime)s.%(msecs)03d'

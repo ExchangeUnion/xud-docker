@@ -103,7 +103,7 @@ enter() {
 cat ../banner.txt
 
 python="python3"
-if ! which python >/dev/null 2>&1; then
+if ! which $python >/dev/null 2>&1; then
     python="python"
 fi
 
