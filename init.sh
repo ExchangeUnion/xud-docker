@@ -101,3 +101,12 @@ enter() {
 }
 
 cat ../banner.txt
+
+python="python3"
+if ! which python >/dev/null 2>&1; then
+    python="python"
+fi
+
+alias status2="$python ../status.py status"
+
+$python ../status.py check

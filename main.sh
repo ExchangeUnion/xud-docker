@@ -39,8 +39,6 @@ if [[ $# -gt 0 && $1 == 'shell' ]]; then
     direct_launch=true
 fi
 
-home=`pwd`
-
 get_all_services() {
     cat docker-compose.yml | grep -A 999 services | sed -nE 's/^  ([a-z]+):$/\1/p' | sort | paste -sd " " -
 }
@@ -96,7 +94,7 @@ is_all_containers_up() {
 
 safe_pull() {
     command="python"
-    if ! which python; then
+    if ! which python >/dev/null 2>&1; then
         command="python3"
     fi
     if ! $command ../pull.py "$branch" "$network"; then
