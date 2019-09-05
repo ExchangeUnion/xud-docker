@@ -68,16 +68,18 @@ services:
       --datadir /root/.raiden
       --rpc
       --api-address 0.0.0.0:5001
-      --environment-type production
+      --environment-type development
       --password-file /root/.raiden/password.txt
       --no-sync-check
-      --tokennetwork-registry-contract-address 0x07679899f46422A2a9e5A3502815131Fe6d0dd0a
-      --secret-registry-contract-address 0x9B16762c9f6390a19208bDE8bd8AEc81D7C6BDaB
-      --endpoint-registry-contract-address 0xF6Ac1fE0421036e1f2DB6cC23CC2cFc36288d434
+      --tokennetwork-registry-contract-address 0xdE8A2bdDF39C364e099D0637Dc1a7e2B8f73A4A5
+      --secret-registry-contract-address 0xE51d15dEbe0F037ae787336782e3dA43ba653a8D
+      --service-registry-contract-address 0x4C3Abe4F53247F03A663b55FF02fD403BaBf176d
+      --one-to-n-contract-address 0x7337e831cF5BD75B0045050E6C6549cf914A923D
+      --user-deposit-contract-address 0x19f8B656fBf17a83a5023eEbd675B1Ae5Bb5dF50
+      --monitoring-service-contract-address 0x3B26A3d3D0c262359d1807863aE0D0FB6831D081
       --gas-price 10000000000
-      --eth-rpc-endpoint 35.231.222.142:8546
       --matrix-server https://raidentransport.exchangeunion.com
-      --resolver-endpoint http://localhost:8887/resolveraiden
+      --routing-mode private
     ports:
       - 5002:5001
     volumes:
