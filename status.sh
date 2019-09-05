@@ -148,7 +148,7 @@ raiden_status() {
 }
 
 xud_status() {
-    local info=`$xud getinfo 2>/dev/null`
+    local info=`$xud getinfo -j 2>/dev/null`
     local lndbtc_ok=`echo "$info" | grep -A2 BTC | grep error | grep '""'`
     local lndltc_ok=`echo "$info" | grep -A2 LTC | grep error | grep '""'`
     local raiden_ok=`echo "$info" | grep -A1 raiden | grep error | grep '""'`
