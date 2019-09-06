@@ -13,6 +13,7 @@ WORKDIR /app/raiden
 RUN make install
 
 FROM python:${PYTHON_VERSION}
+RUN apk add --no-cache bash
 COPY --from=builder /opt/venv /opt/venv
 COPY entrypoint.sh checksum.py onboarder.py configWriter.py /
 EXPOSE 5001
