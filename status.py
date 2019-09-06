@@ -212,6 +212,7 @@ def get_status(service, stop_event):
             stop_event.wait(2)  # hacks to prevent concurrent getting status causing Ctrl-C not responding
             return get_lnd_kind_status(cli)
         elif name == "geth":
+            stop_event.wait(5)  # hacks to prevent concurrent getting status causing Ctrl-C not responding
             cli = "docker-compose exec geth geth --{}".format(network)
             return get_geth_status(cli)
         elif name == "raiden":
