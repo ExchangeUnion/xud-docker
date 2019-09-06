@@ -6,13 +6,13 @@ import argparse
 import json
 import logging
 import os
+import re
 import shlex
 import signal
 import sys
 import threading
-from subprocess import Popen, PIPE
 import time
-import re
+from subprocess import Popen, PIPE
 
 try:
     from queue import Queue
@@ -41,7 +41,7 @@ class Service(object):
                 queue.put((self, status))
                 # stop_event.wait(5)
                 break
-            logging.debug("stop")
+            queue.put((self, "EOF"))
 
         t = threading.Thread(target=run)
         queue.put((self, "Fetching..."))
@@ -138,6 +138,7 @@ def get_geth_status(cli):
     syncing = remove_ansi_escape_sequence(get_output(cmd))
     logging.debug("syncing is %s", syncing)
     if syncing != 'false':
+        syncing = re.sub(r".([a-zA-Z]+)", r'"\1"', syncing)
         j = json.loads(syncing)
         return get_status_text(j["currentBlock"], j["highestBlock"])
     else:
@@ -160,6 +161,8 @@ def get_raiden_status():
         else:
             return "Waiting for sync"
     except HTTPError:
+        return "Waiting for sync"
+    except ConnectionResetError:
         return "Waiting for sync"
 
 
@@ -212,7 +215,7 @@ def get_status(service, stop_event):
             stop_event.wait(2)  # hacks to prevent concurrent getting status causing Ctrl-C not responding
             return get_lnd_kind_status(cli)
         elif name == "geth":
-            stop_event.wait(5)  # hacks to prevent concurrent getting status causing Ctrl-C not responding
+            stop_event.wait(6)  # hacks to prevent concurrent getting status causing Ctrl-C not responding
             cli = "docker-compose exec geth geth --{}".format(network)
             return get_geth_status(cli)
         elif name == "raiden":
@@ -237,7 +240,7 @@ def draw_table(services):
     w2 = max([len("") for s in services] +
              [len(headers[1]), 40]) + padding * 2
 
-    #os.system("tput civis")  # hide cursor
+    # os.system("tput civis")  # hide cursor
     os.system("stty -echo")
 
     # sys.stdout.write("\033[6n")  # show cursor position
@@ -291,12 +294,12 @@ def gracefully_shutdown(stop_event, exit_code):
 
     logging.debug("only one thread now")
 
-    #logging.debug("bash show cursor: tput cnorm")
-    #os.system("tput cnorm")  # show cursor
+    # logging.debug("bash show cursor: tput cnorm")
+    # os.system("tput cnorm")  # show cursor
 
     logging.debug("bash show input: stty sane")
     os.system("stty sane")
-    #os.system("stty echo")
+    # os.system("stty echo")
 
     # TODO clear stdin buffer
     exit(exit_code)
@@ -312,13 +315,15 @@ def pretty_print_statuses(services):
     padding, w2 = draw_table(services)
 
     try:
-        ready_count = 0
-        while ready_count < len(services):
+        eof_count = 0
+        while eof_count < len(services):
             service, status = q.get()
+            if status == "EOF":
+                eof_count = eof_count + 1
+                continue
             logging.debug("[STATUS] %s: %s", service.name, status)
             redraw_table(services, w2, padding, service, status)
-            if status == "Ready":
-                ready_count = ready_count + 1
+
     except KeyboardInterrupt:
         logging.debug("Ctrl-C detected")
         gracefully_shutdown(stop_event, 1)
