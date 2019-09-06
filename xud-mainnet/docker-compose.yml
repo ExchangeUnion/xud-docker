@@ -104,7 +104,7 @@ services:
     logging: *default-logging
   
   raiden:
-    image: exchangeunion/raiden:0.100.5-dev0
+    image: exchangeunion/raiden
     hostname: raiden
     environment:
       - NETWORK=mainnet
@@ -128,7 +128,7 @@ services:
     logging: *default-logging
 
   xud:
-    image: exchangeunion/xud:latest
+    image: exchangeunion/xud
     hostname: xud
     environment:
       - NETWORK=mainnet
