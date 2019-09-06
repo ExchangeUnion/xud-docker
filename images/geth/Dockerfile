@@ -1,6 +1,6 @@
 ARG VERSION
 
-FROM ethereum/client-go:v$VERSION
+FROM ethereum/client-go:$VERSION
 
 RUN apk update && apk add --no-cache bash expect
 

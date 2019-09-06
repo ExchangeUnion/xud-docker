@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 
-from os import chdir, system, popen, getcwd, listdir
-from os.path import dirname, abspath, join, isdir
-from configparser import ConfigParser
+import os
 from argparse import ArgumentParser
+from configparser import ConfigParser
 from contextlib import contextmanager
 from functools import wraps
+from os.path import dirname, abspath, join, isdir
 
 
 def parse_versions():
@@ -15,7 +15,7 @@ def parse_versions():
 
 
 def is_git_dirty():
-    return system("git diff --quiet") != 0
+    return os.system("git diff --quiet") != 0
 
 
 projectdir = abspath(dirname(dirname(__file__)))
@@ -25,31 +25,31 @@ supportsdir = join(projectdir, "supports")
 labelprefix = "com.exchangeunion.image"
 tagprefix = "exchangeunion"
 
-chdir(projectdir)
+os.chdir(projectdir)
 
-branch = popen("git rev-parse --abbrev-ref HEAD").read().strip()
-created = popen("date -u +'%Y-%m-%dT%H:%M:%SZ'").read().strip()
-revision = popen("git rev-parse HEAD").read().strip()
+branch = os.popen("git rev-parse --abbrev-ref HEAD").read().strip()
+created = os.popen("date -u +'%Y-%m-%dT%H:%M:%SZ'").read().strip()
+revision = os.popen("git rev-parse HEAD").read().strip()
 
 if is_git_dirty:
     revision = revision + "-dirty"
 
-chdir(imagesdir)
+os.chdir(imagesdir)
 
 versions = parse_versions()
-images = list(filter(isdir, listdir(".")))
+images = list(filter(isdir, os.listdir(".")))
 
 
 ####################################################################
 
 @contextmanager
 def pushd(new_dir):
-    prev_dir = getcwd()
-    chdir(new_dir)
+    prev_dir = os.getcwd()
+    os.chdir(new_dir)
     try:
         yield
     finally:
-        chdir(prev_dir)
+        os.chdir(prev_dir)
 
 
 def dir(new_dir):
@@ -66,10 +66,13 @@ def dir(new_dir):
 
 @dir(supportsdir)
 def build_xud_simnet():
-    system("docker build . -t xud-simnet")
+    os.system("docker build . -t xud-simnet")
 
 
 def build(image):
+    print("-" * 80)
+    print(":: Building %s ::" % image)
+    print("-" * 80)
     labels = [
         "--label {}.branch={}".format(labelprefix, branch),
         "--label {}.created={}".format(labelprefix, created),
@@ -81,63 +84,76 @@ def build(image):
         labels += [
             "--label {}.source={}".format(labelprefix, source)
         ]
-    build_args = [
-        "--build-arg ALPINE_VERSION={}".format(versions["base"]["alpine"]),
-        "--build-arg GOLANG_VERSION={}".format(versions["base"]["golang"]),
-        "--build-arg PYTHON_VERSION={}".format(versions["base"]["python"]),
-        "--build-arg NODE_VERSION={}".format(versions["base"]["node"]),
-    ]
+    build_args = {
+        "ALPINE_VERSION": versions["base"]["alpine"],
+        "GOLANG_VERSION": versions["base"]["golang"],
+        "PYTHON_VERSION": versions["base"]["python"],
+        "NODE_VERSION": versions["base"]["node"],
+    }
     if image.endswith("-simnet"):
         tag = "{}/{}".format(tagprefix, image)
         build_xud_simnet()
     else:
-        if image not in versions["application"]:
-            version = "latest"
-        else:
+        if image in versions["application"]:
             version = versions["application"][image]
-        tag = "{}/{}:{}".format(tagprefix, image, version)
-        build_args += [
-            "--build-arg VERSION={}".format(version)
-        ]
+            if ":" in version:
+                repo_name, repo_branch = version.split(":")
+                build_args["REPO"] = repo_name
+                build_args["BRANCH"] = repo_branch
+            else:
+                build_args["VERSION"] = version
+
+        if image in versions["tag"]:
+            tagsuffix = versions["tag"][image]
+        else:
+            tagsuffix = "latest"
+
+        tag = "{}/{}:{}".format(tagprefix, image, tagsuffix)
+
+    used_args = os.popen("cat %s/Dockerfile | sed -nE 's/ARG (.+)/\\1/p'" % image).read().splitlines()
+
+    build_args = {k: v for k, v in build_args.items() if k in used_args}
+    build_args = ["--build-arg %s=%s" % (k, v) for k, v in build_args.items()]
+
     args = [
         "-t {}".format(tag),
         image,
         " ".join(build_args),
         " ".join(labels),
     ]
-    print("docker build", " ".join(args))
-    system("docker build {}".format(" ".join(args)))
+    build_cmd = "docker build {}".format(" ".join(args))
+    print()
+    print(build_cmd)
+    print()
+    os.system(build_cmd)
+    print()
 
 
 def push(image):
-    if image.endswith("-simnet"):
-        tag = "{}/{}:latest".format(tagprefix, image)
+    if image in versions["tag"]:
+        tagsuffix = versions["tag"][image]
     else:
-        if image not in versions["application"]:
-            version = "latest"
-        else:
-            version = versions["application"][image]
-        tag = "{}/{}:{}".format(tagprefix, image, version)
-
+        tagsuffix = "latest"
+    tag = "{}/{}:{}".format(tagprefix, image, tagsuffix)
     if branch == "master":
-        system("docker push {}".format(tag))
+        os.system("docker push {}".format(tag))
     else:
         newtag = tag + "__" + branch.replace('/', '-')
-        system("docker tag {} {}".format(tag, newtag))
-        system("docker push {}".format(newtag))
+        os.system("docker tag {} {}".format(tag, newtag))
+        os.system("docker push {}".format(newtag))
 
 
 def test(args):
     if args.on_cloud:
-        chdir(projectdir + "/tools/gcloud")
+        os.chdir(projectdir + "/tools/gcloud")
         cmd = "NETWORK={} MACHINE_TYPE={} DISK_SIZE={} NAME_SUFFIX={} ./test.sh {}".format(
             args.network, args.gcloud_machine_type, args.gcloud_disk_size, args.gcloud_name_suffix,
             args.test_script)
-        system(cmd)
+        os.system(cmd)
     else:
-        chdir(projectdir)
+        os.chdir(projectdir)
         cmd = "./xud.sh -b {}".format(branch)
-        system(cmd)
+        os.system(cmd)
 
 
 def main():

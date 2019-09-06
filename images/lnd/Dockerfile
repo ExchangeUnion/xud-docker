@@ -2,10 +2,10 @@ ARG GOLANG_VERSION
 ARG ALPINE_VERSION
 
 FROM golang:$GOLANG_VERSION as builder
-ARG VERSION
+ARG REPO
+ARG BRANCH
 RUN apk add --no-cache bash git make
-ADD download_source.sh /tmp
-RUN /tmp/download_source.sh $VERSION
+RUN git clone -b ${BRANCH} https://github.com/${REPO} $GOPATH/src/github.com/lightningnetwork/lnd
 WORKDIR $GOPATH/src/github.com/lightningnetwork/lnd
 RUN make tags="invoicesrpc" install
 
