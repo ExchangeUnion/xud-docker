@@ -1,36 +1,36 @@
-export XUD_NETWORK=`basename $(pwd)`
+DOCKER_COMPOSE="docker-compose -p $XUD_NETWORK"
 
 case $XUD_NETWORK in
     mainnet)
-        alias bitcoin-cli="docker-compose exec bitcoind bitcoin-cli -rpcuser=xu -rpcpassword=xu"
-        alias litecoin-cli="docker-compose exec litecoind litecoin-cli -rpcuser=xu -rpcpassword=xu"
-        alias lndbtc-lncli="docker-compose exec lndbtc lncli -n mainnet -c bitcoin"
-        alias lndltc-lncli="docker-compose exec lndltc lncli -n mainnet -c litecoin"
-        alias geth="docker-compose exec geth geth"
+        alias bitcoin-cli="$DOCKER_COMPOSE exec bitcoind bitcoin-cli -rpcuser=xu -rpcpassword=xu"
+        alias litecoin-cli="$DOCKER_COMPOSE exec litecoind litecoin-cli -rpcuser=xu -rpcpassword=xu"
+        alias lndbtc-lncli="$DOCKER_COMPOSE exec lndbtc lncli -n mainnet -c bitcoin"
+        alias lndltc-lncli="$DOCKER_COMPOSE exec lndltc lncli -n mainnet -c litecoin"
+        alias geth="$DOCKER_COMPOSE exec geth geth"
         ;;
     testnet)
-        alias bitcoin-cli="docker-compose exec bitcoind bitcoin-cli -testnet -rpcuser=xu -rpcpassword=xu"
-        alias litecoin-cli="docker-compose exec litecoind litecoin-cli -testnet -rpcuser=xu -rpcpassword=xu"
-        alias lndbtc-lncli="docker-compose exec lndbtc lncli -n testnet -c bitcoin"
-        alias lndltc-lncli="docker-compose exec lndltc lncli -n testnet -c litecoin"
-        alias geth="docker-compose exec geth geth --testnet"
+        alias bitcoin-cli="$DOCKER_COMPOSE exec bitcoind bitcoin-cli -testnet -rpcuser=xu -rpcpassword=xu"
+        alias litecoin-cli="$DOCKER_COMPOSE exec litecoind litecoin-cli -testnet -rpcuser=xu -rpcpassword=xu"
+        alias lndbtc-lncli="$DOCKER_COMPOSE exec lndbtc lncli -n testnet -c bitcoin"
+        alias lndltc-lncli="$DOCKER_COMPOSE exec lndltc lncli -n testnet -c litecoin"
+        alias geth="$DOCKER_COMPOSE exec geth geth --testnet"
         ;;
     simnet)
-        alias btcctl="docker-compose exec btcd btcctl --simnet --rpcuser=xu --rpcpass=xu"
-        alias ltcctl="docker-compose exec ltcd ltcctl --simnet --rpcuser=xu --rpcpass=xu"
-        alias lndbtc-lncli="docker-compose exec lndbtc lncli -n simnet -c bitcoin"
-        alias lndltc-lncli="docker-compose exec lndltc lncli -n simnet -c litecoin"
+        alias btcctl="$DOCKER_COMPOSE exec btcd btcctl --simnet --rpcuser=xu --rpcpass=xu"
+        alias ltcctl="$DOCKER_COMPOSE exec ltcd ltcctl --simnet --rpcuser=xu --rpcpass=xu"
+        alias lndbtc-lncli="$DOCKER_COMPOSE exec lndbtc lncli -n simnet -c bitcoin"
+        alias lndltc-lncli="$DOCKER_COMPOSE exec lndltc lncli -n simnet -c litecoin"
         ;;
 esac
 
 GRACEFUL_SHUTDOWN_TIMEOUT=180
 
-alias logs="docker-compose logs"
-alias start="docker-compose start"
-alias stop="docker-compose stop -t $GRACEFUL_SHUTDOWN_TIMEOUT"
-alias restart="docker-compose restart -t $GRACEFUL_SHUTDOWN_TIMEOUT"
-alias up="docker-compose up"
-alias down="docker-compose down -t $GRACEFUL_SHUTDOWN_TIMEOUT"
+alias logs="$DOCKER_COMPOSE logs"
+alias start="$DOCKER_COMPOSE start"
+alias stop="$DOCKER_COMPOSE stop -t $GRACEFUL_SHUTDOWN_TIMEOUT"
+alias restart="$DOCKER_COMPOSE restart -t $GRACEFUL_SHUTDOWN_TIMEOUT"
+alias up="$DOCKER_COMPOSE up"
+alias down="$DOCKER_COMPOSE down -t $GRACEFUL_SHUTDOWN_TIMEOUT"
 
 function xucli() {
     LINE=""
@@ -80,16 +80,12 @@ alias sell="xucli sell"
 
 export PS1="$XUD_NETWORK > "
 
-export XUD_DOCKER_HOME=~/.xud-docker
-
-alias status="$XUD_DOCKER_HOME/status.sh"
-
 function get_all_services() {
     cat docker-compose.yml | grep -A 999 services | sed -nE 's/^  ([a-z]+):$/\1/p' | sort | paste -sd " " -
 }
 
 function log_details() {
-    logfile="$XUD_DOCKER_HOME/$XUD_NETWORK/xud-docker.log"
+    logfile="$XUD_NETWORK_DIR/xud-docker.log"
     commands=(
         "uname -a"
         "docker info"
@@ -98,7 +94,7 @@ function log_details() {
     )
     services=$(get_all_services)
     for s in $services; do
-        commands+=("docker-compose logs --tail=1000 $s")
+        commands+=("$DOCKER_COMPOSE logs --tail=1000 $s")
     done
 
     set +e
@@ -119,13 +115,13 @@ enter() {
     docker run --rm -it --entrypoint bash $1
 }
 
-cat ../banner.txt
+cat $XUD_DOCKER_HOME/banner.txt
 
-python="python3"
-if ! which $python >/dev/null 2>&1; then
-    python="python"
+PYTHON="python3"
+if ! which $PYTHON >/dev/null 2>&1; then
+    PYTHON="python"
 fi
 
-alias status2="$python ../status.py status"
+alias status="$PYTHON $XUD_DOCKER_HOME/status.py status"
 
-$python ../status.py check
+$PYTHON $XUD_DOCKER_HOME/status.py check

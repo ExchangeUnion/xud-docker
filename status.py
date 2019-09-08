@@ -152,7 +152,7 @@ def get_geth_status(cli):
 
 def get_raiden_status():
     # type: () -> str
-    cmd = "docker-compose ps | grep raiden | sed -nE 's/.*:([0-9]+)-.*/\\1/p'"
+    cmd = DOCKER_COMPOSE + " ps | grep raiden | sed -nE 's/.*:([0-9]+)-.*/\\1/p'"
     port = get_output(cmd)
     try:
         r = urlopen("http://localhost:%s/api/v1/tokens" % port)
@@ -184,7 +184,7 @@ def get_status(service, stop_event):
     # type: (Service, threading.Event) -> str
     try:
         name = service.name
-        cmd = "docker-compose ps -q {}".format(name)
+        cmd = DOCKER_COMPOSE + " ps -q {}".format(name)
         container_id = get_output(cmd)
         if len(container_id) == 0:
             return "Container not exist"
@@ -195,35 +195,35 @@ def get_status(service, stop_event):
             return "Container down"
 
         if name == "bitcoind":
-            cli = "docker-compose exec bitcoind bitcoin-cli -{} -rpcuser=xu -rpcpassword=xu".format(network)
+            cli = DOCKER_COMPOSE + " exec bitcoind bitcoin-cli -{} -rpcuser=xu -rpcpassword=xu".format(NETWORK)
             return get_bitcoind_kind_status(cli)
         elif name == "btcd":
-            cli = "docker-compose exec btcd btcctl --{} --rpcuser=xu --rpcpass=xu".format(network)
+            cli = DOCKER_COMPOSE + " exec btcd btcctl --{} --rpcuser=xu --rpcpass=xu".format(NETWORK)
             return get_bitcoind_kind_status(cli)
         elif name == "litecoind":
-            cli = "docker-compose exec -T litecoind litecoin-cli -{} -rpcuser=xu -rpcpassword=xu".format(network)
+            cli = DOCKER_COMPOSE + " exec -T litecoind litecoin-cli -{} -rpcuser=xu -rpcpassword=xu".format(NETWORK)
             return get_bitcoind_kind_status(cli)
         elif name == "ltcd":
-            cli = "docker-compose exec ltcd ltcctl --{} --rpcuser=xu --rpcpass=xu".format(network)
+            cli = DOCKER_COMPOSE + " exec ltcd ltcctl --{} --rpcuser=xu --rpcpass=xu".format(NETWORK)
             return get_bitcoind_kind_status(cli)
         elif name == "lndbtc":
-            cli = "docker-compose exec lndbtc lncli -n {} -c bitcoin".format(network)
+            cli = DOCKER_COMPOSE + " exec lndbtc lncli -n {} -c bitcoin".format(NETWORK)
             stop_event.wait(1)  # hacks to prevent concurrent getting status causing Ctrl-C not responding
             return get_lnd_kind_status(cli)
         elif name == "lndltc":
-            cli = "docker-compose exec lndltc lncli -n {} -c litecoin".format(network)
+            cli = DOCKER_COMPOSE + " exec lndltc lncli -n {} -c litecoin".format(NETWORK)
             stop_event.wait(2)  # hacks to prevent concurrent getting status causing Ctrl-C not responding
             return get_lnd_kind_status(cli)
         elif name == "geth":
             stop_event.wait(6)  # hacks to prevent concurrent getting status causing Ctrl-C not responding
-            cli = "docker-compose exec geth geth --{}".format(network)
+            cli = DOCKER_COMPOSE + " exec geth geth --{}".format(NETWORK)
             return get_geth_status(cli)
         elif name == "raiden":
             stop_event.wait(3)  # hacks to prevent concurrent getting status causing Ctrl-C not responding
             return get_raiden_status()
         elif name == "xud":
             stop_event.wait(4)  # hacks to prevent concurrent getting status causing Ctrl-C not responding
-            cli = "docker-compose exec xud xucli"
+            cli = DOCKER_COMPOSE + " exec xud xucli"
             return get_xud_status(cli)
     except:
         logging.exception("Failed to fetch status for " + service.name)
@@ -331,7 +331,7 @@ def pretty_print_statuses(services):
 
 
 def show_status():
-    pretty_print_statuses(networks[network])
+    pretty_print_statuses(networks[NETWORK])
 
 
 def get_active_channels_count(result):
@@ -349,7 +349,7 @@ def check_channel(stop_event, chain):
     else:
         raise Exception("Unsupported chain: %s" % chain)
 
-    lncli = "docker-compose exec {} lncli -n {} -c {}".format(service, network, chain)
+    lncli = DOCKER_COMPOSE + " exec {} lncli -n {} -c {}".format(service, NETWORK, chain)
     cmd = "{} listchannels".format(lncli)
 
     p = None  # type: Popen or None
@@ -378,46 +378,35 @@ def print_dots(stop_event):
 
 
 def launch_check():
-    if network == "simnet":
-        print("Waiting for LND channels to be active")
+    if NETWORK == "simnet":
+        try:
+            print("Waiting for LND channels to be active")
 
-        stop1 = threading.Event()
-        stop2 = threading.Event()
-        stop3 = threading.Event()
-        t1 = threading.Thread(target=check_channel, args=(stop1, "bitcoin"))
-        t2 = threading.Thread(target=check_channel, args=(stop2, "litecoin"))
-        t3 = threading.Thread(target=print_dots, args=(stop3,))
-        t1.start()
-        # t2.start()  # When t1 t2 start at the same time it will break the bash prompt! WTF???
-        t3.start()
+            stop1 = threading.Event()
+            stop2 = threading.Event()
+            stop3 = threading.Event()
+            t1 = threading.Thread(target=check_channel, args=(stop1, "bitcoin"))
+            t2 = threading.Thread(target=check_channel, args=(stop2, "litecoin"))
+            t3 = threading.Thread(target=print_dots, args=(stop3,))
+            t1.start()
+            # t2.start()  # When t1 t2 start at the same time it will break the bash prompt! WTF???
+            t3.start()
 
-        t1.join()
-        t2.start()
-        t2.join()
+            t1.join()
+            t2.start()
+            t2.join()
 
-        stop3.set()
-        t3.join()
+            stop3.set()
+            t3.join()
+        except KeyboardInterrupt:
+            exit(1)
 
 
 ###############################################################################
 
-
-network = None
-home = None
-
-try:
-    home = os.environ["XUD_DOCKER_HOME"]
-except KeyError:
-    print("Missing environment variable XUD_DOCKER_HOME", file=sys.stderr)
-    exit(1)
-
-try:
-    network = os.environ["XUD_NETWORK"]
-except KeyError:
-    print("Missing environment variable XUD_NETWORK", file=sys.stderr)
-    exit(1)
-
-os.chdir(os.path.expanduser(home + "/" + network))
+NETWORK = os.environ["XUD_NETWORK"]
+DOCKER_COMPOSE = "docker-compose -p " + NETWORK
+os.chdir(os.environ["XUD_NETWORK_DIR"])
 LOG_TIME = '%(asctime)s.%(msecs)03d'
 LOG_LEVEL = '%(levelname)5s'
 LOG_PID = '%(process)d'
