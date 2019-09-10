@@ -7,7 +7,7 @@ ARG BRANCH
 RUN apk add --no-cache git rsync bash
 # This is a "hack" to automatically invalidate the cache in case there are new commits
 ADD https://api.github.com/repos/${REPO}/commits/${BRANCH} /dev/null
-RUN git clone -b ${BRANCH} --depth 1 https://github.com/${REPO}
+RUN git clone -b ${BRANCH} https://github.com/${REPO}
 WORKDIR /xud
 RUN git show HEAD > git_head.txt
 RUN sed -Ei 's/argv.password/password1/g' lib/cli/commands/create.ts
