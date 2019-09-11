@@ -93,7 +93,6 @@ services:
       --syncmode fast
       --rpc
       --rpcapi eth,net,web3,txpool,personal,admin
-      --rpcaddr 0.0.0.0
       --rpcvhosts=*
     volumes: 
       - ./data/geth:/root/.ethereum

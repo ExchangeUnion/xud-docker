@@ -4,7 +4,7 @@ set -m
 
 touch /root/.ethereum/passphrase.txt
 
-geth $@ &
+geth $@ --rpcaddr "$(hostname -i)" &
 
 sleep 3
 
