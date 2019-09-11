@@ -20,12 +20,8 @@ services:
       -rpcpassword=xu
       -disablewallet
       -txindex
-      -zmqpubrawblock=tcp://0.0.0.0:28332
-      -zmqpubrawtx=tcp://0.0.0.0:28333
       -logips
       -rpcport=18332
-      -rpcallowip=::/0
-      -rpcbind=0.0.0.0
     ports:
       - 18332:18332
       - 28332:28332
@@ -46,12 +42,8 @@ services:
       -rpcpassword=xu
       -disablewallet
       -txindex
-      -zmqpubrawblock=tcp://0.0.0.0:29332
-      -zmqpubrawtx=tcp://0.0.0.0:29333
       -logips
       -rpcport=19332
-      -rpcallowip=::/0
-      -rpcbind=0.0.0.0
     ports:
       - 19332:19332
       - 29332:29332
@@ -119,7 +111,6 @@ services:
       --password-file /root/.ethereum/passphrase.txt
       --datadir /root/.raiden
       --rpc
-      --api-address 0.0.0.0:5001
       --matrix-server https://raidentransport.exchangeunion.com
       --routing-mode local
     ports:

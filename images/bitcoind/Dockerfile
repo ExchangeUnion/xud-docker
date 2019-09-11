@@ -71,5 +71,6 @@ RUN apk --no-cache add \
     libressl \
     boost-program_options
 COPY --from=builder /opt/bitcoin-$VERSION/bin /bin
-ENTRYPOINT ["bitcoind"]
+COPY entrypoint.sh /
+ENTRYPOINT [ "./entrypoint.sh" ]
 EXPOSE 8332 18332 28332 28333

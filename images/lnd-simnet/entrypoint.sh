@@ -25,5 +25,8 @@ wait_file "$LND_HOSTNAME" && {
   touch "$HOME/.lnd/wallet.lock"
   # notify peers.sh to bootstrap peers
   touch "$HOME/.lnd/peers.lock"
-  lnd --lnddir=$LND_DIR --externalip="$LND_ONION_ADDRESS"
+
+  IP="$(hostname -i)"
+
+  lnd --lnddir=$LND_DIR --externalip="$LND_ONION_ADDRESS" --listen=$IP:9735 --rpclisten=$IP:10009 --restlisten=$IP:8080
 } || exit 1

@@ -33,6 +33,9 @@ write_config() {
     echo "Onion address for xud is $XUD_ONION_ADDRESS"
     sed -i "s/<onion_address>/$XUD_ONION_ADDRESS/g" ~/.xud/xud.conf
   }
+
+  IP="$(hostname -i)"
+	sed -i "s/<ip>/$IP/g" ~/.xud/xud.conf
 }
 
 if [[ $XUD_REWRITE_CONFIG || ! -e ~/.xud/xud.conf ]]; then

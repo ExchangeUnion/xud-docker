@@ -9,4 +9,6 @@ stop_litecoind() {
 
 trap stop_litecoind SIGINT SIGTERM
 
-litecoind $@
+IP="$(hostname -i)"
+
+litecoind -rpcbind=$IP -rpcallowip=::/0 -zmqpubrawblock=tcp://$IP:29332 -zmqpubrawtx=tcp://$IP:29333 $@

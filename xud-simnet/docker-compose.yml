@@ -67,7 +67,6 @@ services:
       --password-file /root/.raiden/password.txt
       --datadir /root/.raiden
       --rpc
-      --api-address 0.0.0.0:5001
       --environment-type development
       --password-file /root/.raiden/password.txt
       --no-sync-check

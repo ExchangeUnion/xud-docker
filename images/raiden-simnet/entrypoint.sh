@@ -16,4 +16,6 @@ else
     addr=`cat addr.txt`
 fi
 
-python -m raiden --address $addr $@
+IP="$(hostname -i)"
+
+python -m raiden --address $addr --api-address $IP:5001 $@

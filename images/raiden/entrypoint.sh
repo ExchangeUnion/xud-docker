@@ -25,4 +25,6 @@ addr=`python /checksum.py $addr`
 
 python /configWriter.py $NETWORK
 
-python -m raiden --address $addr $@
+IP="$(hostname -i)"
+
+python -m raiden --address $addr --api-address $IP:5001 $@

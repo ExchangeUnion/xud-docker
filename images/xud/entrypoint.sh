@@ -25,6 +25,8 @@ write_config() {
 
 	sed -i "s/<instance_id>/$insid/g" ~/.xud/xud.conf
 	sed -i "s/<network>/$NETWORK/g" ~/.xud/xud.conf
+	IP="$(hostname -i)"
+	sed -i "s/<ip>/$IP/g" ~/.xud/xud.conf
 }
 
 if [[ $XUD_REWRITE_CONFIG || ! -e ~/.xud/xud.conf ]]; then
