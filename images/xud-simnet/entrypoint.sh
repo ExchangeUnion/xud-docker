@@ -35,7 +35,7 @@ write_config() {
   }
 
   IP="$(hostname -i)"
-	sed -i "s/<ip>/$IP/g" ~/.xud/xud.conf
+  sed -i "s/<ip>/$IP/g" ~/.xud/xud.conf
 }
 
 if [[ $XUD_REWRITE_CONFIG || ! -e ~/.xud/xud.conf ]]; then

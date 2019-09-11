@@ -28,5 +28,5 @@ wait_file "$LND_HOSTNAME" && {
 
   IP="$(hostname -i)"
 
-  lnd --lnddir=$LND_DIR --externalip="$LND_ONION_ADDRESS" --listen=$IP:9735 --rpclisten=$IP:10009 --restlisten=$IP:8080
+  lnd --lnddir=$LND_DIR --externalip="$LND_ONION_ADDRESS" --listen=0.0.0.0:9735 --rpclisten=$IP:10009 --restlisten=$IP:8080
 } || exit 1
