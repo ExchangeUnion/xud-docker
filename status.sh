@@ -6,8 +6,8 @@ set -euo pipefail
 # the input device is not a TTY
 # ref. https://github.com/docker/compose/issues/5696
 
-bitcoind="docker-compose exec -T bitcoind bitcoin-cli -rpcuser=xu -rpcpassword=xu"
-litecoind="docker-compose exec -T litecoind litecoin-cli -rpcuser=xu -rpcpassword=xu"
+bitcoind="docker-compose exec -T bitcoind bitcoin-cli -rpcuser=xu -rpcpassword=xu -rpcconnect=$(docker-compose exec bitcoind hostname -i)"
+litecoind="docker-compose exec -T litecoind litecoin-cli -rpcuser=xu -rpcpassword=xu -rpcconnect=$(docker-compose exec litecoind hostname -i)"
 
 lndbtc="docker-compose exec -T lndbtc lncli -n $XUD_NETWORK -c bitcoin"
 lndltc="docker-compose exec -T lndltc lncli -n $XUD_NETWORK -c litecoin"

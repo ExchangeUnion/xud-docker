@@ -2,15 +2,15 @@ export XUD_NETWORK=`basename $(pwd)`
 
 case $XUD_NETWORK in
     mainnet)
-        alias bitcoin-cli="docker-compose exec bitcoind bitcoin-cli -rpcuser=xu -rpcpassword=xu"
-        alias litecoin-cli="docker-compose exec litecoind litecoin-cli -rpcuser=xu -rpcpassword=xu"
+        alias bitcoin-cli="docker-compose exec bitcoind bitcoin-cli -rpcuser=xu -rpcpassword=xu -rpcconnect=$(docker-compose exec bitcoind hostname -i)"
+        alias litecoin-cli="docker-compose exec litecoind litecoin-cli -rpcuser=xu -rpcpassword=xu -rpcconnect=$(docker-compose exec litecoind hostname -i)"
         alias lndbtc-lncli="docker-compose exec lndbtc lncli -n mainnet -c bitcoin"
         alias lndltc-lncli="docker-compose exec lndltc lncli -n mainnet -c litecoin"
         alias geth="docker-compose exec geth geth"
         ;;
     testnet)
-        alias bitcoin-cli="docker-compose exec bitcoind bitcoin-cli -testnet -rpcuser=xu -rpcpassword=xu"
-        alias litecoin-cli="docker-compose exec litecoind litecoin-cli -testnet -rpcuser=xu -rpcpassword=xu"
+        alias bitcoin-cli="docker-compose exec bitcoind bitcoin-cli -testnet -rpcuser=xu -rpcpassword=xu -rpcconnect=$(docker-compose exec bitcoind hostname -i)"
+        alias litecoin-cli="docker-compose exec litecoind litecoin-cli -testnet -rpcuser=xu -rpcpassword=xu -rpcconnect=$(docker-compose exec litecoind hostname -i)"
         alias lndbtc-lncli="docker-compose exec lndbtc lncli -n testnet -c bitcoin"
         alias lndltc-lncli="docker-compose exec lndltc lncli -n testnet -c litecoin"
         alias geth="docker-compose exec geth geth --testnet"
