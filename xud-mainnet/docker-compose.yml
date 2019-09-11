@@ -110,13 +110,20 @@ services:
       --accept-disclaimer
       --resolver-endpoint http://xud:8887/resolveraiden
       --eth-rpc-endpoint geth:8545
-      --network-id 1
+      --network-id mainnet
       --password-file /root/.ethereum/passphrase.txt
       --datadir /root/.raiden
       --rpc
       --api-address 0.0.0.0:5001
       --matrix-server https://raidentransport.exchangeunion.com
-      --routing-mode local
+      --routing-mode private
+      --environment-type production
+      --tokennetwork-registry-contract-address 0xd32F5E0fF172d41a20b32B6DAb17948B257aa371
+      --secret-registry-contract-address 0x322681a720690F174a4071DBEdB51D86E7B9FF84
+      --service-registry-contract-address 0x281937D366C7bCE202481c45d613F67500b93E69
+      --user-deposit-contract-address 0x4F26957E8fd331D53DD60feE77533FBE7564F5Fe
+      --monitoring-service-contract-address 0x37cC37D7703554183aE544391945e7D0588b7693
+      --one-to-n-contract-address 0x3dda5BE50Af796618d9f48c021Cf0C9FD64FFeb1
     ports:
       - 5001:5001
     volumes:
