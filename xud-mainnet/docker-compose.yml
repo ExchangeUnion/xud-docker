@@ -97,8 +97,6 @@ services:
     volumes: 
       - ./data/geth:/root/.ethereum
     ports:
-      - 8545:8545
-      - 8546:8546
       - 30303:30303/udp
     logging: *default-logging
   
