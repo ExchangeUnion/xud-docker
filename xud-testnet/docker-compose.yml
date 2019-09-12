@@ -80,7 +80,7 @@ services:
       - NETWORK=testnet
       - CHAIN=litecoin
     ports:
-      - 10735:9735
+      - 10735:10735
       - 20009:10009
     volumes:
       - ./data/lndltc:/root/.lnd

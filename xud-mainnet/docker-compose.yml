@@ -69,7 +69,7 @@ services:
       - NETWORK=mainnet
       - CHAIN=litecoin
     ports:
-      - 10735:9735
+      - 10735:10735
     volumes:
       - ./data/lndltc:/root/.lnd
     logging: *default-logging
