@@ -25,10 +25,6 @@ services:
       -rpcport=8332
       -rpcallowip=::/0
       -rpcbind=0.0.0.0
-    ports:
-      - 8332:8332
-      - 28332:28332
-      - 28333:28333
     volumes:
       - ./data/bitcoind:/root/.bitcoin
     logging: *default-logging
@@ -50,10 +46,6 @@ services:
       -rpcport=9332
       -rpcallowip=::/0
       -rpcbind=0.0.0.0
-    ports:
-      - 9332:9332
-      - 29332:29332
-      - 29333:29333
     volumes:
       - ./data/litecoind:/root/.litecoin
     logging: *default-logging
@@ -66,7 +58,6 @@ services:
       - CHAIN=bitcoin
     ports:
       - 9735:9735
-      - 10009:10009
     volumes:
       - ./data/lndbtc:/root/.lnd
     logging: *default-logging
@@ -79,7 +70,6 @@ services:
       - CHAIN=litecoin
     ports:
       - 10735:9735
-      - 20009:10009
     volumes:
       - ./data/lndltc:/root/.lnd
     logging: *default-logging
@@ -124,8 +114,6 @@ services:
       --user-deposit-contract-address 0x4F26957E8fd331D53DD60feE77533FBE7564F5Fe
       --monitoring-service-contract-address 0x37cC37D7703554183aE544391945e7D0588b7693
       --one-to-n-contract-address 0x3dda5BE50Af796618d9f48c021Cf0C9FD64FFeb1
-    ports:
-      - 5001:5001
     volumes:
       - ./data/geth:/root/.ethereum
       - ./data/raiden:/root/.raiden
@@ -142,7 +130,5 @@ services:
       - ./data/lndltc:/root/.lndltc
     ports:
       - 8885:8885
-      - 8886:8886
-      - 8887:8887
     logging: *default-logging
 
