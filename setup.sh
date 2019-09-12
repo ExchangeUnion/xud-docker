@@ -108,7 +108,7 @@ do_upgrade() {
     running_networks=`get_running_networks`
     for n in $running_networks; do
         cd "$home/$n"
-        echo "Shutting down $n environment..."
+        echo "Shutting down $n environment gracefully. This could take a while..."
         # docker-compose normal output prints into stderr, so we hide redirect fd(2) to /dev/null
         docker-compose down >/dev/null 2>&1
     done

@@ -41,4 +41,4 @@ while ! [ -e "/root/.lndltc/data/chain/litecoin/$NETWORK/admin.macaroon" ]; do
     sleep 3
 done
 
-./bin/xud $@
+exec ./bin/xud $@

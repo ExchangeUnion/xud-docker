@@ -23,12 +23,14 @@ case $XUD_NETWORK in
         ;;
 esac
 
+GRACEFUL_SHUTDOWN_TIMEOUT=180
+
 alias logs="docker-compose logs"
 alias start="docker-compose start"
-alias stop="docker-compose stop"
-alias restart="docker-compose restart"
+alias stop="docker-compose stop -t $GRACEFUL_SHUTDOWN_TIMEOUT"
+alias restart="docker-compose restart -t $GRACEFUL_SHUTDOWN_TIMEOUT"
 alias up="docker-compose up"
-alias down="docker-compose down"
+alias down="docker-compose down -t $GRACEFUL_SHUTDOWN_TIMEOUT"
 
 function xucli() {
     docker-compose exec xud xucli $@ | sed -n '1!p'
