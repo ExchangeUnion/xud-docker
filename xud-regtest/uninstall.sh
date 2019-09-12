@@ -1,4 +1,3 @@
 #!/bin/bash
-
-docker-compose down
+docker-compose down -t 180
 rm -rf data

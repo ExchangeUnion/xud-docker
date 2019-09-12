@@ -67,6 +67,5 @@ RUN apk --no-cache add \
     boost-program_options
 RUN apk --no-cache add bash
 COPY --from=builder /opt/litecoin-$VERSION/bin /bin
-COPY entrypoint.sh /
-ENTRYPOINT [ "./entrypoint.sh" ]
+ENTRYPOINT ["litecoind"]
 EXPOSE 9332 19332 29332 29333

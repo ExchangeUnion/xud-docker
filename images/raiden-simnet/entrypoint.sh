@@ -16,4 +16,4 @@ else
     addr=`cat addr.txt`
 fi
 
-python -m raiden --address $addr $@
+exec python -m raiden --address $addr $@

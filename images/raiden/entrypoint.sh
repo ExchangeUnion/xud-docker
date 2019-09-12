@@ -25,4 +25,6 @@ addr=`python /checksum.py $addr`
 
 python /configWriter.py $NETWORK
 
-python -m raiden --address $addr $@
+# TODO: very fragile quick fix to wait for geth to be ready
+sleep 10
+exec python -m raiden --address $addr $@

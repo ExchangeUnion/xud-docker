@@ -30,7 +30,7 @@ check_chain() {
 
     local_height=`$ctl getinfo | grep blocks | sed -E 's/.*: ([0-9]+).*/\1/'`
     echo "local_height=$local_height"
-    
+
     peer=`$ctl getpeerinfo | grep -A 15 "$peer_addr"`
     while [[ -z $peer ]]; do
         echo "Wait for peer: $peer_addr"
@@ -50,4 +50,4 @@ check_chain() {
 
 check_chain &
 
-ltcd $@
+exec ltcd $@

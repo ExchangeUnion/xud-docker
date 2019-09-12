@@ -61,4 +61,4 @@ echo 'Detecting localnet IP for raiden...'
 RAIDEN_IP=$(getent hosts raiden | awk '{ print $1 }')
 echo "$RAIDEN_IP raiden" >> /etc/hosts
 
-proxychains4 ./bin/xud
+exec proxychains4 ./bin/xud
