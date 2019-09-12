@@ -20,4 +20,4 @@ COPY torrc /etc/tor/
 VOLUME [ "/root/.lnd" ]
 RUN mkdir /root/.lnd/tor
 ENTRYPOINT ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]
-EXPOSE 10009
+EXPOSE 10009 9735 10735
