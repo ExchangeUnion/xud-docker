@@ -24,6 +24,7 @@ IP=$(gcloud --format 'get(networkInterfaces[0].accessConfigs[0].natIP)' compute 
     --image-project=ubuntu-os-cloud \
     --machine-type="$MACHINE_TYPE" \
     --boot-disk-size="$DISK_SIZE" \
+    --boot-disk-type=pd-ssd \
     --metadata-from-file startup-script=startup.sh)
 
 cat <<EOF >"$SSHCONFIG"
