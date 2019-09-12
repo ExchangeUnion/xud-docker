@@ -70,7 +70,7 @@ services:
       - NETWORK=mainnet
       - CHAIN=litecoin
     ports:
-      - 10735:10735
+      - 10735:9735
     volumes:
       - ./data/lndltc:/root/.lnd
       - ./data/tor:/root/.tor
@@ -88,8 +88,6 @@ services:
       --rpcvhosts=*
     volumes: 
       - ./data/geth:/root/.ethereum
-    ports:
-      - 30303:30303/udp
     logging: *default-logging
   
   raiden:
