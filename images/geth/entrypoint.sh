@@ -7,7 +7,7 @@ touch $GETH_HOME/passphrase.txt
 
 ./create-account.sh &
 
-OPTS=""
+OPTS="--rpcaddr $(hostname -i)"
 
 if [[ -e $GETH_HOME/peers.txt ]]; then
     OPTS="$OPTS --bootnodes=$(cat $GETH_HOME/peers.txt | paste -sd ',' -)"
@@ -22,4 +22,4 @@ else
     esac
 fi
 
-exec geth $OPTS --rpcaddr "$(hostname -i)" $@
+exec geth $OPTS $@
