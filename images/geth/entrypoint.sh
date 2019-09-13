@@ -10,14 +10,14 @@ touch $GETH_HOME/passphrase.txt
 OPTS=""
 
 if [[ -e $GETH_HOME/peers.txt ]]; then
-    OPTS="$OPTS --bootnodes='$(cat /root/.ethereum/peers.txt | paste -sd ',' -)'"
+    OPTS="$OPTS --bootnodes=$(cat /root/.ethereum/peers.txt | paste -sd ',' -)"
 else
     case $NETWORK in
         testnet)
-            OPTS="$OPTS --bootnodes='$(cat /ropsten-peers.txt | paste -sd ',' -)'"
+            OPTS="$OPTS --bootnodes=$(cat /ropsten-peers.txt | paste -sd ',' -)"
             ;;
         mainnet)
-            OPTS="$OPTS --bootnodes='$(cat /mainnet-peers.txt | paste -sd ',' -)'"
+            OPTS="$OPTS --bootnodes=$(cat /mainnet-peers.txt | paste -sd ',' -)"
             ;;
     esac
 fi
