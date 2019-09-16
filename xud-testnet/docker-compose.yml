@@ -67,7 +67,7 @@ services:
       - NETWORK=testnet
       - CHAIN=bitcoin
     ports:
-      - 9735:9735
+      - 9736:9735
       - 10009:10009
     volumes:
       - ./data/lndbtc:/root/.lnd
@@ -80,7 +80,7 @@ services:
       - NETWORK=testnet
       - CHAIN=litecoin
     ports:
-      - 10735:10735
+      - 10736:10735
       - 20009:10009
     volumes:
       - ./data/lndltc:/root/.lnd
@@ -102,7 +102,7 @@ services:
     ports:
       - 8545:8545
       - 8546:8546
-      - 30303:30303/udp
+      - 30304:30303/udp
     logging: *default-logging
 
   raiden:
@@ -139,7 +139,7 @@ services:
       - ./data/lndbtc:/root/.lndbtc
       - ./data/lndltc:/root/.lndltc
     ports:
-      - 8885:8885
-      - 8886:8886
-      - 8887:8887
+      - 18885:8885
+      - 18886:8886
+      - 18887:8887
     logging: *default-logging
