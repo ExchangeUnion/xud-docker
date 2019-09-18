@@ -1,5 +1,5 @@
 DataDirectory /root/.lnd/tor-data
 ExitPolicy reject *:* # no exits allowed
 HiddenServiceDir /root/.lnd/tor
-HiddenServicePort 9735 127.0.0.1:9735
+HiddenServicePort <port> 127.0.0.1:<port>
 HiddenServiceVersion 3

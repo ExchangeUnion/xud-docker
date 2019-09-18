@@ -30,4 +30,4 @@ COPY entrypoint.sh /app
 RUN ln -s /app/bin/xucli /bin/xucli
 WORKDIR /app
 ENTRYPOINT ./entrypoint.sh
-EXPOSE 8885 8886 8887
+EXPOSE 8885 18885 8887

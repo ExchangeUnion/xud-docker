@@ -28,5 +28,20 @@ wait_file "$LND_HOSTNAME" && {
   # notify peers.sh to bootstrap peers
   touch "$HOME/.lnd/peers.lock"
 
-  lnd --$CHAIN.$NETWORK --lnddir=$LND_DIR --externalip="$LND_ONION_ADDRESS"
+  case $CHAIN in
+    bitcoin)
+      PORT=9735
+      ;;
+    litecoin)
+      PORT=10735
+      ;;
+  esac
+
+  case $NETWORK in
+    testnet)
+      PORT=$((PORT + 10000))
+      ;;
+  esac
+
+  lnd --$CHAIN.$NETWORK --lnddir=$LND_DIR --externalip="$LND_ONION_ADDRESS:$PORT" --listen="0.0.0.0:$PORT"
 } || exit 1

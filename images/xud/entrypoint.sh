@@ -23,8 +23,18 @@ write_config() {
     	insid="$n"
 	fi
 
+	case $NETWORK in
+		mainnet)
+			DELTA=0
+			;;
+		testnet)
+			DELTA=10000
+			;;
+	esac
+
 	sed -i "s/<instance_id>/$insid/g" ~/.xud/xud.conf
 	sed -i "s/<network>/$NETWORK/g" ~/.xud/xud.conf
+	sed -i "s/<p2p_port>/$((8885 + DELTA))/g" ~/.xud/xud.conf
 }
 
 if [[ $XUD_REWRITE_CONFIG || ! -e ~/.xud/xud.conf ]]; then

@@ -1,7 +1,7 @@
 ARG PYTHON_VERSION
 
 FROM python:$PYTHON_VERSION
-RUN apk add --no-cache bash
+RUN apk add --no-cache bash curl
 COPY --from=xud-simnet /root/xud-simnet/raiden-wd/venv/lib/python3.7/site-packages /usr/local/lib/python3.7/site-packages
 COPY entrypoint.sh onboarder.py /opt/
 WORKDIR /opt

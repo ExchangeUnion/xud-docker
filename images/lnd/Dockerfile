@@ -13,11 +13,11 @@ RUN make tags="invoicesrpc" install
 FROM alpine:$ALPINE_VERSION
 RUN apk add --no-cache bash expect supervisor tor
 COPY --from=builder /go/bin/lnd /go/bin/lncli /usr/local/bin/
-COPY entrypoint.sh wallet.exp unlock.exp unlocker.sh wait-file.sh /
+COPY entrypoint.sh wallet.exp unlock.exp unlocker.sh wait-file.sh start_tor.sh /
 COPY lnd-btc.conf lnd-ltc.conf /root/
 COPY supervisord.conf /etc/supervisor/conf.d/
 COPY torrc /etc/tor/
 VOLUME [ "/root/.lnd" ]
 RUN mkdir /root/.lnd/tor
 ENTRYPOINT ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]
-EXPOSE 10009 9735 10735
+EXPOSE 10009 9735 19735 10735 20735
