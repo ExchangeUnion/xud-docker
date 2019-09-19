@@ -13,7 +13,7 @@ show_help() {
 Usage: $0 [-n <network>]
 
 Options:
-    -n Network. Available values are regtest, simnet, testnet, and mainnet. Default value is testnet
+    -n Network. Available values are simnet, testnet, and mainnet. Default value is testnet
     -l Logfile. Default value is /dev/null
 EOF
     exit 0

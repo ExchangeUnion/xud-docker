@@ -59,7 +59,7 @@ download_files() {
     echo -e "$revision" >> revision.txt
     url="https://raw.githubusercontent.com/ExchangeUnion/xud-docker/$branch"
 
-    for n in regtest simnet testnet mainnet; do
+    for n in simnet testnet mainnet; do
         if ! [ -e $n ]; then
             mkdir $n
         fi
@@ -83,13 +83,13 @@ install() {
 
 get_running_networks() {
     set +o pipefail
-    docker ps --format '{{.Names}}' | cut -d'_' -f 1 | sort | uniq | grep -E 'regtest|simnet|testnet|mainnet' | paste -sd " " -
+    docker ps --format '{{.Names}}' | cut -d'_' -f 1 | sort | uniq | grep -E 'simnet|testnet|mainnet' | paste -sd " " -
     set -o pipefail
 }
 
 get_existing_networks() {
     set +o pipefail
-    docker ps -a --format '{{.Names}}' | cut -d'_' -f 1 | sort | uniq | grep -E 'regtest|simnet|testnet|mainnet' | paste -sd " " -
+    docker ps -a --format '{{.Names}}' | cut -d'_' -f 1 | sort | uniq | grep -E 'simnet|testnet|mainnet' | paste -sd " " -
     set -o pipefail
 }
 
