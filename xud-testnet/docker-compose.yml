@@ -26,10 +26,6 @@ services:
       -rpcport=18332
       -rpcallowip=::/0
       -rpcbind=0.0.0.0
-    ports:
-      - 18332:18332
-      - 28332:28332
-      - 28333:28333
     volumes:
       - ./data/bitcoind:/root/.bitcoin
     logging: *default-logging
@@ -52,10 +48,6 @@ services:
       -rpcport=19332
       -rpcallowip=::/0
       -rpcbind=0.0.0.0
-    ports:
-      - 19332:19332
-      - 29332:29332
-      - 29333:29333
     volumes:
       - ./data/litecoind:/root/.litecoin
     logging: *default-logging
@@ -67,8 +59,7 @@ services:
       - NETWORK=testnet
       - CHAIN=bitcoin
     ports:
-      - 9736:9735
-      - 10009:10009
+      - 19735:19735
     volumes:
       - ./data/lndbtc:/root/.lnd
     logging: *default-logging
@@ -80,8 +71,7 @@ services:
       - NETWORK=testnet
       - CHAIN=litecoin
     ports:
-      - 10736:10735
-      - 20009:10009
+      - 20735:20735
     volumes:
       - ./data/lndltc:/root/.lnd
     logging: *default-logging
@@ -99,10 +89,6 @@ services:
       --rpcvhosts=*
     volumes: 
       - ./data/geth:/root/.ethereum
-    ports:
-      - 8545:8545
-      - 8546:8546
-      - 30304:30303/udp
     logging: *default-logging
 
   raiden:
@@ -122,8 +108,6 @@ services:
       --api-address 0.0.0.0:5001
       --matrix-server https://raidentransport.exchangeunion.com
       --routing-mode local
-    ports:
-      - 5001:5001
     volumes:
       - ./data/geth:/root/.ethereum
       - ./data/raiden:/root/.raiden
@@ -139,7 +123,5 @@ services:
       - ./data/lndbtc:/root/.lndbtc
       - ./data/lndltc:/root/.lndltc
     ports:
-      - 18885:8885
-      - 18886:8886
-      - 18887:8887
+      - 18885:18885
     logging: *default-logging

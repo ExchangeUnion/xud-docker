@@ -22,8 +22,6 @@ services:
       --rpclisten=:18556
       --nolisten
       --addpeer=35.231.222.142:39555
-    ports:
-      - 19556:18556
     volumes:
       - ./data/ltcd:/root/.ltcd
     logging: *default-logging
@@ -34,8 +32,6 @@ services:
     environment:
       - NETWORK=simnet
       - CHAIN=bitcoin
-    ports:
-      - 10010:10009
     volumes:
       - ./data/lndbtc:/root/.lnd
     logging: *default-logging
@@ -46,8 +42,6 @@ services:
     environment:
       - NETWORK=simnet
       - CHAIN=litecoin
-    ports:
-      - 20010:10009
     volumes:
       - ./data/lndltc:/root/.lnd
       - ./data/ltcd:/root/.ltcd
@@ -80,8 +74,6 @@ services:
       --gas-price 10000000000
       --matrix-server https://raidentransport.exchangeunion.com
       --routing-mode private
-    ports:
-      - 5002:5001
     volumes:
       - ./data/raiden:/root/.raiden
     logging: *default-logging
@@ -96,7 +88,5 @@ services:
       - ./data/lndbtc:/root/.lndbtc
       - ./data/lndltc:/root/.lndltc
     ports:
-      - 9885:8885
-      - 9886:8886
-      - 9887:8887
+      - 28885:28885
     logging: *default-logging

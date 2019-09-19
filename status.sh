@@ -138,8 +138,7 @@ geth_status() {
 }
 
 raiden_status() {
-    local port=`docker-compose ps | grep raiden | sed -nE 's/.*:([0-9]+)-.*/\1/p'`
-    local sync=`curl -is http://localhost:$port/api/v1/tokens | grep "200 OK"`
+    local sync=`docker-compose exec raiden curl -is http://localhost:5001/api/v1/tokens | grep "200 OK"`
     if [[ -z $sync ]]; then
         echo "Waiting for sync"
     else

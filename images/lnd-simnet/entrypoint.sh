@@ -1,4 +1,5 @@
 #!/bin/bash
+# vim: et:ts=2:sw=2
 set -euo pipefail
 set -m
 . /wait-file.sh
@@ -25,5 +26,15 @@ wait_file "$LND_HOSTNAME" && {
   touch "$HOME/.lnd/wallet.lock"
   # notify peers.sh to bootstrap peers
   touch "$HOME/.lnd/peers.lock"
-  lnd --lnddir=$LND_DIR --externalip="$LND_ONION_ADDRESS"
+
+  case $CHAIN in
+    bitcoin)
+      PORT=29735
+      ;;
+    litecoin)
+      PORT=30735
+      ;;
+  esac
+
+  lnd --lnddir=$LND_DIR --externalip="$LND_ONION_ADDRESS:$PORT" --listen="0.0.0.0:$PORT"
 } || exit 1
