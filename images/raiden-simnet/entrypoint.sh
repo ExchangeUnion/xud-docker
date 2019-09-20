@@ -16,4 +16,26 @@ else
     addr=`cat addr.txt`
 fi
 
-exec python -m raiden --address $addr $@
+START_DELAY=15
+sleep $START_DELAY
+exec python -m raiden \
+  --rpc \
+  --accept-disclaimer \
+  --no-sync-check \
+  --address $addr \
+  --keystore-path $KEYSTORE_PATH \
+  --resolver-endpoint $RESOLVER_ENDPOINT \
+  --eth-rpc-endpoint $ETH_RPC_ENDPOINT \
+  --network-id $NETWORK_ID \
+  --password-file $PASSWORD_FILE \
+  --datadir $DATA_DIR \
+  --api-address $API_ADDRESS \
+  --environment-type $ENVIRONMENT_TYPE \
+  --tokennetwork-registry-contract-address $TOKENNETWORK_REGISTRY_CONTRACT \
+  --secret-registry-contract-address $SECRET_REGISTRY_CONTRACT \
+  --service-registry-contract-address $SERVICE_REGISTRY_CONTRACT \
+  --one-to-n-contract-address $ONE_TO_N_CONTRACT \
+  --monitoring-service-contract-address $MONITORING_SERVICE_CONTRACT \
+  --gas-price $GAS_PRICE \
+  --matrix-server $MATRIX_SERVER \
+  --routing-mode $ROUTING_MODE
