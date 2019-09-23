@@ -9,11 +9,11 @@ docker-compose up -d
 
 function btcctl() {
     docker-compose exec btcd btcctl --simnet --rpcuser=xu --rpcpass=xu $@
-} 
+}
 
 function ltcctl() {
     docker-compose exec ltcd ltcctl --simnet --rpcuser=xu --rpcpass=xu $@
-} 
+}
 
 function lncli1() {
     docker-compose exec lndbtc1 lncli -n simnet -c bitcoin $@
@@ -124,10 +124,10 @@ ltcctl --wallet generate 3
 
 # See balance of lnd node
 lncli1 walletbalance
-lncli1 channelbalance
+lncli1 getbalance
 
 lncli3 walletbalance
-lncli3 channelbalance
+lncli3 getbalance
 
 # Place order in xud
 # xucli1 buy 0.01 LTC/BTC 0.013
