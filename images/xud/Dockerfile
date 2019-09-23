@@ -10,8 +10,12 @@ ADD https://api.github.com/repos/${REPO}/commits/${BRANCH} /dev/null
 RUN git clone -b ${BRANCH} https://github.com/${REPO}
 WORKDIR /xud
 RUN git show HEAD > git_head.txt
-RUN sed -Ei 's/argv.password/password1/g' lib/cli/commands/create.ts
 RUN npm install
+RUN sed -Ei 's|gpr_log|/*gpr_log|g' /xud/node_modules/grpc/deps/grpc/src/core/lib/gpr/env_linux.cc
+RUN sed -Ei 's|used);|used);*/|g' /xud/node_modules/grpc/deps/grpc/src/core/lib/gpr/env_linux.cc
+RUN sed -Ei 's/static_library/static_library --grpc_alpine=true/g' /xud/node_modules/grpc/package.json
+RUN apk add --no-cache alpine-sdk python
+RUN npm rebuild grpc --build-from-source
 RUN npm run compile
 RUN npm prune --dev
 

@@ -33,7 +33,7 @@ alias up="docker-compose up"
 alias down="docker-compose down -t $GRACEFUL_SHUTDOWN_TIMEOUT"
 
 function xucli() {
-    docker-compose exec xud xucli $@ | sed -n '1!p'
+    docker-compose exec xud xucli $@
 }
 
 alias help="xucli help"
