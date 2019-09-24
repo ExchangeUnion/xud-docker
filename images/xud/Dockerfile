@@ -17,7 +17,7 @@ RUN npm prune --dev
 
 # Final stage
 FROM node:$NODE_VERSION
-RUN apk add --no-cache bash
+RUN apk add --no-cache bash proxychains-ng supervisor tor
 RUN mkdir /root/.xud
 VOLUME [ "/root/.xud" ]
 COPY --from=builder /xud/dist /app/dist
@@ -27,7 +27,12 @@ COPY --from=builder /xud/node_modules /app/node_modules
 COPY --from=builder /xud/git_head.txt /app/
 COPY xud.conf /tmp/
 COPY entrypoint.sh /app
+COPY start_tor.sh /
 RUN ln -s /app/bin/xucli /bin/xucli
+COPY proxychains4.conf /etc/proxychains/proxychains.conf
+COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+COPY torrc /etc/tor/torrc
+RUN mkdir /root/.xud/tor
 WORKDIR /app
-ENTRYPOINT ./entrypoint.sh
+ENTRYPOINT ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]
 EXPOSE 8885 18885 8887

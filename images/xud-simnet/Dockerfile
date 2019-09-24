@@ -17,4 +17,4 @@ COPY torrc /etc/tor/torrc
 RUN mkdir /root/.xud/tor
 WORKDIR /app
 ENTRYPOINT ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]
-EXPOSE 8887
+EXPOSE 28885 8887

@@ -2,16 +2,17 @@
 
 set -m
 
-check_xud() {
-    xucli getinfo > /tmp/xud_getinfo 2>&1
-    local lndbtc_ok=`cat /tmp/xud_getinfo | grep -A2 BTC | grep error | grep '""'`
-    local lndltc_ok=`cat /tmp/xud_getinfo | grep -A2 LTC | grep error | grep '""'`
-    local raiden_ok=`cat /tmp/xud_getinfo | grep -A1 raiden | grep error | grep '""'`
+wait_file() {
+  local file="$1"; shift
+  local wait_seconds="${1:-10}"; shift # after 10 seconds we give up
 
-    ! [ -z "$lndbtc_ok" ] && ! [ -z "$lndltc_ok" ] && ! [ -z "$raiden_ok" ]
+  until test $((wait_seconds--)) -eq 0 -o -f "$file" ; do sleep 1; done
+
+  ((++wait_seconds))
 }
 
 write_config() {
+  echo "xud.conf not found - creating a new one..."
 	cp /tmp/xud.conf ~/.xud
 
 	hn="$(hostname)"
@@ -35,6 +36,13 @@ write_config() {
 	sed -i "s/<instance_id>/$insid/g" ~/.xud/xud.conf
 	sed -i "s/<network>/$NETWORK/g" ~/.xud/xud.conf
 	sed -i "s/<p2p_port>/$((8885 + DELTA))/g" ~/.xud/xud.conf
+
+  XUD_HOSTNAME="/root/.xud/tor/hostname"
+  wait_file "$XUD_HOSTNAME" && {
+    XUD_ONION_ADDRESS=$(cat $XUD_HOSTNAME)
+    echo "Onion address for xud is $XUD_ONION_ADDRESS"
+    sed -i "s/<onion_address>/$XUD_ONION_ADDRESS/g" ~/.xud/xud.conf
+  }
 }
 
 if [[ $XUD_REWRITE_CONFIG || ! -e ~/.xud/xud.conf ]]; then
@@ -51,4 +59,16 @@ while ! [ -e "/root/.lndltc/data/chain/litecoin/$NETWORK/admin.macaroon" ]; do
     sleep 3
 done
 
-exec ./bin/xud $@
+echo 'Detecting localnet IP for lndbtc...'
+LNDBTC_IP=$(getent hosts lndbtc | awk '{ print $1 }')
+echo "$LNDBTC_IP lndbtc" >> /etc/hosts
+
+echo 'Detecting localnet IP for lndltc...'
+LNDLTC_IP=$(getent hosts lndltc | awk '{ print $1 }')
+echo "$LNDLTC_IP lndltc" >> /etc/hosts
+
+echo 'Detecting localnet IP for raiden...'
+RAIDEN_IP=$(getent hosts raiden | awk '{ print $1 }')
+echo "$RAIDEN_IP raiden" >> /etc/hosts
+
+exec proxychains4 ./bin/xud
