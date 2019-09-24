@@ -8,14 +8,11 @@ RUN apk add --no-cache git rsync bash
 # This is a "hack" to automatically invalidate the cache in case there are new commits
 ADD https://api.github.com/repos/${REPO}/commits/${BRANCH} /dev/null
 RUN git clone -b ${BRANCH} https://github.com/${REPO}
+ADD patch-xud-grpc.sh /tmp/
 WORKDIR /xud
 RUN git show HEAD > git_head.txt
 RUN npm install
-RUN sed -Ei 's|gpr_log|/*gpr_log|g' /xud/node_modules/grpc/deps/grpc/src/core/lib/gpr/env_linux.cc
-RUN sed -Ei 's|used);|used);*/|g' /xud/node_modules/grpc/deps/grpc/src/core/lib/gpr/env_linux.cc
-RUN sed -Ei 's/static_library/static_library --grpc_alpine=true/g' /xud/node_modules/grpc/package.json
-RUN apk add --no-cache alpine-sdk python
-RUN npm rebuild grpc --build-from-source
+RUN /tmp/patch-xud-grpc.sh
 RUN npm run compile
 RUN npm prune --dev
 
