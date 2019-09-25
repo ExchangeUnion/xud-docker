@@ -84,6 +84,7 @@ services:
       --rpc
       --rpcapi eth,net,web3,txpool,personal,admin
       --rpcvhosts=*
+      --cache=1024
     volumes: 
       - ./data/geth:/root/.ethereum
     logging: *default-logging
