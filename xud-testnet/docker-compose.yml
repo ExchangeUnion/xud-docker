@@ -1,3 +1,10 @@
+version: "3.6"
+
+x-logging:
+  &default-logging
+  options:
+    max-size: '20m'
+    max-file: '5'
   driver: json-file
 
 services:
