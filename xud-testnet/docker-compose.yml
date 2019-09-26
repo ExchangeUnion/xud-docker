@@ -1,10 +1,3 @@
-version: "3.6"
-
-x-logging:
-  &default-logging
-  options:
-    max-size: '20m'
-    max-file: '5'
   driver: json-file
 
 services:
@@ -88,7 +81,7 @@ services:
       --rpcapi eth,net,web3,txpool,personal,admin
       --rpcvhosts=*
       --cache=1024
-    volumes: 
+    volumes:
       - ./data/geth:/root/.ethereum
     logging: *default-logging
 
@@ -113,7 +106,7 @@ services:
       - ./data/geth:/root/.ethereum
       - ./data/raiden:/root/.raiden
     logging: *default-logging
-  
+
   xud:
     image: exchangeunion/xud
     hostname: xud

@@ -1,5 +1,3 @@
-version: "3.6"
-
 x-logging:
   &default-logging
   options:
@@ -85,10 +83,10 @@ services:
       --rpcapi eth,net,web3,txpool,personal,admin
       --rpcvhosts=*
       --cache=1024
-    volumes: 
+    volumes:
       - ./data/geth:/root/.ethereum
     logging: *default-logging
-  
+
   raiden:
     image: exchangeunion/raiden
     hostname: raiden
@@ -130,4 +128,3 @@ services:
     ports:
       - 8885:8885
     logging: *default-logging
-
