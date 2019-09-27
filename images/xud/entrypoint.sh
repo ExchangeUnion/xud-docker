@@ -49,16 +49,6 @@ if [[ $XUD_REWRITE_CONFIG || ! -e ~/.xud/xud.conf ]]; then
 	write_config
 fi
 
-while ! [ -e "/root/.lndbtc/data/chain/bitcoin/$NETWORK/admin.macaroon" ]; do
-    echo "Waiting for lndbtc admin.macaroon"
-    sleep 3
-done
-
-while ! [ -e "/root/.lndltc/data/chain/litecoin/$NETWORK/admin.macaroon" ]; do
-    echo "Waiting for lndltc admin.macaroon"
-    sleep 3
-done
-
 echo 'Detecting localnet IP for lndbtc...'
 LNDBTC_IP=$(getent hosts lndbtc | awk '{ print $1 }')
 echo "$LNDBTC_IP lndbtc" >> /etc/hosts
