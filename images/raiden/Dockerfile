@@ -15,6 +15,6 @@ RUN make install
 FROM python:${PYTHON_VERSION}
 RUN apk add --no-cache bash curl
 COPY --from=builder /opt/venv /opt/venv
-COPY entrypoint.sh checksum.py onboarder.py configWriter.py /
+COPY entrypoint.sh /
 EXPOSE 5001
 ENTRYPOINT [ "./entrypoint.sh" ]

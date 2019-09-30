@@ -81,13 +81,6 @@ services:
     hostname: geth
     environment:
       - NETWORK=testnet
-    command: >
-      --syncmode fast
-      --rpc
-      --testnet
-      --rpcapi eth,net,web3,txpool,personal,admin
-      --rpcvhosts=*
-      --cache=1024
     volumes:
       - ./data/geth:/root/.ethereum
     logging: *default-logging
@@ -97,21 +90,9 @@ services:
     hostname: raiden
     environment:
       - NETWORK=testnet
-    command: >
-      --keystore-path /root/.ethereum/testnet/keystore
-      --accept-disclaimer
-      --resolver-endpoint http://xud:8887/resolveraiden
-      --eth-rpc-endpoint geth:8545
-      --network-id ropsten
-      --password-file /root/.ethereum/passphrase.txt
-      --datadir /root/.raiden
-      --rpc
-      --api-address 0.0.0.0:5001
-      --matrix-server https://raidentransport.exchangeunion.com
-      --routing-mode local
     volumes:
-      - ./data/geth:/root/.ethereum
       - ./data/raiden:/root/.raiden
+      - ./data/xud:/root/.xud
     logging: *default-logging
 
   xud:
