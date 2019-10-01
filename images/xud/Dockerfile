@@ -4,7 +4,7 @@ FROM node:$NODE_VERSION AS builder
 ARG REPO
 ARG BRANCH
 # Use pure JS implemented secp256k1 bindings
-RUN apk add --no-cache git rsync bash
+RUN apk add --no-cache git rsync bash musl-dev go
 # This is a "hack" to automatically invalidate the cache in case there are new commits
 ADD https://api.github.com/repos/${REPO}/commits/${BRANCH} /dev/null
 RUN git clone -b ${BRANCH} https://github.com/${REPO}
@@ -13,6 +13,7 @@ RUN git show HEAD > git_head.txt
 RUN sed -Ei 's/argv.password/password1/g' lib/cli/commands/create.ts
 RUN npm install
 RUN npm run compile
+RUN npm run compile:seedutil
 
 # Final stage
 FROM node:$NODE_VERSION
@@ -24,6 +25,7 @@ COPY --from=builder /xud/bin  /app/bin
 COPY --from=builder /xud/package.json /app/
 COPY --from=builder /xud/node_modules /app/node_modules
 COPY --from=builder /xud/git_head.txt /app/
+COPY --from=builder /xud/seedutil/seedutil /app/seedutil/seedutil
 COPY xud.conf /tmp/
 COPY entrypoint.sh /app
 COPY start_tor.sh /

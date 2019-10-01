@@ -1,25 +1,38 @@
 #!/bin/bash
-set -m
 
-GETH_HOME=/root/.ethereum
+set -euo pipefail
 
-touch $GETH_HOME/passphrase.txt
+ETHEREUM_DIR=/root/.ethereum
+PEERS=$ETHEREUM_DIR/peers.txt
+ROPSTEN_PEERS=/ropsten-peers.txt
+MAINNET_PEERS=/mainnet-peers.txt
 
-./create-account.sh &
+OPTS=(
+  "--syncmode fast"
+  "--rpc"
+  "--rpcaddr 0.0.0.0"
+  "--rpcapi eth,net,web3,txpool,personal,admin"
+  "--rpcvhosts=*"
+  "--cache=1024"
+  "--nousb"
+)
 
-OPTS="--rpcaddr $(hostname -i)"
-
-if [[ -e $GETH_HOME/peers.txt ]]; then
-    OPTS="$OPTS --bootnodes=$(cat $GETH_HOME/peers.txt | paste -sd ',' -)"
-else
-    case $NETWORK in
-        testnet)
-            OPTS="$OPTS --bootnodes=$(cat /ropsten-peers.txt | paste -sd ',' -)"
-            ;;
-        mainnet)
-            OPTS="$OPTS --bootnodes=$(cat /mainnet-peers.txt | paste -sd ',' -)"
-            ;;
-    esac
+if [[ $NETWORK == "testnet" ]]; then
+  OPTS+=("--testnet")
 fi
 
-exec geth $OPTS $@
+if [[ -e $PEERS ]]; then
+  OPTS+=("--bootnodes=$(paste -sd ',' $PEERS)")
+else
+  case $NETWORK in
+  testnet)
+    OPTS+=("--bootnodes=$(paste -sd ',' $ROPSTEN_PEERS)")
+    ;;
+  mainnet)
+    OPTS+=("--bootnodes=$(paste -sd ',' $MAINNET_PEERS)")
+    ;;
+  esac
+fi
+
+#shellcheck disable=SC2068
+exec geth ${OPTS[@]} $@

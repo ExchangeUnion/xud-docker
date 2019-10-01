@@ -2,6 +2,10 @@
 
 set -m
 
+if [[ ! -e ~/.xud/passphrase.txt ]]; then
+  touch ~/.xud/passphrase.txt
+fi
+
 wait_file() {
   local file="$1"; shift
   local wait_seconds="${1:-10}"; shift # after 10 seconds we give up
