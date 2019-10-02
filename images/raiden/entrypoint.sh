@@ -3,18 +3,15 @@
 set -euo pipefail
 shopt -s expand_aliases
 
+#shellcheck disable=SC1091
 source /opt/venv/bin/activate
 
-XUD_DIR="/root/.xud"
-case $NETWORK in
-testnet)
-  KEYSTORE_DIR="$XUD_DIR/keystore"
-  ;;
-mainnet)
-  KEYSTORE_DIR="$XUD_DIR/keystore"
-  ;;
-esac
 RAIDEN_DIR="$HOME/.raiden"
+KEYSTORE_DIR="$RAIDEN_DIR/keystore"
+
+if [[ ! -e $RAIDEN_DIR/passphrase.txt ]]; then
+  touch "$RAIDEN_DIR/passphrase.txt"
+fi
 
 function geth_ready() {
   curl -sf -o /dev/null -X POST -H 'Content-Type: application/json' \
@@ -31,7 +28,7 @@ function get_addr() {
 }
 
 while [[ ! -e "$KEYSTORE_DIR" || ! $(find "$KEYSTORE_DIR" -maxdepth 1 -type f | wc -l) -gt 0 ]]; do
-  echo "Waiting for geth keystore"
+  echo "Waiting for keystore to be generated"
   sleep 3
 done
 
@@ -40,7 +37,7 @@ OPTS=(
   "--accept-disclaimer"
   "--resolver-endpoint http://xud:8887/resolveraiden"
   "--eth-rpc-endpoint geth:8545"
-  "--password-file $XUD_DIR/passphrase.txt"
+  "--password-file $RAIDEN_DIR/passphrase.txt"
   "--datadir $RAIDEN_DIR"
   "--api-address 0.0.0.0:5001"
   "--matrix-server https://raidentransport.exchangeunion.com"
