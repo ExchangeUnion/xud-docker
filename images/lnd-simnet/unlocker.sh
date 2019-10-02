@@ -10,6 +10,8 @@ unlock_wallet() {
     echo "Trying to unlock wallet because $WALLET_LOCK exists."
     WALLET_PATH="$HOME/.lnd/data/chain/$CHAIN/$NETWORK/wallet.db"
     if [[ ! -e $WALLET_PATH ]]; then
+      # Wait 240 seconds before creating the wallet so that the birth date of the wallet isn't 0
+      sleep 240
       /wallet.exp
     fi
     /unlock.exp
