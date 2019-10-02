@@ -33,7 +33,24 @@ alias up="docker-compose up"
 alias down="docker-compose down -t $GRACEFUL_SHUTDOWN_TIMEOUT"
 
 function xucli() {
-    docker-compose exec xud xucli $@ | sed -n '1!p'
+    LINE=""
+    #shellcheck disable=SC2068
+    docker-compose exec xud xucli $@ | while read -n 1; do
+        if [[ $REPLY == $'\n' ]]; then
+            if [[ ! $LINE =~ "<hide>" ]]; then
+                echo "$LINE"
+            fi
+            LINE=""
+        else
+            LINE="$LINE$REPLY"
+            if [[ $LINE =~ 'password: ' ]]; then
+                echo -n "$LINE"
+                LINE=""
+            elif [[ $LINE =~ getenv ]]; then
+                LINE="<hide>"
+            fi
+        fi
+  done
 }
 
 alias help="xucli help"
