@@ -92,7 +92,6 @@ services:
       - NETWORK=testnet
     volumes:
       - ./data/raiden:/root/.raiden
-      - ./data/xud:/root/.xud
     logging: *default-logging
 
   xud:
@@ -104,6 +103,7 @@ services:
       - ./data/xud:/root/.xud
       - ./data/lndbtc:/root/.lndbtc
       - ./data/lndltc:/root/.lndltc
+      - ./data/raiden:/root/.raiden
     ports:
       - 18885:18885
     logging: *default-logging
