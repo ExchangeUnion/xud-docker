@@ -9,7 +9,7 @@ cd "$SCRIPT_PATH" || exit 1
 LND_DIR="/root/.lnd"
 mkdir -p $LND_DIR
 
-if [[ $LND_REWRITE_CONFIG || ! -e $LND_DIR/lnd.conf ]]; then
+if [[ ! -e $LND_DIR/lnd.conf ]]; then
   if [ "$CHAIN" = "bitcoin" ]; then
     echo "[DEBUG] Using configuration for bitcoin"
     cp /root/lnd-btc.conf $LND_DIR/lnd.conf
