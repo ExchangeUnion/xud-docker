@@ -74,6 +74,48 @@ no_wallets() {
     [[ -n $r1 && -n $r2 ]]
 }
 
+xucli_create_wrapper() {
+    local LINE=""
+    local COUNTER=0
+    local OK=false
+    local ERROR=""
+    while [[ $OK == "false" && $COUNTER -lt 3 && -z $ERROR ]]; do
+        ((COUNTER++))
+        OK=true
+        ERROR=""
+        while read -n 1; do
+            if [[ $REPLY == $'\n' || $REPLY == $'\r' ]]; then
+                if [[ ! $LINE =~ "<hide>" ]]; then
+                    echo -e "$LINE\r"
+                fi
+                LINE=""
+            else
+                LINE="$LINE$REPLY"
+                if [[ $LINE =~ 'password: ' ]]; then
+                    echo -n "$LINE"
+                    LINE=""
+                elif [[ $LINE =~ getenv ]]; then
+                    LINE="<hide>"
+                elif [[ $LINE =~ "Passwords do not match, please try again" ]]; then
+                    OK=false
+                elif [[ $LINE =~ "password must be at least 8 characters" ]]; then
+                    OK=false
+                elif [[ $LINE =~ "xud was initialized without a seed because no wallets could be initialized" ]]; then
+                    ERROR="no wallets could be initialized"
+                elif [[ $LINE =~ "ERROR" ]]; then
+                    ERROR="unexpected error"
+                fi
+            fi
+        done < <(docker-compose exec xud xucli create)
+        # We use process substitution here to force the while loop to run in the main shell (not a subshell). So we can
+        # preserve the modification of ERROR after the while command exits which a sheshell cannot.
+        #
+        # Ref. https://stackoverflow.com/questions/5760640/left-side-of-pipe-is-the-subshell
+        # From the bash man page: "Each command in a pipeline is executed as a separate process (i.e., in a subshell)."
+    done
+    [[ -z $ERROR && $OK == "true" ]]
+}
+
 check_wallets() {
     if no_wallets; then
         local xucli="docker-compose exec xud xucli"
@@ -89,12 +131,7 @@ check_wallets() {
         done
         echo
 
-        local PYTHON="python3"
-        if ! which $PYTHON >/dev/null 2>&1; then
-            PYTHON="python"
-        fi
-
-        if ! $PYTHON ../xucli_create_wrapper.py; then
+        if ! xucli_create_wrapper; then
             docker-compose down
             exit 1
         fi
