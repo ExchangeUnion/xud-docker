@@ -188,6 +188,7 @@ run() {
     fi
 
     cd $home/$network
+    if [[ ! -e lnd.env ]]; then touch lnd.env; fi
 
     opts="-n $network -l $logfile -b $branch"
 
