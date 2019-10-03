@@ -9,12 +9,14 @@ cd "$SCRIPT_PATH" || exit 1
 LND_DIR="/root/.lnd"
 mkdir -p $LND_DIR
 
-if [ "$CHAIN" = "bitcoin" ]; then
-  echo "[DEBUG] Using configuration for bitcoin"
-  cp /root/lnd-btc.conf $LND_DIR/lnd.conf
-else
-  echo "[DEBUG] Using configuration for litecoin"
-  cp /root/lnd-ltc.conf $LND_DIR/lnd.conf
+if [[ $LND_REWRITE_CONFIG || ! -e $LND_DIR/lnd.conf ]]; then
+  if [ "$CHAIN" = "bitcoin" ]; then
+    echo "[DEBUG] Using configuration for bitcoin"
+    cp /root/lnd-btc.conf $LND_DIR/lnd.conf
+  else
+    echo "[DEBUG] Using configuration for litecoin"
+    cp /root/lnd-ltc.conf $LND_DIR/lnd.conf
+  fi
 fi
 
 LND_HOSTNAME="$HOME/.lnd/tor/hostname"
