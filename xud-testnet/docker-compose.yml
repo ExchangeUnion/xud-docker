@@ -58,6 +58,8 @@ services:
     environment:
       - NETWORK=testnet
       - CHAIN=bitcoin
+    env_file:
+      - lnd.env
     ports:
       - 19735:19735
     volumes:
@@ -70,6 +72,8 @@ services:
     environment:
       - NETWORK=testnet
       - CHAIN=litecoin
+    env_file:
+      - lnd.env
     ports:
       - 20735:20735
     volumes:
