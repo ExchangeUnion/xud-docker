@@ -36,9 +36,9 @@ function xucli() {
     LINE=""
     #shellcheck disable=SC2068
     docker-compose exec xud xucli $@ | while read -n 1; do
-        if [[ $REPLY == $'\n' ]]; then
+        if [[ $REPLY == $'\n' || $REPLY == $'\r' ]]; then
             if [[ ! $LINE =~ "<hide>" ]]; then
-                echo "$LINE"
+                echo -e "$LINE\r"
             fi
             LINE=""
         else
