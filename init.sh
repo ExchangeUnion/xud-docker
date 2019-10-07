@@ -50,7 +50,7 @@ function xucli() {
                 LINE="<hide>"
             fi
         fi
-  done
+    done
 }
 
 alias help="xucli help"
