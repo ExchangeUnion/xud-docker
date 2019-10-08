@@ -72,7 +72,6 @@ download_files() {
     curl -s $url/status.py > status.py
     curl -s $url/main.sh > main.sh
     curl -s $url/pull.py > pull.py
-    curl -s $url/xucli_create_wrapper.py > xucli_create_wrapper.py
     chmod u+x status.sh main.sh pull.py
 }
 
