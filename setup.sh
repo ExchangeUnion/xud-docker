@@ -195,6 +195,16 @@ function check_updates() {
     fi
     echo -en "${MOVE}${STATUS}${M_RESET}"
 
+    echo " - old status     ... "
+    STATUS=$(check_file "$HOME_DIR/status.sh" "$REMOTE_PREFIX/status.sh" "$CACHE_DIR/status.sh")
+    if [[ $STATUS =~ outdated || $STATUS =~ missing ]]; then
+        FILE_UPDATES+=("status.sh")
+        if [[ $STATUS =~ missing ]]; then
+            MISSING_FILES+=("status.sh")
+        fi
+    fi
+    echo -en "${MOVE}${STATUS}${M_RESET}"
+
     echo " - compose file   ... "
     STATUS=$(check_file "$NETWORK_DIR/docker-compose.yml" "$REMOTE_PREFIX/xud-$NETWORK/docker-compose.yml" "$CACHE_DIR/docker-compose.yml")
     if [[ $STATUS =~ outdated || $STATUS =~ missing ]]; then
