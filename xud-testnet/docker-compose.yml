@@ -27,7 +27,7 @@ services:
       -rpcallowip=::/0
       -rpcbind=0.0.0.0
     volumes:
-      - ./data/bitcoind:/root/.bitcoin
+      - ${BITCOIND_DIR:-./data/bitcoind}:/root/.bitcoin
     logging: *default-logging
 
   litecoind:
@@ -49,7 +49,7 @@ services:
       -rpcallowip=::/0
       -rpcbind=0.0.0.0
     volumes:
-      - ./data/litecoind:/root/.litecoin
+      - ${LITECOIND_DIR:-./data/litecoind}:/root/.litecoin
     logging: *default-logging
 
   lndbtc:
@@ -86,7 +86,7 @@ services:
     environment:
       - NETWORK=testnet
     volumes:
-      - ./data/geth:/root/.ethereum
+      - ${GETH_DIR:-./data/geth}:/root/.ethereum
     logging: *default-logging
 
   raiden:
