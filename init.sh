@@ -117,11 +117,13 @@ enter() {
 
 cat $XUD_DOCKER_HOME/banner.txt
 
+alias status="bash $XUD_DOCKER_HOME/status.sh"
+
 PYTHON="python3"
-if ! which $PYTHON >/dev/null 2>&1; then
+if ! command -v $PYTHON >/dev/null 2>&1; then
     PYTHON="python"
 fi
 
-alias status="$PYTHON $XUD_DOCKER_HOME/status.py status"
+alias status2="$PYTHON $XUD_DOCKER_HOME/status.py status"
 
 $PYTHON $XUD_DOCKER_HOME/status.py check
