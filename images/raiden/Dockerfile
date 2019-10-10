@@ -13,8 +13,9 @@ WORKDIR /app/raiden
 RUN make install
 
 FROM python:${PYTHON_VERSION}
-RUN apk add --no-cache bash curl
+RUN apk add --no-cache bash curl supervisor
 COPY --from=builder /opt/venv /opt/venv
+COPY supervisord.conf /etc/supervisor/conf.d/
 COPY entrypoint.sh /
 EXPOSE 5001
-ENTRYPOINT [ "./entrypoint.sh" ]
+ENTRYPOINT ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]
