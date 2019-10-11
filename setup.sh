@@ -23,6 +23,7 @@ NETWORK=
 BITCOIND_DIR=
 LITECOIND_DIR=
 GETH_DIR=
+GETH_CHAINDATA_DIR=
 LOGFILE=
 
 function parse_arguments() {
@@ -94,6 +95,15 @@ function parse_arguments() {
                 exit 1
             fi
             GETH_DIR=$1
+            ;;
+        "--geth-chaindata-dir")
+            OPTION=$1
+            shift
+            if [[ $# -eq 0 || $1 =~ ^- ]]; then
+                echo >&2 "❌ Missing option value: $OPTION"
+                exit 1
+            fi
+            GETH_CHAINDATA_DIR=$1
             ;;
         "--logfile")
             OPTION=$1
@@ -582,6 +592,9 @@ if [[ -n $LITECOIND_DIR ]]; then
 fi
 if [[ -n $GETH_DIR ]]; then
     VARS+=("GETH_DIR=$GETH_DIR")
+fi
+if [[ -n $GETH_CHAINDATA_DIR ]]; then
+    VARS+=("GETH_CHAINDATA_DIR=$GETH_CHAINDATA_DIR")
 fi
 if [[ ${#VARS[@]} -gt 0 ]]; then
     DOCKER_COMPOSE="env ${VARS[*]} docker-compose -p $NETWORK"

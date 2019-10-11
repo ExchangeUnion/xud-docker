@@ -87,6 +87,7 @@ services:
       - NETWORK=testnet
     volumes:
       - ${GETH_DIR:-./data/geth}:/root/.ethereum
+      - ${GETH_CHAINDATA_DIR:-./data/geth/chaindata}:/root/.ethereum/chaindata
     logging: *default-logging
 
   raiden:
