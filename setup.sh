@@ -20,6 +20,7 @@ BRANCH=master
 PROJECT_DIR=
 HOME_DIR=~/.xud-docker
 NETWORK=
+LOGFILE=
 
 function parse_arguments() {
     local OPTION VALUE
@@ -63,6 +64,15 @@ function parse_arguments() {
                 exit 1
             fi
             HOME_DIR=$1
+            ;;
+        "--logfile")
+            OPTION=$1
+            shift
+            if [[ $# -eq 0 || $1 =~ ^- ]]; then
+                echo >&2 "❌ Missing option value: $OPTION"
+                exit 1
+            fi
+            LOGFILE=$1
             ;;
         *)
             echo >&2 "❌ Invalid option: $1"
@@ -145,6 +155,7 @@ function human_readable_bytes() {
 }
 
 function check_updates() {
+    trap 'echo $(date +%s) [check_updates] ${LINENO[0]}: ${BASH_COMMAND} >> $LOGFILE' DEBUG
     tput civis
     stty -echo
     local URL_PREFIX="https://raw.githubusercontent.com/ExchangeUnion/xud-docker/$BRANCH"
@@ -342,6 +353,7 @@ function check_updates() {
 }
 
 function no_lnd_wallet() {
+    trap 'echo $(date +%s) [no_lnd_wallet] ${LINENO[0]}: ${BASH_COMMAND} >> $LOGFILE' DEBUG
     local CHAIN=$1
     local SERVICE
     local RESULT
@@ -428,6 +440,7 @@ function xucli_create_wrapper() {
 }
 
 function check_wallets() {
+    trap 'echo $(date +%s) [check_wallets] ${LINENO[0]}: ${BASH_COMMAND} >> $LOGFILE' DEBUG
     if no_wallets; then
         local xucli="$DOCKER_COMPOSE exec xud xucli"
 
@@ -542,6 +555,10 @@ if [[ ! -e $CACHE_DIR ]]; then
 fi
 check_directory "$NETWORK_DIR"
 NETWORK_DIR=$(realpath "$NETWORK_DIR")
+
+if [[ -z $LOGFILE ]]; then
+    LOGFILE=$NETWORK_DIR/xud-docker.log
+fi
 
 cd "$NETWORK_DIR"
 if [[ ! -e lnd.env ]]; then touch lnd.env; fi
