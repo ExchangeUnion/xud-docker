@@ -20,6 +20,10 @@ BRANCH=master
 PROJECT_DIR=
 HOME_DIR=~/.xud-docker
 NETWORK=
+BITCOIND_DIR=
+LITECOIND_DIR=
+GETH_DIR=
+GETH_CHAINDATA_DIR=
 LOGFILE=
 
 function parse_arguments() {
@@ -64,6 +68,42 @@ function parse_arguments() {
                 exit 1
             fi
             HOME_DIR=$1
+            ;;
+        "--bitcoind-dir")
+            OPTION=$1
+            shift
+            if [[ $# -eq 0 || $1 =~ ^- ]]; then
+                echo >&2 "❌ Missing option value: $OPTION"
+                exit 1
+            fi
+            BITCOIND_DIR=$1
+            ;;
+        "--litecoind-dir")
+            OPTION=$1
+            shift
+            if [[ $# -eq 0 || $1 =~ ^- ]]; then
+                echo >&2 "❌ Missing option value: $OPTION"
+                exit 1
+            fi
+            LITECOIND_DIR=$1
+            ;;
+        "--geth-dir")
+            OPTION=$1
+            shift
+            if [[ $# -eq 0 || $1 =~ ^- ]]; then
+                echo >&2 "❌ Missing option value: $OPTION"
+                exit 1
+            fi
+            GETH_DIR=$1
+            ;;
+        "--geth-chaindata-dir")
+            OPTION=$1
+            shift
+            if [[ $# -eq 0 || $1 =~ ^- ]]; then
+                echo >&2 "❌ Missing option value: $OPTION"
+                exit 1
+            fi
+            GETH_CHAINDATA_DIR=$1
             ;;
         "--logfile")
             OPTION=$1
@@ -486,10 +526,8 @@ function is_all_containers_up() {
 }
 
 function launch_xudctl() {
-    if ! is_all_containers_up; then
-        echo "🚀 Launching $NETWORK environment"
-        $DOCKER_COMPOSE up -d
-    fi
+    echo "🚀 Launching $NETWORK environment"
+    $DOCKER_COMPOSE up -d
 
     if [[ $NETWORK == 'testnet' || $NETWORK == 'mainnet' ]]; then
         check_wallets
@@ -545,7 +583,24 @@ case $REPLY in
 esac
 shopt -u nocasematch
 
-DOCKER_COMPOSE="docker-compose -p $NETWORK"
+VARS=()
+if [[ -n $BITCOIND_DIR ]]; then
+    VARS+=("BITCOIND_DIR=$BITCOIND_DIR")
+fi
+if [[ -n $LITECOIND_DIR ]]; then
+    VARS+=("LITECOIND_DIR=$LITECOIND_DIR")
+fi
+if [[ -n $GETH_DIR ]]; then
+    VARS+=("GETH_DIR=$GETH_DIR")
+fi
+if [[ -n $GETH_CHAINDATA_DIR ]]; then
+    VARS+=("GETH_CHAINDATA_DIR=$GETH_CHAINDATA_DIR")
+fi
+if [[ ${#VARS[@]} -gt 0 ]]; then
+    DOCKER_COMPOSE="env ${VARS[*]} docker-compose -p $NETWORK"
+else
+    DOCKER_COMPOSE="docker-compose -p $NETWORK"
+fi
 
 check_directory "$HOME_DIR"
 HOME_DIR=$(realpath "$HOME_DIR")

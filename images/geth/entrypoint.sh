@@ -15,6 +15,7 @@ OPTS=(
   "--rpcvhosts=*"
   "--cache=1024"
   "--nousb"
+  "--datadir.ancient=$ETHEREUM_DIR/chaindata"
 )
 
 if [[ $NETWORK == "testnet" ]]; then
