@@ -310,13 +310,25 @@ function check_updates() {
         NAME=$(echo "$R_IMG" | cut -d':' -f1)
         TAG=$(echo "$R_IMG" | cut -d':' -f2)
         TOKEN=$(curl -sf "https://auth.docker.io/token?service=registry.docker.io&scope=repository:$NAME:pull" | sed -E 's/^.*"token":"([^,]*)",.*$/\1/g')
-        if ! curl -sf -o /dev/null -H "Authorization: Bearer $TOKEN" "https://registry-1.docker.io/v2/$NAME/manifests/$TAG"; then
+        # Test if the __branch image exists.
+        RESP=$(curl -sf -H "Authorization: Bearer $TOKEN" "https://registry-1.docker.io/v2/$NAME/manifests/$TAG" || echo "")
+        if [[ -z $RESP ]]; then
             R_IMG=$IMG
             TAG=$(echo "$IMG" | cut -d':' -f2)
         fi
         echo "   * Remote image (registry-1.docker.io): $R_IMG"
-        RESP=$(curl -sf -H "Authorization: Bearer $TOKEN" "https://registry-1.docker.io/v2/$NAME/manifests/$TAG")
-        RESP=$(echo "$RESP" | grep v1Compatibility | head -1 | sed 's/^.*v1Compatibility":/printf/g')
+        if [[ -z $RESP ]]; then
+            RESP=$(curl -sf -H "Authorization: Bearer $TOKEN" "https://registry-1.docker.io/v2/$NAME/manifests/$TAG" || echo "")
+        fi
+        if [[ -z $RESP ]]; then
+            echo >&2 "❌ Failed to fetch the metadata for $NAME:$TAG"
+            exit 1
+        fi
+        RESP=$(echo "$RESP" | grep v1Compatibility | head -1 | sed 's/^.*v1Compatibility":/printf/g' || echo "")
+        if [[ -z $RESP ]]; then
+            echo >&2 "❌ Failed to get v1Compatibility field in the Docker registry API response: $RESP"
+            exit 1
+        fi
         RESP=$(eval "$RESP")
         R_SHA256=$(echo "$RESP" | sed -E 's/.*sha256:([a-z0-9]+).*/\1/g')
         R_CREATED=$(echo "$RESP" | sed -E 's/.*com.exchangeunion.image.created":"([^"]*)".*/\1/g')
