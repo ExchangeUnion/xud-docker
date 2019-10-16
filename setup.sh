@@ -336,7 +336,7 @@ function check_updates() {
                             exit 1
                         fi
                         if [[ $P_IMG =~ __ ]]; then
-                            IMG=$(echo "$IMG" | sed -E 's/__.*//g')
+                            IMG=$(echo "$P_IMG" | sed -E 's/__.*//g')
                             echo "Re-tagging image $P_IMG to $IMG"
                             docker tag "$P_IMG" "$IMG"
                         fi
