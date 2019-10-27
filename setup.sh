@@ -237,21 +237,21 @@ function check_updates() {
     echo -en "${MOVE}${STATUS}${M_RESET}"
 
     echo " - status script  ... "
-    STATUS=$(check_file "$HOME_DIR/status.py" "$REMOTE_PREFIX/status.py" "$CACHE_DIR/status.py")
-    if [[ $STATUS =~ outdated || $STATUS =~ missing ]]; then
-        FILE_UPDATES+=("status.py")
-        if [[ $STATUS =~ missing ]]; then
-            MISSING_FILES+=("status.py")
-        fi
-    fi
-    echo -en "${MOVE}${STATUS}${M_RESET}"
-
-    echo " - old status     ... "
     STATUS=$(check_file "$HOME_DIR/status.sh" "$REMOTE_PREFIX/status.sh" "$CACHE_DIR/status.sh")
     if [[ $STATUS =~ outdated || $STATUS =~ missing ]]; then
         FILE_UPDATES+=("status.sh")
         if [[ $STATUS =~ missing ]]; then
             MISSING_FILES+=("status.sh")
+        fi
+    fi
+    echo -en "${MOVE}${STATUS}${M_RESET}"
+
+    echo " - status2 script  ... "
+    STATUS=$(check_file "$HOME_DIR/status2.sh" "$REMOTE_PREFIX/status2.sh" "$CACHE_DIR/status2.sh")
+    if [[ $STATUS =~ outdated || $STATUS =~ missing ]]; then
+        FILE_UPDATES+=("status2.sh")
+        if [[ $STATUS =~ missing ]]; then
+            MISSING_FILES+=("status2.sh")
         fi
     fi
     echo -en "${MOVE}${STATUS}${M_RESET}"
