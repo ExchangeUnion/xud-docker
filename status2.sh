@@ -66,8 +66,19 @@ if [ "$XUD_NETWORK" != "mainnet" ]; then
 fi
 
 function calculate_percentage() {
-    # shellcheck disable=SC2086
-    awk 'BEGIN{printf "%.2f%\n",('$1')/'$2'*100-0.005}'
+    if [[ $# -ne 2 ]]; then
+        echo >&2 "[calculate_percentage] two arguments required: $*"
+        return 1
+    fi
+    if [[ ! $1 =~ ^[0-9.]+$ ]]; then
+        echo >&2 "[calculate_percentage] 1st argument should be a number: $1"
+        return 1
+    fi
+    if [[ ! $2 =~ ^[0-9.]+$ ]]; then
+        echo >&2 "[calculate_percentage] 2nd argument should be a number: $2"
+        return 1
+    fi
+    awk -v x="$1" -v y="$2" 'BEGIN{z=x/y*100-0.005; z=z>0?z:0; printf "%.2f%%\n", z}'
 }
 
 function status_text() {
