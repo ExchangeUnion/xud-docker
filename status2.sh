@@ -129,7 +129,7 @@ function check_container() {
             ERROR=$($DOCKER_COMPOSE logs --tail=50 litecoind | grep -A 2 ReadBlockFromDisk)
             if [[ -n $ERROR ]]; then
                 if [[ $(echo "$ERROR" | sed -n '2p') =~ "Failed to read block" && $(echo "$ERROR" | sed -n '3p') =~ "A fatal internal error occurred" ]]; then
-                    echo "Data corruption"
+                    echo "Container down (data corruption)"
                     return 1
                 fi
             fi
@@ -297,11 +297,13 @@ function get_status() {
 function get_display_name() {
     local SERVICE=$1
     case $SERVICE in
-        btcd|bitcoind) echo "btc";;
-        ltcd|litecoind) echo "ltc";;
+        btcd) echo "btcd";;
+        bitcoind) echo "bitcoind";;
+        ltcd) echo "ltcd";;
+        litecoind) echo "litecoind";;
         lndbtc) echo "lndbtc";;
         lndltc) echo "lndltc";;
-        geth) echo "eth";;
+        geth) echo "geth";;
         raiden) echo "raiden";;
         xud) echo "xud";;
     esac
@@ -334,8 +336,8 @@ function get_all_status() {
 
     supports_animation && hide_cursor
 
-    echo -e "${BRIGHT_BLACK}┌─────────┬──────────────────────────────────────────┐${RESET}"
-    echo -e "${BRIGHT_BLACK}│${RESET} ${BOLD}SERVICE${RESET} ${BRIGHT_BLACK}│${RESET} ${BOLD}STATUS${RESET}                                   ${BRIGHT_BLACK}│${RESET}"
+    echo -e "${BRIGHT_BLACK}┌───────────┬──────────────────────────────────────────┐${RESET}"
+    echo -e "${BRIGHT_BLACK}│${RESET}  ${BOLD}SERVICE${RESET}  ${BRIGHT_BLACK}│${RESET} ${BOLD}STATUS${RESET}                                   ${BRIGHT_BLACK}│${RESET}"
 
     COUNTER=0
     INDEX=0
@@ -369,11 +371,11 @@ function get_all_status() {
             else
                 STATUS=$(printf "%-40s" "$STATUS")
             fi
-            NAME=$(printf "%-7s" "$(get_display_name "$service")")
-            echo -e "${BRIGHT_BLACK}├─────────┼──────────────────────────────────────────┤${RESET}"
+            NAME=$(printf "%-9s" "$(get_display_name "$service")")
+            echo -e "${BRIGHT_BLACK}├───────────┼──────────────────────────────────────────┤${RESET}"
             echo -e "${BRIGHT_BLACK}│${RESET} ${BLUE}${NAME}${RESET} ${BRIGHT_BLACK}│${RESET} ${STATUS} ${BRIGHT_BLACK}│${RESET}"
         done
-        echo -e "${BRIGHT_BLACK}└─────────┴──────────────────────────────────────────┘${RESET}"
+        echo -e "${BRIGHT_BLACK}└───────────┴──────────────────────────────────────────┘${RESET}"
         ((INDEX=INDEX+1))
         if [[ $COUNTER -ge ${#SERVICES[@]} ]]; then
             break
