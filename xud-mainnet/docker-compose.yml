@@ -79,7 +79,7 @@ services:
     logging: *default-logging
 
   geth:
-    image: exchangeunion/geth:1.9.6
+    image: exchangeunion/geth:1.9.7
     hostname: geth
     environment:
       - NETWORK=mainnet
