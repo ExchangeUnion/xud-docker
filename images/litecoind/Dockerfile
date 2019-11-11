@@ -11,7 +11,7 @@ RUN tar -xzf db-4.8.30.tar.gz
 
 WORKDIR /tmp/db-4.8.30/build_unix
 RUN sed s/__atomic_compare_exchange/__atomic_compare_exchange_db/g -i ../dbinc/atomic.h
-RUN ../dist/configure --prefix=/usr/local --enable-cxx --with-pic
+RUN ../dist/configure --prefix=/usr/local --enable-cxx --with-pic --disable-shared --disable-replication
 RUN make -j$(nproc)
 RUN make install
 
@@ -36,8 +36,9 @@ RUN strip /usr/local/bin/litecoind /usr/local/bin/litecoin-tx /usr/local/bin/lit
 
 FROM alpine:$ALPINE_VERSION
 ARG VERSION
-RUN apk --no-cache add boost-system boost-filesystem boost-chrono boost-thread libevent openssl zeromq
+RUN apk --no-cache add boost-system boost-filesystem boost-chrono boost-thread libevent openssl zeromq bash
 COPY --from=builder /usr/local/bin/litecoind /usr/local/bin/
-COPY --from=builder /usr/local/lib/libdb_cxx-4.8.so /usr/local/lib/libdb_cxx-4.8.so
-ENTRYPOINT ["litecoind"]
+COPY --from=builder /usr/local/bin/litecoin-cli /usr/local/bin/
+ADD entrypoint.sh /
+ENTRYPOINT ["/entrypoint.sh"]
 EXPOSE 9332 19332 29332 29333
