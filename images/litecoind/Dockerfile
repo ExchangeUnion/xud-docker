@@ -3,7 +3,7 @@ ARG ALPINE_VERSION
 FROM alpine:$ALPINE_VERSION as builder
 ARG VERSION
 
-RUN apk --no-cache add musl-dev g++ make autoconf automake libtool pkgconfig boost-dev openssl-dev libevent-dev zeromq-dev
+RUN apk --no-cache add musl-dev g++ make autoconf automake libtool pkgconfig boost-dev libressl-dev libevent-dev zeromq-dev
 
 WORKDIR /tmp
 RUN wget https://download.oracle.com/berkeley-db/db-4.8.30.tar.gz
@@ -31,12 +31,12 @@ RUN ./configure --disable-ccache --disable-tests --disable-bench --without-gui -
 RUN make -j$(nproc)
 RUN make install
 
-RUN strip /usr/local/bin/litecoind /usr/local/bin/litecoin-tx /usr/local/bin/litecoin-cli
+RUN strip /usr/local/bin/litecoind /usr/local/bin/litecoin-cli
 
 
 FROM alpine:$ALPINE_VERSION
 ARG VERSION
-RUN apk --no-cache add boost-system boost-filesystem boost-chrono boost-thread libevent openssl zeromq bash
+RUN apk --no-cache add boost-system boost-filesystem boost-chrono boost-thread libevent libressl zeromq bash
 COPY --from=builder /usr/local/bin/litecoind /usr/local/bin/
 COPY --from=builder /usr/local/bin/litecoin-cli /usr/local/bin/
 ADD entrypoint.sh /
