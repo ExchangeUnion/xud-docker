@@ -33,7 +33,7 @@ services:
     image: exchangeunion/litecoind:0.17.1
     hostname: litecoind
     environment:
-      - NETWORK=testnet
+      - NETWORK=mainnet
     command: >
       -server
       -rpcuser=xu
