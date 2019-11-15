@@ -35,19 +35,6 @@ services:
     hostname: litecoind
     environment:
       - NETWORK=testnet
-    command: >
-      -server
-      -testnet
-      -rpcuser=xu
-      -rpcpassword=xu
-      -disablewallet
-      -txindex
-      -zmqpubrawblock=tcp://0.0.0.0:29332
-      -zmqpubrawtx=tcp://0.0.0.0:29333
-      -logips
-      -rpcport=19332
-      -rpcallowip=::/0
-      -rpcbind=0.0.0.0
     volumes:
       - ${LITECOIND_DIR:-./data/litecoind}:/root/.litecoin
     logging: *default-logging
