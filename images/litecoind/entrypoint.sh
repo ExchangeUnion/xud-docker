@@ -45,7 +45,7 @@ function start_litecoind() {
     rm -f "$LOGFILE" "$ERRFILE"
     # shellcheck disable=SC2068
     # Starting litecoind in background because it makes trap commands not working when running in foreground.
-    # Tried >/dev/null, exec (process replacing) which are helpless to this problem.
+    # Tried `</dev/null`, `exec` (process replacement) which are helpless to this problem.
     # The root reason of this problem is still not clear.
     litecoind ${OPTS[@]} 2>"$ERRFILE" &
     wait
