@@ -246,7 +246,7 @@ function check_updates() {
     fi
     echo -en "${MOVE}${STATUS}${M_RESET}"
 
-    echo " - status2 script  ... "
+    echo " - status2 script ... "
     STATUS=$(check_file "$HOME_DIR/status2.sh" "$REMOTE_PREFIX/status2.sh" "$CACHE_DIR/status2.sh")
     if [[ $STATUS =~ outdated || $STATUS =~ missing ]]; then
         FILE_UPDATES+=("status2.sh")

@@ -337,7 +337,7 @@ function get_all_status() {
     supports_animation && hide_cursor
 
     echo -e "${BRIGHT_BLACK}┌───────────┬──────────────────────────────────────────┐${RESET}"
-    echo -e "${BRIGHT_BLACK}│${RESET}  ${BOLD}SERVICE${RESET}  ${BRIGHT_BLACK}│${RESET} ${BOLD}STATUS${RESET}                                   ${BRIGHT_BLACK}│${RESET}"
+    echo -e "${BRIGHT_BLACK}│${RESET} ${BOLD}SERVICE${RESET}   ${BRIGHT_BLACK}│${RESET} ${BOLD}STATUS${RESET}                                   ${BRIGHT_BLACK}│${RESET}"
 
     COUNTER=0
     INDEX=0

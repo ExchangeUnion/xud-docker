@@ -33,19 +33,7 @@ services:
     image: exchangeunion/litecoind:0.17.1
     hostname: litecoind
     environment:
-      - NETWORK=testnet
-    command: >
-      -server
-      -rpcuser=xu
-      -rpcpassword=xu
-      -disablewallet
-      -txindex
-      -zmqpubrawblock=tcp://0.0.0.0:29332
-      -zmqpubrawtx=tcp://0.0.0.0:29333
-      -logips
-      -rpcport=9332
-      -rpcallowip=::/0
-      -rpcbind=0.0.0.0
+      - NETWORK=mainnet
     volumes:
       - ${LITECOIND_DIR:-./data/litecoind}:/root/.litecoin
     logging: *default-logging
