@@ -19,6 +19,14 @@ if [[ ! -e $LND_DIR/lnd.conf ]]; then
   fi
 fi
 
+set +e
+[[ -n ${RPCHOST:-} ]] && sed -i "s/rpchost.*/rpchost=$RPCHOST/g" $LND_DIR/lnd.conf
+[[ -n ${RPCUSER:-} ]] && sed -i "s/rpcuser.*/rpcuser=$RPCUSER/g" $LND_DIR/lnd.conf
+[[ -n ${RPCPASS:-} ]] && sed -i "s/rpcpass.*/rpcpass=$RPCPASS/g" $LND_DIR/lnd.conf
+[[ -n ${ZMQPUBRAWBLOCK:-} ]] && sed -i "s|zmqpubrawblock.*|zmqpubrawblock=$ZMQPUBRAWBLOCK|g" $LND_DIR/lnd.conf
+[[ -n ${ZMQPUBRAWTX:-} ]] && sed -i "s|zmqpubrawtx.*|zmqpubrawtx=$ZMQPUBRAWTX|g" $LND_DIR/lnd.conf
+set -e
+
 LND_HOSTNAME="$HOME/.lnd/tor/hostname"
 echo "Waiting for lnd-$CHAIN onion address..."
 

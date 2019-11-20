@@ -13,10 +13,18 @@ if [[ ! -e $RAIDEN_DIR/passphrase.txt ]]; then
   touch "$RAIDEN_DIR/passphrase.txt"
 fi
 
+RPC_ENDPOINT="${RPC_ENDPOINT:-http://geth:8545}"
+
 function geth_ready() {
+  if [[ $RPC_ENDPOINT =~ "http" ]]; then
+    URL="$RPC_ENDPOINT"
+  else
+    URL="http://$RPC_ENDPOINT"
+  fi
+
   curl -sf -o /dev/null -X POST -H 'Content-Type: application/json' \
     --data '{"jsonrpc":"2.0","method":"eth_syncing","params":[],"id":1}' \
-    http://geth:8545
+    $URL
 }
 
 function get_addr() {
@@ -36,7 +44,7 @@ OPTS=(
   "--rpc"
   "--accept-disclaimer"
   "--resolver-endpoint http://xud:8887/resolveraiden"
-  "--eth-rpc-endpoint geth:8545"
+  "--eth-rpc-endpoint $RPC_ENDPOINT"
   "--password-file $RAIDEN_DIR/passphrase.txt"
   "--datadir $RAIDEN_DIR"
   "--api-address 0.0.0.0:5001"
