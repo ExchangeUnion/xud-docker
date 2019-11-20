@@ -15,114 +15,6 @@ YELLOW="\033[33m"
 BLUE="\033[34m"
 RESET="\033[0m"
 
-DEBUG=false
-BRANCH=master
-PROJECT_DIR=
-HOME_DIR=~/.xud-docker
-NETWORK=
-BITCOIND_DIR=
-LITECOIND_DIR=
-GETH_DIR=
-GETH_CHAINDATA_DIR=
-LOGFILE=
-
-function parse_arguments() {
-    local OPTION VALUE
-    while [[ $# -gt 0 ]]; do
-        case $1 in
-        "-d" | "--debug")
-            DEBUG=true
-            ;;
-        "-b" | "--branch")
-            if [[ $1 =~ = ]]; then
-                VALUE=$(echo "$1" | cut -d'=' -f2)
-            else
-                OPTION=$1
-                shift
-                if [[ $# -eq 0 || $1 =~ ^- ]]; then
-                    echo >&2 "❌ Missing option value: $OPTION"
-                    exit 1
-                fi
-                if ! curl -sf -o /dev/null https://api.github.com/repos/ExchangeUnion/xud-docker/git/refs/heads/$1; then
-                    echo >&2 "❌ Branch \"$1\" does not exist"
-                    exit 1
-                fi
-                VALUE=$1
-            fi
-            BRANCH=$VALUE
-            ;;
-        "--project-dir")
-            OPTION=$1
-            shift
-            if [[ $# -eq 0 || $1 =~ ^- ]]; then
-                echo >&2 "❌ Missing option value: $OPTION"
-                exit 1
-            fi
-            PROJECT_DIR=$1
-            ;;
-        "--home-dir")
-            OPTION=$1
-            shift
-            if [[ $# -eq 0 || $1 =~ ^- ]]; then
-                echo >&2 "❌ Missing option value: $OPTION"
-                exit 1
-            fi
-            HOME_DIR=$1
-            ;;
-        "--bitcoind-dir")
-            OPTION=$1
-            shift
-            if [[ $# -eq 0 || $1 =~ ^- ]]; then
-                echo >&2 "❌ Missing option value: $OPTION"
-                exit 1
-            fi
-            BITCOIND_DIR=$1
-            ;;
-        "--litecoind-dir")
-            OPTION=$1
-            shift
-            if [[ $# -eq 0 || $1 =~ ^- ]]; then
-                echo >&2 "❌ Missing option value: $OPTION"
-                exit 1
-            fi
-            LITECOIND_DIR=$1
-            ;;
-        "--geth-dir")
-            OPTION=$1
-            shift
-            if [[ $# -eq 0 || $1 =~ ^- ]]; then
-                echo >&2 "❌ Missing option value: $OPTION"
-                exit 1
-            fi
-            GETH_DIR=$1
-            ;;
-        "--geth-chaindata-dir")
-            OPTION=$1
-            shift
-            if [[ $# -eq 0 || $1 =~ ^- ]]; then
-                echo >&2 "❌ Missing option value: $OPTION"
-                exit 1
-            fi
-            GETH_CHAINDATA_DIR=$1
-            ;;
-        "--logfile")
-            OPTION=$1
-            shift
-            if [[ $# -eq 0 || $1 =~ ^- ]]; then
-                echo >&2 "❌ Missing option value: $OPTION"
-                exit 1
-            fi
-            LOGFILE=$1
-            ;;
-        *)
-            echo >&2 "❌ Invalid option: $1"
-            exit 1
-            ;;
-        esac
-        shift
-    done
-}
-
 function check_directory() {
     local DIR=$1
     if [[ -f $DIR ]]; then
@@ -203,7 +95,7 @@ function check_updates() {
     local MOVE="\033[1A\033[22C"
     #local M_RESET="\033[u"
     local M_RESET="\033[1B\033[32D"
-    local REMOTE_PREFIX=$PROJECT_DIR
+    local REMOTE_PREFIX="${PROJECT_DIR:-}"
     local SHA256 CREATED SIZE R_IMG NAME TAG TOKEN RESP R_SHA256 R_CREATED STATUS P_IMG
     local FILE_UPDATES=()
     local IMAGE_UPDATES=()
@@ -548,86 +440,104 @@ function launch_xudctl() {
     XUD_DOCKER_HOME="$HOME_DIR" XUD_NETWORK="$NETWORK" XUD_NETWORK_DIR="$NETWORK_DIR" bash --init-file $HOME_DIR/init.sh
 }
 
-parse_arguments "$@"
+function init_docker_compose() {
+    local VARS=()
+    if [[ -n $BITCOIND_DIR ]]; then
+        VARS+=("BITCOIND_DIR=$BITCOIND_DIR")
+    fi
+    if [[ -n $LITECOIND_DIR ]]; then
+        VARS+=("LITECOIND_DIR=$LITECOIND_DIR")
+    fi
+    if [[ -n $GETH_DIR ]]; then
+        VARS+=("GETH_DIR=$GETH_DIR")
+    fi
+    if [[ -n $GETH_CHAINDATA_DIR ]]; then
+        VARS+=("GETH_CHAINDATA_DIR=$GETH_CHAINDATA_DIR")
+    fi
+    if [[ ${#VARS[@]} -gt 0 ]]; then
+        DOCKER_COMPOSE="env ${VARS[*]} docker-compose -p $NETWORK"
+    else
+        DOCKER_COMPOSE="docker-compose -p $NETWORK"
+    fi
+}
 
-if [[ $DEBUG == "true" ]]; then
-    set -x
-fi
+function choose_network() {
+    echo "1) Simnet"
+    echo "2) Testnet"
+    echo "3) Mainnet"
+    read -p "Please choose the network: " -r
+    shopt -s nocasematch
+    REPLY=$(echo "$REPLY" | awk '{$1=$1;print}') # trim whitespaces
+    case $REPLY in
+    1 | simnet)
+        NETWORK=simnet
+        ;;
+    2 | testnet)
+        NETWORK=testnet
+        ;;
+    3 | mainnet)
+        NETWORK=mainnet
+        ;;
+    *)
+        echo >&2 "❌ Invalid network: $REPLY"
+        exit 1
+        ;;
+    esac
+    shopt -u nocasematch
+}
 
-if ! command -v bash >/dev/null; then
-    echo >&2 "❌ Missing bash"
-    exit 1
-fi
+function check_dependencies() {
+    if ! command -v bash >/dev/null; then
+        echo >&2 "❌ Missing bash"
+        exit 1
+    fi
 
-if ! command -v docker >/dev/null; then
-    echo >&2 "❌ Missing docker"
-    exit 1
-fi
+    if ! command -v docker >/dev/null; then
+        echo >&2 "❌ Missing docker"
+        exit 1
+    fi
 
-if ! command -v docker-compose >/dev/null; then
-    echo >&2 "❌ Missing docker-compose"
-    exit 1
-fi
+    if ! command -v docker-compose >/dev/null; then
+        echo >&2 "❌ Missing docker-compose"
+        exit 1
+    fi
+}
 
-echo "1) Simnet"
-echo "2) Testnet"
-echo "3) Mainnet"
-read -p "Please choose the network: " -r
-shopt -s nocasematch
-REPLY=$(echo "$REPLY" | awk '{$1=$1;print}') # trim whitespaces
-case $REPLY in
-1 | simnet)
-    NETWORK=simnet
-    NETWORK_DIR=$HOME_DIR/simnet
-    ;;
-2 | testnet)
-    NETWORK=testnet
-    NETWORK_DIR=$HOME_DIR/testnet
-    ;;
-3 | mainnet)
-    NETWORK=mainnet
-    NETWORK_DIR=$HOME_DIR/mainnet
-    ;;
-*)
-    echo >&2 "❌ Invalid network: $REPLY"
-    exit 1
-    ;;
-esac
-shopt -u nocasematch
+function init_dirs() {
+    eval HOME_DIR="$HOME_DIR"
+    HOME_DIR=$(realpath "$HOME_DIR")
+    check_directory "$HOME_DIR"
 
-VARS=()
-if [[ -n $BITCOIND_DIR ]]; then
-    VARS+=("BITCOIND_DIR=$BITCOIND_DIR")
-fi
-if [[ -n $LITECOIND_DIR ]]; then
-    VARS+=("LITECOIND_DIR=$LITECOIND_DIR")
-fi
-if [[ -n $GETH_DIR ]]; then
-    VARS+=("GETH_DIR=$GETH_DIR")
-fi
-if [[ -n $GETH_CHAINDATA_DIR ]]; then
-    VARS+=("GETH_CHAINDATA_DIR=$GETH_CHAINDATA_DIR")
-fi
-if [[ ${#VARS[@]} -gt 0 ]]; then
-    DOCKER_COMPOSE="env ${VARS[*]} docker-compose -p $NETWORK"
-else
-    DOCKER_COMPOSE="docker-compose -p $NETWORK"
-fi
+    eval NETWORK_DIR="$NETWORK_DIR"
+    NETWORK_DIR=$(realpath "$NETWORK_DIR")
+    check_directory "$NETWORK_DIR"
 
-check_directory "$HOME_DIR"
-HOME_DIR=$(realpath "$HOME_DIR")
-CACHE_DIR=$HOME_DIR/cache
-if [[ ! -e $CACHE_DIR ]]; then
-    mkdir "$CACHE_DIR"
-fi
-check_directory "$NETWORK_DIR"
-NETWORK_DIR=$(realpath "$NETWORK_DIR")
+    if [[ -n ${PROJECT_DIR:-} ]]; then
+        eval PROJECT_DIR="$PROJECT_DIR"
+        PROJECT_DIR=$(realpath "$PROJECT_DIR")
+    else
+        PROJECT_DIR=
+    fi
 
-if [[ -z $LOGFILE ]]; then
-    LOGFILE=$NETWORK_DIR/xud-docker.log
-fi
+    CACHE_DIR=$HOME_DIR/cache
+    [[ -e $CACHE_DIR ]] || mkdir "$CACHE_DIR"
+}
+
+###############################################################################
+
+check_dependencies
+choose_network
+
+# shellcheck disable=SC2068
+eval "$(docker run --rm --entrypoint config-parser exchangeunion/utils $@)"
+# shellcheck disable=SC2068
+[[ -e "$CONFIG" ]] && eval "$(docker run -i --rm --entrypoint config-parser exchangeunion/utils $@ <"$CONFIG")"
+
+init_dirs
+init_docker_compose
 
 cd "$NETWORK_DIR"
-if [[ ! -e lnd.env ]]; then touch lnd.env; fi
-check_updates
+[[ -e lnd.env ]] || touch lnd.env
+[[ $DEBUG == "true" ]] && set -x
+[[ $DISABLE_UPDATES == "false" ]] && check_updates
 launch_xudctl
