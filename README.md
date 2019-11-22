@@ -3,12 +3,10 @@
 
 xud-docker
 ==========
-A complete [xud](https://github.com/ExchangeUnion/xud) environment using [docker](https://www.docker.com/).
-
-Get started trading 👉 [here](https://docs.exchangeunion.com/start-trading/user-guide) 👈
+A complete [xud](https://github.com/ExchangeUnion/xud) environment using [docker](https://www.docker.com/). Get started trading using xud-docker 👉 [here](https://docs.exchangeunion.com/start-trading/user-guide) 👈
 
 ## Developing
-The following chapter is meant for developers.
+The following is meant for developers, intending to contribute to xud-docker.
 
 ### Initial setup
 
