@@ -1,8 +1,8 @@
+# xud-docker
+
 [![Discord](https://img.shields.io/discord/547402601885466658.svg)](https://discord.gg/YgDhMSn)
 [![Docker Pulls](https://img.shields.io/docker/pulls/exchangeunion/xud)](https://hub.docker.com/r/exchangeunion/xud)
 
-xud-docker
-==========
 A complete [xud](https://github.com/ExchangeUnion/xud) environment using [docker](https://www.docker.com/). Get started trading using xud-docker 👉 [here](https://docs.exchangeunion.com/start-trading/user-guide) 👈
 
 ## Developing
