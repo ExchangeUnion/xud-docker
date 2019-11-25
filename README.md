@@ -1,11 +1,13 @@
-xud-docker
-==========
-A complete [xud](https://github.com/ExchangeUnion/xud) environment using [docker](https://www.docker.com/).
+# xud-docker
 
-Get started trading 👉 [here](https://docs.exchangeunion.com/start-trading/user-guide) 👈
+[![Discord](https://img.shields.io/discord/547402601885466658.svg)](https://discord.gg/YgDhMSn)
+[![Docker Pulls](https://img.shields.io/docker/pulls/exchangeunion/xud)](https://hub.docker.com/r/exchangeunion/xud)
+
+A complete [xud](https://github.com/ExchangeUnion/xud) environment using [docker](https://www.docker.com/). Get started trading using xud-docker 👉 [here](https://docs.exchangeunion.com/start-trading/user-guide) 👈
 
 ## Developing
-The following chapter is meant for developers.
+
+The following instructions are geared towards developers, intending to contribute to xud-docker.
 
 ### Initial setup
 
