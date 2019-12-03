@@ -531,7 +531,11 @@ choose_network
 # shellcheck disable=SC2068
 eval "$(docker run --rm --entrypoint config-parser exchangeunion/utils $@)"
 # shellcheck disable=SC2068
-[[ -e "$CONFIG" ]] && eval "$(docker run -i --rm --entrypoint config-parser exchangeunion/utils $@ <"$CONFIG")"
+if [[ -e "$CONFIG" ]]; then
+    eval "$(docker run -i --rm --entrypoint config-parser exchangeunion/utils $@ <"$CONFIG")"
+else
+    curl -sf https://raw.githubusercontent.com/ExchangeUnion/xud-docker/feat/config-file/sample-xud-docker.conf "$CONFIG_FILE"
+fi
 
 init_dirs
 init_docker_compose
