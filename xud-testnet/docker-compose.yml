@@ -68,7 +68,7 @@ services:
     logging: *default-logging
 
   geth:
-    image: exchangeunion/geth:1.9.8
+    image: exchangeunion/geth:1.9.9
     hostname: geth
     environment:
       - NETWORK=testnet
