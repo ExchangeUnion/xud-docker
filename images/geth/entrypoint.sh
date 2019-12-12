@@ -30,7 +30,8 @@ else
     OPTS+=("--bootnodes=$(paste -sd ',' $ROPSTEN_PEERS)")
     ;;
   mainnet)
-    OPTS+=("--bootnodes=$(paste -sd ',' $MAINNET_PEERS)")
+    #geth seems to overwrite bootstrap nodes with the list below, only enable with additional logic to keep this list up-to-date
+    #OPTS+=("--bootnodes=$(paste -sd ',' $MAINNET_PEERS)")
     ;;
   esac
 fi
