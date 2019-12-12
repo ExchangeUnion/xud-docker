@@ -30,7 +30,7 @@ else
     OPTS+=("--bootnodes=$(paste -sd ',' $ROPSTEN_PEERS)")
     ;;
   mainnet)
-    OPTS+=("--bootnodes=$(paste -sd ',' $MAINNET_PEERS)")
+    #OPTS+=("--bootnodes=$(paste -sd ',' $MAINNET_PEERS)")
     ;;
   esac
 fi
