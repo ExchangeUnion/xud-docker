@@ -9,7 +9,7 @@ x-logging:
 
 services:
   bitcoind:
-    image: exchangeunion/bitcoind:0.18.1
+    image: exchangeunion/bitcoind:0.19.0.1
     hostname: bitcoind
     environment:
       - NETWORK=mainnet
@@ -39,7 +39,7 @@ services:
     logging: *default-logging
 
   lndbtc:
-    image: exchangeunion/lnd:0.7.1-beta
+    image: exchangeunion/lnd:0.8.2-beta
     hostname: lndbtc
     environment:
       - NETWORK=mainnet
@@ -53,7 +53,7 @@ services:
     logging: *default-logging
 
   lndltc:
-    image: exchangeunion/lnd:0.7.1-beta
+    image: exchangeunion/lnd:0.8.2-beta
     hostname: lndltc
     environment:
       - NETWORK=mainnet
