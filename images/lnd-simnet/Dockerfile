@@ -3,7 +3,7 @@ ARG ALPINE_VERSION
 FROM alpine:$ALPINE_VERSION
 RUN apk add --no-cache bash expect supervisor tor
 COPY --from=xud-simnet /root/xud-simnet/go/bin/lnd /root/xud-simnet/go/bin/lncli /usr/local/bin/
-COPY entrypoint.sh wallet.exp unlock.exp unlocker.sh wait-file.sh peers.sh start_tor.sh /
+COPY entrypoint.sh wait-file.sh peers.sh start_tor.sh /
 COPY lnd-btc.conf lnd-ltc.conf /root/
 COPY supervisord.conf /etc/supervisor/conf.d/
 COPY torrc /etc/tor/

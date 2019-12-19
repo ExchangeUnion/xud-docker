@@ -22,8 +22,6 @@ echo "Waiting for lnd-$CHAIN onion address..."
 wait_file "$LND_HOSTNAME" && {
 	LND_ONION_ADDRESS=$(cat "$LND_HOSTNAME")
 	echo "Onion address for lnd-$CHAIN is $LND_ONION_ADDRESS"
-  # mark lnd as locked before starting
-  touch "$HOME/.lnd/wallet.lock"
   # notify peers.sh to bootstrap peers
   touch "$HOME/.lnd/peers.lock"
 
