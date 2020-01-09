@@ -1,0 +1,6 @@
+FROM node:12-alpine3.10
+RUN apk add --no-cache git bash make python3 python3-dev python go rsync musl-dev libffi-dev patch
+RUN apk add --no-cache g++
+ADD xud-simnet /root/xud-simnet
+ADD install-raiden.sh install.sh /
+RUN /install.sh
