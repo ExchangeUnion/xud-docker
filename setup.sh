@@ -84,6 +84,7 @@ choose_network
 echo "🚀 Launching $NETWORK environment"
 
 HOME_DIR=$HOME/.xud-docker
+BACKUP_DIR=""
 
 if [[ ! -e $HOME_DIR ]]; then
     mkdir "$HOME_DIR"
@@ -91,7 +92,7 @@ fi
 
 # shellcheck disable=SC2068
 # shellcheck disable=SC2086
-# NETWORK_DIR will be evaluated after running the command below
+# NETWORK_DIR and BACKUP_DIR will be evaluated after running the command below
 eval "$(docker run --rm \
 -v /var/run/docker.sock:/var/run/docker.sock \
 -v "$HOME_DIR":/root/.xud-docker \
@@ -103,12 +104,31 @@ $@)"
 
 NETWORK_DIR=$(realpath "$NETWORK_DIR")
 
+RESTORE=0
 if [[ ! -e $NETWORK_DIR ]]; then
-    read -p "Would you like to create directory: $NETWORK_DIR? [Y/n] " -n 1 -r
+    read -p "$NETWORK_DIR does not exist, would you like to create one? [Y/n]" -n 1 -r
     if [[ -n $REPLY ]]; then
         echo
     fi
     if [[ $REPLY =~ ^[Yy[:space:]]$ || -z $REPLY ]]; then
+
+        echo "1) New"
+        echo "2) Restore Existing"
+        read -p "Would you like to create a new xud node or restore an existing one? " -r
+        REPLY=$(echo "$REPLY" | awk '{$1=$1;print}') # trim whitespaces
+        case $REPLY in
+        1)
+            RESTORE=0
+            ;;
+        2)
+            RESTORE=1
+            ;;
+        *)
+            echo >&2 "❌ Invalid selection: $REPLY"
+            exit 1
+            ;;
+        esac
+
         mkdir -p "$NETWORK_DIR"
     else
         exit 1
@@ -137,9 +157,11 @@ docker run --rm -it \
 -v /var/run/docker.sock:/var/run/docker.sock \
 -v "$HOME_DIR":/root/.xud-docker \
 -v "$NETWORK_DIR":/root/.xud-docker/$NETWORK \
+-v "$BACKUP_DIR":/root/.xud-backup \
 -e HOME_DIR="$HOME_DIR" \
 -e NETWORK="$NETWORK" \
 -e NETWORK_DIR="$NETWORK_DIR" \
+-e RESTORE="$RESTORE" \
 --entrypoint python \
 $UTILS_IMAGE \
 -m launcher $@
