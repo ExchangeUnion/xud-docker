@@ -1,0 +1,42 @@
+ARG ALPINE_VERSION
+
+FROM alpine:$ALPINE_VERSION as builder
+ARG VERSION
+
+RUN apk --no-cache add musl-dev g++ make autoconf automake libtool pkgconfig boost-dev libressl-dev libevent-dev zeromq-dev
+
+WORKDIR /tmp
+RUN wget https://download.oracle.com/berkeley-db/db-4.8.30.tar.gz
+RUN tar -xzf db-4.8.30.tar.gz
+
+WORKDIR /tmp/db-4.8.30/build_unix
+RUN sed s/__atomic_compare_exchange/__atomic_compare_exchange_db/g -i ../dbinc/atomic.h
+RUN ../dist/configure --prefix=/usr/local --enable-cxx --with-pic --disable-shared --disable-replication --build=arm-alpine-linux --host=arm-unknown-linux --target=arm-unknown-linux
+RUN make -j$(nproc)
+RUN make install
+
+WORKDIR /tmp
+RUN wget https://bitcoin.org/bin/bitcoin-core-$VERSION/bitcoin-$VERSION.tar.gz
+RUN tar -xzf bitcoin-$VERSION.tar.gz
+WORKDIR /tmp/bitcoin-$VERSION
+
+RUN sed -i '/AC_PREREQ/a\AR_FLAGS=cr' src/univalue/configure.ac
+RUN sed -i '/AX_PROG_CC_FOR_BUILD/a\AR_FLAGS=cr' src/secp256k1/configure.ac
+RUN sed -i s:sys/fcntl.h:fcntl.h: src/compat.h
+
+RUN ./autogen.sh
+RUN ./configure --disable-ccache --disable-tests --disable-bench --without-gui --with-daemon --with-utils --without-libs
+
+RUN make -j$(nproc)
+RUN make install
+
+RUN strip /usr/local/bin/bitcoind /usr/local/bin/bitcoin-cli
+
+
+FROM alpine:$ALPINE_VERSION
+ARG VERSION
+RUN apk --no-cache add boost-system boost-filesystem boost-chrono boost-thread libevent libressl zeromq bash
+COPY --from=builder /usr/local/bin/bitcoind /usr/local/bin
+COPY --from=builder /usr/local/bin/bitcoin-cli /usr/local/bin
+ENTRYPOINT ["bitcoind"]
+EXPOSE 8332 18332 28332 28333

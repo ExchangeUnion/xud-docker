@@ -67,7 +67,7 @@ def dir(new_dir):
 
 
 def get_another_dockerfile(platform):
-    if platform == "linux/amd64":
+    if platform == "linux/arm64":
         f = "Dockerfile.aarch64"
         if os.path.exists(f):
             return f
@@ -79,11 +79,17 @@ def build_xud_simnet(platform):
     if platform:
         dockerfile = get_another_dockerfile(platform)
         if dockerfile:
-            exit_code = os.system("docker buildx build --platform {} . -t xud-simnet -f {} --progress plain".format(platform, dockerfile))
+            cmd = "docker buildx build --platform {} . -t xud-simnet -f {} --progress plain".format(platform, dockerfile)
         else:
-            exit_code = os.system("docker buildx build --platform {} . -t xud-simnet --progress plain".format(platform))
+            cmd = "docker buildx build --platform {} . -t xud-simnet --progress plain".format(platform)
     else:
-        exit_code = os.system("docker build . -t xud-simnet")
+        cmd = "docker build . -t xud-simnet"
+
+    print()
+    print(cmd)
+    print()
+
+    exit_code = os.system(cmd)
 
     if exit_code != 0:
         print("Failed to build xud-simnet image", file=sys.stderr)
@@ -138,23 +144,24 @@ def build(image, platform):
 
     args = [
         "-t {}".format(tag),
-        image,
         " ".join(build_args),
         " ".join(labels),
     ]
+    os.chdir(image)
     if platform:
         dockerfile = get_another_dockerfile(platform)
         if dockerfile:
-            build_cmd = "docker buildx build --platform {} -f {} {}".format(platform, dockerfile, " ".join(args))
+            build_cmd = "docker buildx build --platform {} --progress plain --load -f {} {} .".format(platform, dockerfile, " ".join(args))
         else:
-            build_cmd = "docker buildx build --platform {} {}".format(platform, " ".join(args))
+            build_cmd = "docker buildx build --platform {} --progress plain --load {} .".format(platform, " ".join(args))
     else:
-        build_cmd = "docker build {}".format(" ".join(args))
+        build_cmd = "docker build {} .".format(" ".join(args))
     print()
     print(build_cmd)
     print()
     os.system(build_cmd)
     print()
+    os.chdir("..")
 
 
 def push(image):
