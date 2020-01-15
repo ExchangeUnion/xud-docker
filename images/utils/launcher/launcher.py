@@ -4,7 +4,7 @@ from docker.types import IPAMPool, IPAMConfig
 from docker.errors import NotFound, ImageNotFound
 from concurrent.futures import ThreadPoolExecutor, as_completed, Future, wait
 from .config import Config, ArgumentParser, ArgumentError
-from .node import Node, Bitcoind, Litecoind, Ltcd, Geth, Lndbtc, Lndltc, Raiden, Xud, PasswordNotMatch, InvalidPassword, LndApiError, XudApiError
+from .node import Node, Bitcoind, Litecoind, Ltcd, Geth, Lndbtc, Lndltc, Raiden, Xud, PasswordNotMatch, MnemonicNot24Words, InvalidPassword, LndApiError, XudApiError
 import logging
 from typing import List, Dict
 import time
@@ -598,7 +598,7 @@ your issue.""")
                 xud.cli(command, self._shell)
                 ok = True
                 break
-            except (PasswordNotMatch, InvalidPassword):
+            except (PasswordNotMatch, InvalidPassword, MnemonicNot24Words):
                 counter += 1
                 continue
         if not ok:

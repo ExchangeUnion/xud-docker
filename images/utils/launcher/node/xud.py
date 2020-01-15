@@ -26,6 +26,10 @@ class PasswordNotMatch(Exception):
     pass
 
 
+class MnemonicNot24Words(Exception):
+    pass
+
+
 class InvalidPassword(Exception):
     pass
 
@@ -151,6 +155,8 @@ class Xud(Node):
                 return InvalidPassword()
             elif "Passwords do not match, please try again" in output:
                 return PasswordNotMatch()
+            elif "Mnemonic must be exactly 24 words" in output:
+                return MnemonicNot24Words()
             elif "The following wallets were restored" in output:
                 return None
             else:
