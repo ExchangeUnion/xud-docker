@@ -103,18 +103,32 @@ $UTILS_IMAGE \
 $@)"
 
 NETWORK_DIR=$(realpath "$NETWORK_DIR")
-
 RESTORE=0
+
+if [ ! -z "$BACKUP_DIR" ] && [[ ! -e $BACKUP_DIR ]]; then
+    read -p "$BACKUP_DIR does not exist, would you like to create this directory? [Y/n] " -n 1 -r
+    if [[ -n $REPLY ]]; then
+        echo
+    fi
+
+    if [[ $REPLY =~ ^[Yy[:space:]]$ || -z $REPLY ]]; then
+        mkdir -p "$BACKUP_DIR"
+    else
+        exit 1
+    fi
+fi
+
 if [[ ! -e $NETWORK_DIR ]]; then
-    read -p "$NETWORK_DIR does not exist, would you like to create one? [Y/n]" -n 1 -r
+    read -p "$NETWORK_DIR does not exist, would you like to create this directory? [Y/n] " -n 1 -r
     if [[ -n $REPLY ]]; then
         echo
     fi
     if [[ $REPLY =~ ^[Yy[:space:]]$ || -z $REPLY ]]; then
 
+        echo "Would you like to create a new xud node or restore an existing one?"
         echo "1) New"
         echo "2) Restore Existing"
-        read -p "Would you like to create a new xud node or restore an existing one? " -r
+        read -p "Please choose: " -r
         REPLY=$(echo "$REPLY" | awk '{$1=$1;print}') # trim whitespaces
         case $REPLY in
         1)

@@ -1,7 +1,5 @@
 #!/bin/bash
 
-set -m
-
 wait_file() {
   local file="$1"; shift
   local wait_seconds="${1:-10}"; shift # after 10 seconds we give up
@@ -60,9 +58,5 @@ echo "$LNDLTC_IP lndltc" >> /etc/hosts
 echo 'Detecting localnet IP for raiden...'
 RAIDEN_IP=$(getent hosts raiden | awk '{ print $1 }')
 echo "$RAIDEN_IP raiden" >> /etc/hosts
-
-if [[ -d /root/.xud-backup ]]; then
-    ./bin/xud-backup -b /root/.xud-backup &
-fi
 
 exec proxychains4 ./bin/xud
