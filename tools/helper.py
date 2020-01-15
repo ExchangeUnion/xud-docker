@@ -7,7 +7,7 @@ from argparse import ArgumentParser
 from configparser import ConfigParser
 from contextlib import contextmanager
 from functools import wraps
-
+import re
 
 
 def parse_versions():
@@ -66,22 +66,19 @@ def dir(new_dir):
     return inner_function
 
 
-def get_another_dockerfile(platform):
+def get_dockerfile(platform):
     if platform == "linux/arm64":
         f = "Dockerfile.aarch64"
         if os.path.exists(f):
             return f
-    return None
+    return "Dockerfile"
 
 
 @dir(supportsdir)
 def build_xud_simnet(platform):
+    dockerfile = get_dockerfile(platform)
     if platform:
-        dockerfile = get_another_dockerfile(platform)
-        if dockerfile:
-            cmd = "docker buildx build --platform {} . -t xud-simnet -f {} --progress plain".format(platform, dockerfile)
-        else:
-            cmd = "docker buildx build --platform {} . -t xud-simnet --progress plain".format(platform)
+        cmd = "docker buildx build --platform {} . -t xud-simnet -f {} --progress plain".format(platform, dockerfile)
     else:
         cmd = "docker build . -t xud-simnet"
 
@@ -137,31 +134,33 @@ def build(image, platform):
 
         tag = "{}/{}:{}".format(tagprefix, image, tagsuffix)
 
-    used_args = os.popen("cat %s/Dockerfile | sed -nE 's/ARG (.+)/\\1/p'" % image).read().splitlines()
-
-    build_args = {k: v for k, v in build_args.items() if k in used_args}
-    build_args = ["--build-arg %s=%s" % (k, v) for k, v in build_args.items()]
-
-    args = [
-        "-t {}".format(tag),
-        " ".join(build_args),
-        " ".join(labels),
-    ]
     os.chdir(image)
-    if platform:
-        dockerfile = get_another_dockerfile(platform)
-        if dockerfile:
+    try:
+        dockerfile = get_dockerfile(platform)
+        with open(dockerfile) as f:
+            p = re.compile(r"^ARG (.+)$", re.MULTILINE)
+            used_args = p.findall(f.read())
+
+        build_args = {k: v for k, v in build_args.items() if k in used_args}
+        build_args = ["--build-arg %s=%s" % (k, v) for k, v in build_args.items()]
+
+        args = [
+            "-t {}".format(tag),
+            " ".join(build_args),
+            " ".join(labels),
+        ]
+
+        if platform:
             build_cmd = "docker buildx build --platform {} --progress plain --load -f {} {} .".format(platform, dockerfile, " ".join(args))
         else:
-            build_cmd = "docker buildx build --platform {} --progress plain --load {} .".format(platform, " ".join(args))
-    else:
-        build_cmd = "docker build {} .".format(" ".join(args))
-    print()
-    print(build_cmd)
-    print()
-    os.system(build_cmd)
-    print()
-    os.chdir("..")
+            build_cmd = "docker build {} .".format(" ".join(args))
+        print()
+        print(build_cmd)
+        print()
+        os.system(build_cmd)
+        print()
+    finally:
+        os.chdir("..")
 
 
 def push(image):
