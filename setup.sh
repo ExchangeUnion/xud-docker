@@ -103,6 +103,7 @@ $UTILS_IMAGE \
 $@)"
 
 NETWORK_DIR=$(realpath "$NETWORK_DIR")
+BACKUP_DIR=$(realpath "$BACKUP_DIR")
 RESTORE=0
 
 if [ ! -z "$BACKUP_DIR" ] && [[ ! -e $BACKUP_DIR ]]; then
