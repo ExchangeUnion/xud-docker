@@ -54,9 +54,14 @@ class Raiden(Node):
                 rpc_host = geth["rpc_host"]
                 rpc_port = geth["rpc_port"]
                 if infura_project_id is not None:
-                    environment.extend([
-                        f'RPC_ENDPOINT=https://{self.network}.infura.io/v3/{infura_project_id}'
-                    ])
+                    if self.network == "mainnet":
+                        environment.extend([
+                            f'RPC_ENDPOINT=https://mainnet.infura.io/v3/{infura_project_id}'
+                        ])
+                    elif self.network == "testnet":
+                        environment.extend([
+                            f'RPC_ENDPOINT=https://ropsten.infura.io/v3/{infura_project_id}'
+                        ])
                 else:
                     environment.extend([
                         f'RPC_ENDPOINT=http://{rpc_host}:{rpc_port}'
