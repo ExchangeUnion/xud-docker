@@ -124,25 +124,6 @@ if [[ ! -e $NETWORK_DIR ]]; then
         echo
     fi
     if [[ $REPLY =~ ^[Yy[:space:]]$ || -z $REPLY ]]; then
-
-        echo "Would you like to create a new xud node or restore an existing one?"
-        echo "1) New"
-        echo "2) Restore Existing"
-        read -p "Please choose: " -r
-        REPLY=$(echo "$REPLY" | awk '{$1=$1;print}') # trim whitespaces
-        case $REPLY in
-        1)
-            RESTORE=0
-            ;;
-        2)
-            RESTORE=1
-            ;;
-        *)
-            echo >&2 "❌ Invalid selection: $REPLY"
-            exit 1
-            ;;
-        esac
-
         mkdir -p "$NETWORK_DIR"
     else
         exit 1
@@ -171,7 +152,6 @@ docker run --rm -it \
 -v /var/run/docker.sock:/var/run/docker.sock \
 -v "$HOME_DIR":/root/.xud-docker \
 -v "$NETWORK_DIR":/root/.xud-docker/$NETWORK \
--v "$BACKUP_DIR":/root/.xud-backup \
 -e HOME_DIR="$HOME_DIR" \
 -e NETWORK="$NETWORK" \
 -e NETWORK_DIR="$NETWORK_DIR" \
