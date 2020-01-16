@@ -2,6 +2,7 @@
 
 set -euo pipefail
 shopt -s expand_aliases
+set -m
 
 #shellcheck disable=SC1091
 source /opt/venv/bin/activate
@@ -108,7 +109,18 @@ function get_db_path() {
   echo "/root/.raiden/node_$(pex $ADDRESS)/netid_${NETWORK_ID}/network_$(pex $TOKEN_NETWORK_REGISTRY_ADDRESS)/v$(get_db_version)_log.db"
 }
 
-ln -sf $(get_db_path) /root/.raiden/.xud-backup-raiden-db
+function create_db_link() {
+  local DB_FILE
+  DB_FILE="$(get_db_path)"
+  while [[ ! -e "$DB_FILE" ]]; do
+    echo "[xud-backup] Waiting for raiden db file at $DB_FILE"
+    sleep 3
+  done
+
+  ln -sf "$DB_FILE" /root/.raiden/.xud-backup-raiden-db
+}
+
+create_db_link &
 
 #shellcheck disable=SC2068
 exec python -m raiden ${OPTS[@]} $@
