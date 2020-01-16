@@ -2,6 +2,7 @@
 
 set -euo pipefail
 shopt -s expand_aliases
+set -m
 
 #shellcheck disable=SC1091
 source /opt/venv/bin/activate
@@ -40,6 +41,8 @@ while [[ ! -e "$KEYSTORE_DIR" || ! $(find "$KEYSTORE_DIR" -maxdepth 1 -type f | 
   sleep 3
 done
 
+ADDRESS=$(get_addr)
+
 OPTS=(
   "--rpc"
   "--accept-disclaimer"
@@ -49,17 +52,19 @@ OPTS=(
   "--datadir $RAIDEN_DIR"
   "--api-address 0.0.0.0:5001"
   "--matrix-server https://raidentransport.exchangeunion.com"
-  "--address $(get_addr)"
+  "--address $ADDRESS"
   "--keystore-path $KEYSTORE_DIR"
 )
 
 case $NETWORK in
 testnet)
+  TOKEN_NETWORK_REGISTRY_ADDRESS="0x04662e916bA46bf84638daF72b067478053B6801"
+  NETWORK_ID=3
   OPTS+=(
     "--network-id ropsten"
     "--routing-mode local"
     "--environment-type production"
-    "--tokennetwork-registry-contract-address 0x04662e916bA46bf84638daF72b067478053B6801"
+    "--tokennetwork-registry-contract-address $TOKEN_NETWORK_REGISTRY_ADDRESS"
     "--secret-registry-contract-address 0x2e48605E12a36bC4B9e2DA59c8b18124c06D8b2d"
     "--service-registry-contract-address 0xddFecc25B8F834D14601A7e2359FB25189994cEE"
     "--user-deposit-contract-address 0x3A17B96809258523c4DED8e7F3f9364D13eBc2C5"
@@ -68,11 +73,13 @@ testnet)
   )
   ;;
 mainnet)
+  TOKEN_NETWORK_REGISTRY_ADDRESS="0xd32F5E0fF172d41a20b32B6DAb17948B257aa371"
+  NETWORK_ID=1
   OPTS+=(
     "--network-id mainnet"
     "--routing-mode private"
     "--environment-type production"
-    "--tokennetwork-registry-contract-address 0xd32F5E0fF172d41a20b32B6DAb17948B257aa371"
+    "--tokennetwork-registry-contract-address $TOKEN_NETWORK_REGISTRY_ADDRESS"
     "--secret-registry-contract-address 0x322681a720690F174a4071DBEdB51D86E7B9FF84"
     "--service-registry-contract-address 0x281937D366C7bCE202481c45d613F67500b93E69"
     "--user-deposit-contract-address 0x4F26957E8fd331D53DD60feE77533FBE7564F5Fe"
@@ -86,6 +93,34 @@ while ! geth_ready; do
   echo "Waiting for geth to be ready"
   sleep 3
 done
+
+# This funtion is from https://github.com/raiden-network/raiden/blob/2b0f074215cb7f96b4ff70b377ae109c62f667d8/raiden/utils/formatting.py#L31-L32
+function pex() {
+  echo ${1:2:8} | awk '{print tolower($0)}'
+}
+
+function get_db_version() {
+  # python -c 'from raiden.constants import RAIDEN_DB_VERSION; print(RAIDEN_DB_VERSION)'
+  # Don't know why it is so slow to import raiden.constants. So using another method:
+  grep RAIDEN_DB_VERSION /opt/venv/lib/python3.7/site-packages/raiden/constants.py | grep -o '[[:digit:]]*'
+}
+
+function get_db_path() {
+  echo "/root/.raiden/node_$(pex $ADDRESS)/netid_${NETWORK_ID}/network_$(pex $TOKEN_NETWORK_REGISTRY_ADDRESS)/v$(get_db_version)_log.db"
+}
+
+function create_db_link() {
+  local DB_FILE
+  DB_FILE="$(get_db_path)"
+  while [[ ! -e "$DB_FILE" ]]; do
+    echo "[xud-backup] Waiting for raiden db file at $DB_FILE"
+    sleep 3
+  done
+
+  ln -sf "$DB_FILE" /root/.raiden/.xud-backup-raiden-db
+}
+
+create_db_link &
 
 #shellcheck disable=SC2068
 exec python -m raiden ${OPTS[@]} $@

@@ -26,6 +26,10 @@ class PasswordNotMatch(Exception):
     pass
 
 
+class MnemonicNot24Words(Exception):
+    pass
+
+
 class InvalidPassword(Exception):
     pass
 
@@ -70,7 +74,17 @@ class Xud(Node):
                 'bind': '/root/.raiden',
                 'mode': 'rw'
             },
+            f"{self.network_dir}/data/raiden": {
+                'bind': '/root/.raiden',
+                'mode': 'rw'
+            },
         }
+
+        if config.backup_dir:
+            volumes[config.backup_dir] = {
+                'bind': '/root/.xud-backup',
+                'mode': 'rw'
+            }
 
         self.container_spec.volumes.update(volumes)
         self.container_spec.ports.update(ports)
@@ -112,7 +126,7 @@ class Xud(Node):
                         not_ready.append("raiden")
                     return "Waiting for " + ", ".join(not_ready)
             except XudApiError as e:
-                if "xud is locked, run 'xucli unlock' or 'xucli create' then try again" in str(e):
+                if "xud is locked, run 'xucli unlock', 'xucli create', or 'xucli restore' then try again" in str(e):
                     return "Wallet locked. Unlock with xucli unlock."
             except:
                 self._logger.exception("Failed to get advanced running status")
@@ -136,3 +150,14 @@ class Xud(Node):
                 return None
             else:
                 return Exception("Unexpected xucli create error happens")
+        elif cmd == "restore":
+            if "Password must be at least 8 characters" in output:
+                return InvalidPassword()
+            elif "Passwords do not match, please try again" in output:
+                return PasswordNotMatch()
+            elif "Mnemonic must be exactly 24 words" in output:
+                return MnemonicNot24Words()
+            elif "The following wallets were restored" in output:
+                return None
+            else:
+                return Exception("Unexpected xucli restore error")

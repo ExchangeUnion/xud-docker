@@ -142,6 +142,7 @@ class Config:
         self.network = os.environ["NETWORK"]
         self.network_dir = os.environ["NETWORK_DIR"]
         self.containers = Containers(self.network, self._expand)
+        self.backup_dir = None
 
     def parse(self):
         self._parse_config_file()
@@ -155,6 +156,7 @@ class Config:
         parser.add_argument("--testnet-dir")
         parser.add_argument("--mainnet-dir")
         parser.add_argument("--external-ip")
+        parser.add_argument("--backup-dir")
 
         self._args = parser.parse_args()
         self._logger.debug("Parsed command-line arguments: %r", self._args)
@@ -167,6 +169,9 @@ class Config:
 
         if hasattr(self._args, "external_ip"):
             self.external_ip = self._args.external_ip
+
+        if hasattr(self._args, "backup_dir"):
+            self.backup_dir = self._args.backup_dir
 
     def _parse_config_file(self):
         network = self.network

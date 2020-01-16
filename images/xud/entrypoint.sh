@@ -1,7 +1,5 @@
 #!/bin/bash
 
-set -m
-
 wait_file() {
   local file="$1"; shift
   local wait_seconds="${1:-10}"; shift # after 10 seconds we give up

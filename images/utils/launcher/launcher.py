@@ -4,7 +4,7 @@ from docker.types import IPAMPool, IPAMConfig
 from docker.errors import NotFound, ImageNotFound
 from concurrent.futures import ThreadPoolExecutor, as_completed, Future, wait
 from .config import Config, ArgumentParser, ArgumentError
-from .node import Node, Bitcoind, Litecoind, Ltcd, Geth, Lndbtc, Lndltc, Raiden, Xud, PasswordNotMatch, InvalidPassword, LndApiError, XudApiError
+from .node import Node, Bitcoind, Litecoind, Ltcd, Geth, Lndbtc, Lndltc, Raiden, Xud, PasswordNotMatch, MnemonicNot24Words, InvalidPassword, LndApiError, XudApiError
 import logging
 from typing import List, Dict
 import time
@@ -565,7 +565,7 @@ your issue.""")
             try:
                 xud.api.getinfo()
             except XudApiError as e:
-                if "UNIMPLEMENTED" in str(e) or "xud is locked, run 'xucli unlock' or 'xucli create' then try again" in str(e):
+                if "UNIMPLEMENTED" in str(e) or "xud is locked" in str(e):
                     break
             time.sleep(3)
 
@@ -587,6 +587,23 @@ your issue.""")
         if not ok:
             raise Exception("Failed to create wallets")
 
+    def xucli_restore_wrapper(self, xud):
+        counter = 0
+        ok = False
+        while counter < 3:
+            try:
+                command = "restore"
+                if self._config.backup_dir:
+                    command += " /root/.xud-backup"
+                xud.cli(command, self._shell)
+                ok = True
+                break
+            except (PasswordNotMatch, InvalidPassword, MnemonicNot24Words):
+                counter += 1
+                continue
+        if not ok:
+            raise Exception("Failed to restore wallets")
+
     def check_wallets(self):
         lndbtc = self._containers.get("lndbtc")
         lndltc = self._containers.get("lndltc")
@@ -594,7 +611,11 @@ your issue.""")
 
         if self.no_lnd_wallet(lndbtc) or self.no_lnd_wallet(lndltc):
             self.wait_xud(xud)
-            self.xucli_create_wrapper(xud)
+            restore = os.environ["RESTORE"]
+            if restore == "1":
+                self.xucli_restore_wrapper(xud)
+            else:
+                self.xucli_create_wrapper(xud)
 
     def wait_for_channels(self):
         # TODO wait for channels

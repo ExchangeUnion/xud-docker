@@ -28,6 +28,7 @@ COPY --from=builder /xud/git_head.txt /app/
 COPY --from=builder /xud/seedutil/seedutil /app/seedutil/seedutil
 COPY xud.conf /tmp/
 COPY entrypoint.sh /app
+COPY xud-backup.sh /app
 COPY start_tor.sh /
 RUN ln -s /app/bin/xucli /bin/xucli
 COPY proxychains4.conf /etc/proxychains/proxychains.conf

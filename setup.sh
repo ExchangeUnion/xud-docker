@@ -84,6 +84,7 @@ choose_network
 echo "🚀 Launching $NETWORK environment"
 
 HOME_DIR=$HOME/.xud-docker
+BACKUP_DIR=""
 
 if [[ ! -e $HOME_DIR ]]; then
     mkdir "$HOME_DIR"
@@ -91,7 +92,7 @@ fi
 
 # shellcheck disable=SC2068
 # shellcheck disable=SC2086
-# NETWORK_DIR will be evaluated after running the command below
+# NETWORK_DIR and BACKUP_DIR will be evaluated after running the command below
 eval "$(docker run --rm \
 -v /var/run/docker.sock:/var/run/docker.sock \
 -v "$HOME_DIR":/root/.xud-docker \
@@ -102,9 +103,23 @@ $UTILS_IMAGE \
 $@)"
 
 NETWORK_DIR=$(realpath "$NETWORK_DIR")
+RESTORE=0
+
+if [ ! -z "$BACKUP_DIR" ] && [[ ! -e $BACKUP_DIR ]]; then
+    read -p "$BACKUP_DIR does not exist, would you like to create this directory? [Y/n] " -n 1 -r
+    if [[ -n $REPLY ]]; then
+        echo
+    fi
+
+    if [[ $REPLY =~ ^[Yy[:space:]]$ || -z $REPLY ]]; then
+        mkdir -p "$BACKUP_DIR"
+    else
+        exit 1
+    fi
+fi
 
 if [[ ! -e $NETWORK_DIR ]]; then
-    read -p "Would you like to create directory: $NETWORK_DIR? [Y/n] " -n 1 -r
+    read -p "$NETWORK_DIR does not exist, would you like to create this directory? [Y/n] " -n 1 -r
     if [[ -n $REPLY ]]; then
         echo
     fi
@@ -140,6 +155,7 @@ docker run --rm -it \
 -e HOME_DIR="$HOME_DIR" \
 -e NETWORK="$NETWORK" \
 -e NETWORK_DIR="$NETWORK_DIR" \
+-e RESTORE="$RESTORE" \
 --entrypoint python \
 $UTILS_IMAGE \
 -m launcher $@

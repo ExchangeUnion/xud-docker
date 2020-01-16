@@ -10,6 +10,7 @@ parser.add_argument("--simnet-dir")
 parser.add_argument("--testnet-dir")
 parser.add_argument("--mainnet-dir")
 parser.add_argument("--external-ip")
+parser.add_argument("--backup-dir")
 
 try:
     args = parser.parse_args()
