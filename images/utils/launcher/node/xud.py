@@ -96,8 +96,10 @@ class Xud(Node):
     def image(self):
         if self.network == "simnet":
             return "exchangeunion/xud-simnet:latest"
-        else:
+        elif self.network == "testnet":
             return "exchangeunion/xud:latest"
+        elif self.network == "mainnet":
+            return "exchangeunion/xud:1.0.0-beta"
 
     def status(self):
         status = super().status()
