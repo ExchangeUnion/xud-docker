@@ -120,6 +120,12 @@ class Node:
         self._logger.debug(f"Created container: %s (%s)", self.container_name, id)
         return container
 
+    def create(self):
+        try:
+            self._client.containers.get(self.container_name)
+        except NotFound:
+            self.create_container()
+
     def get_container(self, create=False):
         try:
             return self._client.containers.get(self.container_name)
@@ -286,8 +292,6 @@ class Node:
                 "volumes": self._compare_volumes(attr["Mounts"], spec.volumes),
                 "ports": self._compare_ports(attr["NetworkSettings"]["Ports"], spec.ports),
             }
-
-            self._logger.debug("Container comparing result: %r\nattr: %r\nspec: %r", details, attr, spec)
 
             if details["environment"] is not None and len(details["environment"][1]) == 0:
                 details["environment"] = None

@@ -157,6 +157,7 @@ class Config:
         parser.add_argument("--mainnet-dir")
         parser.add_argument("--external-ip")
         parser.add_argument("--backup-dir")
+        parser.add_argument("--dev", action="store_true")
 
         self._args = parser.parse_args()
         self._logger.debug("Parsed command-line arguments: %r", self._args)

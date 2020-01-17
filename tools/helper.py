@@ -6,6 +6,7 @@ from configparser import ConfigParser
 from contextlib import contextmanager
 from functools import wraps
 from os.path import dirname, abspath, join, isdir
+from subprocess import check_output
 
 
 def parse_versions():
@@ -69,9 +70,9 @@ def build_xud_simnet():
     os.system("docker build . -t xud-simnet")
 
 
-def build(image):
+def build(image, cache=True):
     print("-" * 80)
-    print(":: Building %s ::" % image)
+    print(":: \033[0;1mBuilding %s\033[0m ::" % image)
     print("-" * 80)
     labels = [
         "--label {}.branch={}".format(labelprefix, branch),
@@ -115,17 +116,30 @@ def build(image):
     build_args = {k: v for k, v in build_args.items() if k in used_args}
     build_args = ["--build-arg %s=%s" % (k, v) for k, v in build_args.items()]
 
+    if not cache:
+        build_args.append("--no-cache")
+
     args = [
         "-t {}".format(tag),
-        image,
         " ".join(build_args),
         " ".join(labels),
+        image,
     ]
+    args = [a for a in args if len(a) > 0]
     build_cmd = "docker build {}".format(" ".join(args))
     print()
     print(build_cmd)
     print()
     os.system(build_cmd)
+    print()
+
+    print("-" * 80)
+    print(":: \033[0;1mBuild Summary\033[0m ::")
+    print("-" * 80)
+    print(f" * Image: {tag}")
+    size = check_output("docker inspect -f {{.Size}} " + tag + " | numfmt --to=iec-i --suffix=B --format='%.2f'", shell=True).decode().splitlines()[0]
+    print(f" * Size: {size}")
+    print("-" * 80)
     print()
 
 
@@ -162,6 +176,7 @@ def main():
     subparsers = parser.add_subparsers(dest="command")
 
     build_parser = subparsers.add_parser("build")
+    build_parser.add_argument("--no-cache", action="store_true")
     build_parser.add_argument("images", type=str, nargs="*")
 
     push_parser = subparsers.add_parser("push")
@@ -183,7 +198,7 @@ def main():
         else:
             x = list(filter(lambda i: i in images, args.images))
         for image in x:
-            build(image)
+            build(image, cache=not args.no_cache)
     elif args.command == "push":
         if len(args.images) == 0:
             x = images

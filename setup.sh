@@ -3,8 +3,9 @@
 set -euo pipefail
 
 BRANCH=master
+DEV=
 
-function parse_branch() {
+function parse_args() {
     local OPTION VALUE
     while [[ $# -gt 0 ]]; do
         case $1 in
@@ -22,8 +23,13 @@ function parse_branch() {
             fi
             BRANCH=$VALUE
             ;;
+        "--dev")
+            DEV=true
+            shift
+            ;;
         *)
             shift
+            ;;
         esac
     done
 }
@@ -54,30 +60,72 @@ function choose_network() {
 }
 
 function ensure_utils_image() {
-    UTILS_IMAGE="exchangeunion/utils"
+    local IMG
 
-    if [[ $BRANCH != "master" ]]; then
-        UTILS_IMAGE="exchangeunion/utils:latest__${BRANCH//\//-}"
+    if [[ $DEV == "true" ]]; then
+        # use local exchangeunion/utils image
+        return
     fi
 
-    if ! docker pull "$UTILS_IMAGE" >/dev/null 2>&1; then
-        echo >&2 "Failed to pull $UTILS_IMAGE"
+    if [[ $BRANCH != "master" ]]; then
+        IMG="exchangeunion/utils:latest__${BRANCH//\//-}"
+    fi
+
+    if ! docker pull "$IMG" >/dev/null 2>&1; then
+        echo >&2 "❌ Failed to pull $IMG"
+        exit 1
+    fi
+
+    if [[ $BRANCH != "master" ]]; then
+        docker tag "$IMG" exchangeunion/utils:latest
+    fi
+}
+
+function check_directory() {
+    if [[ ! -d $1 ]]; then
+        echo "❌ $1 is not a directory"
+        exit 1
+    fi
+
+    if [[ ! -r $1 ]]; then
+        echo "❌ $1 is not readable"
+        exit 1
+    fi
+
+    if [[ ! -w $1 ]]; then
+        echo "❌ $1 is not writable"
         exit 1
     fi
 }
 
+function ensure_directory() {
+    if [[ -z $1 ]]; then
+        return
+    fi
+    if [[ ! -e $1 ]]; then
+        read -p "$1 does not exist, would you like to create this directory? [Y/n] " -n 1 -r
+        if [[ -n $REPLY ]]; then
+            echo
+        fi
+        if [[ $REPLY =~ ^[Yy[:space:]]$ || -z $REPLY ]]; then
+            mkdir -p "$1"
+        else
+            exit 1
+        fi
+    fi
+    check_directory "$1"
+}
+
 # shellcheck disable=SC2068
-parse_branch $@
+parse_args $@
 
 ensure_utils_image
 
-# shellcheck disable=SC2068
-# shellcheck disable=SC2086
 docker run --rm \
--e PROG="$0" \
---entrypoint args_parser \
-$UTILS_IMAGE \
-$@
+    -e PROG="$0" \
+    --entrypoint args_parser \
+    exchangeunion/utils \
+    "$@"
 
 choose_network
 
@@ -90,72 +138,44 @@ if [[ ! -e $HOME_DIR ]]; then
     mkdir "$HOME_DIR"
 fi
 
-# shellcheck disable=SC2068
-# shellcheck disable=SC2086
 # NETWORK_DIR and BACKUP_DIR will be evaluated after running the command below
 eval "$(docker run --rm \
--v /var/run/docker.sock:/var/run/docker.sock \
--v "$HOME_DIR":/root/.xud-docker \
--e HOME_DIR="$HOME_DIR" \
--e NETWORK="$NETWORK" \
---entrypoint config_parser \
-$UTILS_IMAGE \
-$@)"
+    -v /var/run/docker.sock:/var/run/docker.sock \
+    -v "$HOME_DIR":/root/.xud-docker \
+    -e HOME_DIR="$HOME_DIR" \
+    -e NETWORK="$NETWORK" \
+    --entrypoint config_parser \
+    exchangeunion/utils \
+    "$@")"
 
 NETWORK_DIR=$(realpath "$NETWORK_DIR")
-RESTORE=0
 
-if [ ! -z "$BACKUP_DIR" ] && [[ ! -e $BACKUP_DIR ]]; then
-    read -p "$BACKUP_DIR does not exist, would you like to create this directory? [Y/n] " -n 1 -r
-    if [[ -n $REPLY ]]; then
-        echo
-    fi
+ensure_directory "$BACKUP_DIR"
+ensure_directory "$NETWORK_DIR"
 
-    if [[ $REPLY =~ ^[Yy[:space:]]$ || -z $REPLY ]]; then
-        mkdir -p "$BACKUP_DIR"
-    else
-        exit 1
-    fi
-fi
+function generate_init_script() {
+    docker run --rm -it \
+        -v /var/run/docker.sock:/var/run/docker.sock \
+        -v "$HOME_DIR":/root/.xud-docker \
+        -v "$NETWORK_DIR":/root/.xud-docker/$NETWORK \
+        -e HOME_DIR="$HOME_DIR" \
+        -e NETWORK="$NETWORK" \
+        -e NETWORK_DIR="$NETWORK_DIR" \
+        --entrypoint python \
+        exchangeunion/utils \
+        -m launcher "$@"
+}
 
-if [[ ! -e $NETWORK_DIR ]]; then
-    read -p "$NETWORK_DIR does not exist, would you like to create this directory? [Y/n] " -n 1 -r
-    if [[ -n $REPLY ]]; then
-        echo
-    fi
-    if [[ $REPLY =~ ^[Yy[:space:]]$ || -z $REPLY ]]; then
-        mkdir -p "$NETWORK_DIR"
-    else
-        exit 1
-    fi
-fi
-
-if [[ ! -d $NETWORK_DIR ]]; then
-    echo "❌ $NETWORK_DIR is not a directory"
+set +e
+generate_init_script "$@"
+EXIT_CODE=$?
+if [[ $EXIT_CODE -eq 130 ]]; then
+    exit 130  # Ctrl-C
+elif [[ $EXIT_CODE -ne 0 ]]; then
+    echo "❌ Failed to generate init script"
     exit 1
 fi
+set -e
 
-if [[ ! -r $NETWORK_DIR ]]; then
-    echo "❌ $NETWORK_DIR is not readable"
-    exit 1
-fi
-
-if [[ ! -w $NETWORK_DIR ]]; then
-    echo "❌ $NETWORK_DIR is not writable"
-    exit 1
-fi
-
-# shellcheck disable=SC2068
-# shellcheck disable=SC2086
-docker run --rm -it \
---name "${NETWORK}_utils" \
--v /var/run/docker.sock:/var/run/docker.sock \
--v "$HOME_DIR":/root/.xud-docker \
--v "$NETWORK_DIR":/root/.xud-docker/$NETWORK \
--e HOME_DIR="$HOME_DIR" \
--e NETWORK="$NETWORK" \
--e NETWORK_DIR="$NETWORK_DIR" \
--e RESTORE="$RESTORE" \
---entrypoint python \
-$UTILS_IMAGE \
--m launcher $@
+cd "$NETWORK_DIR"
+NETWORK=$NETWORK bash --init-file init.sh
