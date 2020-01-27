@@ -3,6 +3,7 @@
 import argparse
 import toml
 import os
+from shutil import copyfile
 
 
 def _parse_xud_docker_conf():
@@ -14,6 +15,8 @@ home_dir = os.environ["HOME_DIR"]
 network = os.environ["NETWORK"]
 network_dir = home_dir + "/" + network
 backup_dir = None
+
+copyfile("/usr/local/lib/python3.8/site-packages/launcher/config/xud-docker.conf", "/root/.xud-docker/sample-xud-docker.conf")
 
 try:
     parsed = _parse_xud_docker_conf()
