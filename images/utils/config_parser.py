@@ -22,6 +22,8 @@ try:
 except toml.TomlDecodeError as e:
     print("Failed to parse xud-docker.conf:", e)
     exit(1)
+except:
+    pass
 
 parser = argparse.ArgumentParser(argument_default=argparse.SUPPRESS)
 parser.add_argument(f"--{network}-dir")
