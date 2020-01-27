@@ -95,6 +95,20 @@ class Node:
     def create_container(self):
         spec = self.container_spec
         api = self._client.api
+
+        cpu_quota = self._config.containers[self.name].cpu_quota
+        if cpu_quota:
+            host_config = api.create_host_config(
+                port_bindings=spec.ports,
+                binds=spec.volumes,
+                cpu_quota=cpu_quota,
+            )
+        else:
+            host_config = api.create_host_config(
+                port_bindings=spec.ports,
+                binds=spec.volumes,
+            )
+
         resp = api.create_container(
             image=spec.image,
             command=spec.command,
@@ -104,11 +118,7 @@ class Node:
             environment=spec.environment,
             volumes=self._get_volumes(spec.volumes),
             name=spec.name,
-            host_config=api.create_host_config(
-                port_bindings=spec.ports,
-                binds=spec.volumes,
-                #cpu_quota=10000,
-            ),
+            host_config=host_config,
             networking_config=api.create_networking_config({
                 self.network_name: api.create_endpoint_config(
                     aliases=[self.name]

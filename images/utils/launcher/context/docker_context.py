@@ -159,7 +159,7 @@ class UpdateChecker:
         outdated = False
 
         # Step 1. check all images
-        print("🌍 Checking for updates ...")
+        print("🌍 Checking for updates...")
         images = set([c.image for c in self._containers.values()])
         images_check_result = {x: None for x in images}
         while len(images) > 0:

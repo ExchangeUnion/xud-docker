@@ -65,22 +65,22 @@ function expand_args() {
 }
 
 function logs() {
-    docker logs "$(expand_args "$@")"
+    docker logs $(expand_args "$@")
 }
 complete -W "${NODES[*]}" logs
 
 function start() {
-    docker start "$(expand_args "$@")"
+    docker start $(expand_args "$@")
 }
 complete -F get_stopped_conainers start
 
 function stop() {
-    docker stop -t $GRACEFUL_SHUTDOWN_TIMEOUT "$(expand_args "$@")"
+    docker stop -t $GRACEFUL_SHUTDOWN_TIMEOUT $(expand_args "$@")
 }
 complete -F get_running_conainers stop
 
 function restart() {
-    docker restart -t $GRACEFUL_SHUTDOWN_TIMEOUT "$(expand_args "$@")"
+    docker restart -t $GRACEFUL_SHUTDOWN_TIMEOUT $(expand_args "$@")
 }
 complete -F get_running_conainers restart
 
@@ -96,25 +96,21 @@ function update() {
     utils_run update
 }
 
-function xucli() {
-    LINE=""
-    #shellcheck disable=SC2068
-    docker-compose exec xud xucli $@ | while read -n 1; do
-        if [[ $REPLY == $'\n' || $REPLY == $'\r' ]]; then
-            if [[ ! $LINE =~ "<hide>" ]]; then
-                echo -e "$LINE\r"
-            fi
-            LINE=""
-        else
-            LINE="$LINE$REPLY"
-            if [[ $LINE =~ 'password: ' ]]; then
-                echo -n "$LINE"
-                LINE=""
-            elif [[ $LINE =~ getenv ]]; then
-                LINE="<hide>"
-            fi
-        fi
+function down() {
+    for container in "${CONTAINERS[@]}"; do
+        echo "Stopping $container"
+        docker stop $container >/dev/null
     done
+    for container in "${CONTAINERS[@]}"; do
+        echo "Removing $container"
+        docker rm $container >/dev/null
+    done
+    echo "Removing network ${NETWORK}_default"
+    docker network rm ${NETWORK}_default >/dev/null
+}
+
+function xucli() {
+    docker exec ${NETWORK}_xud_1 xucli "$@"
 }
 
 alias help="xucli help"

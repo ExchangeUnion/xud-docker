@@ -1,3 +1,4 @@
+import time
 from .node import Node, PasswordNotMatch, MnemonicNot24Words, InvalidPassword, LndApiError, XudApiError
 
 def _no_lnd_wallet(self, lnd):
@@ -57,7 +58,7 @@ def _get_commands(self):
     pass
 
 
-def _confirm(self, prompt):
+def _confirm(prompt):
     pass
 
 
@@ -68,7 +69,7 @@ def xucli_create_wrapper(self, xud):
         try:
             xud.cli("create", self._shell)
             while True:
-                confirmed = self._confirm("YOU WILL NOT BE ABLE TO DISPLAY YOUR XUD SEED AGAIN. Press ENTER to continue...")
+                confirmed = _confirm("YOU WILL NOT BE ABLE TO DISPLAY YOUR XUD SEED AGAIN. Press ENTER to continue...")
                 if confirmed:
                     break
             ok = True

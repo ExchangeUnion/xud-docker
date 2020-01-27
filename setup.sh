@@ -139,14 +139,16 @@ if [[ ! -e $HOME_DIR ]]; then
 fi
 
 # NETWORK_DIR and BACKUP_DIR will be evaluated after running the command below
-eval "$(docker run --rm \
+VARS="$(docker run --rm \
     -v /var/run/docker.sock:/var/run/docker.sock \
     -v "$HOME_DIR":/root/.xud-docker \
     -e HOME_DIR="$HOME_DIR" \
     -e NETWORK="$NETWORK" \
     --entrypoint config_parser \
     exchangeunion/utils \
-    "$@")"
+    "$@" || exit 1)"
+
+eval "$VARS"
 
 NETWORK_DIR=$(realpath "$NETWORK_DIR")
 
@@ -172,7 +174,6 @@ EXIT_CODE=$?
 if [[ $EXIT_CODE -eq 130 ]]; then
     exit 130  # Ctrl-C
 elif [[ $EXIT_CODE -ne 0 ]]; then
-    echo "❌ Failed to generate init script"
     exit 1
 fi
 set -e

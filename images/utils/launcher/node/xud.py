@@ -74,10 +74,6 @@ class Xud(Node):
                 'bind': '/root/.raiden',
                 'mode': 'rw'
             },
-            f"{self.network_dir}/data/raiden": {
-                'bind': '/root/.raiden',
-                'mode': 'rw'
-            },
         }
 
         if config.backup_dir:

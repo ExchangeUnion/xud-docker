@@ -21,18 +21,18 @@ class GethApi:
 class Geth(Node):
     def __init__(self, client: DockerClient, config: Config, name):
         super().__init__(client, config, name)
-        self.external = config.containers[name]["external"]
+        self.external = config.containers[name].external
         if self.external:
             c = config.containers[name]
             self.external_config = {
-                "rpc_host": c["rpc_host"],
-                "rpc_port": c["rpc_port"],
-                "infura_project_id": c["infura_project_id"],
-                "infura_project_secret": c["infura_project_secret"],
+                "rpc_host": c.rpc_host,
+                "rpc_port": c.rpc_port,
+                "infura_project_id": c.infura_project_id,
+                "infura_project_secret": c.infura_project_secret,
             }
 
-        data_dir = config.containers[name]["dir"]
-        ancient_chaindata_dir = config.containers[name]["ancient_chaindata_dir"]
+        data_dir = config.containers[name].dir
+        ancient_chaindata_dir = config.containers[name].ancient_chaindata_dir
         volumes = {
             data_dir: {
                 'bind': '/root/.ethereum',

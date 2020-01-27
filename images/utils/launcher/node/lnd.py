@@ -42,13 +42,13 @@ class Lnd(Node):
             else:
                 layer1_node = config.containers["litecoind"]
 
-            if layer1_node["external"]:
+            if layer1_node.external:
                 environment.extend([
-                    f'RPCHOST={layer1_node["rpc_host"]}',
-                    f'RPCUSER={layer1_node["rpc_user"]}',
-                    f'RPCPASS={layer1_node["rpc_password"]}',
-                    f'ZMQPUBRAWBLOCK={layer1_node["zmqpubrawblock"]}',
-                    f'ZMQPUBRAWTX={layer1_node["zmqpubrawtx"]}',
+                    f'RPCHOST={layer1_node.rpc_host}',
+                    f'RPCUSER={layer1_node.rpc_user}',
+                    f'RPCPASS={layer1_node.rpc_password}',
+                    f'ZMQPUBRAWBLOCK={layer1_node.zmqpubrawblock}',
+                    f'ZMQPUBRAWTX={layer1_node.zmqpubrawtx}',
                 ])
 
         volumes = {

@@ -29,7 +29,7 @@ class Bitcoind(Node):
     def __init__(self, client: DockerClient, config: Config, name, litecoin: bool = False):
         self.litecoin = litecoin
         super().__init__(client, config, name)
-        self.external = config.containers[name]["external"]
+        self.external = config.containers[name].external
         if self.external:
             c = config.containers[name]
             self.external_config = {
@@ -64,7 +64,7 @@ class Bitcoind(Node):
         if self.litecoin:
             command = []
 
-        data_dir = config.containers[name]["dir"]
+        data_dir = config.containers[name].dir
         if self.litecoin:
             volumes = {
                 data_dir: {

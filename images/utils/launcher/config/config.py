@@ -3,119 +3,115 @@ import argparse
 import toml
 import os
 from shutil import copyfile
-
-
-TESTNET = {
-    "bitcoind": {
-        "dir": "$testnet_dir/data/bitcoind",
-        "external": False,
-        "rpc_host": "127.0.0.1",
-        "rpc_port": 18332,
-        "rpc_user": "xu",
-        "rpc_password": "xu",
-        "zmqpubrawblock": "127.0.0.1:28332",
-        "zmqpubrawtx": "127.0.0.1:28333",
-    },
-    "litecoind": {
-        "dir": "$testnet_dir/data/litecoind",
-        "external": False,
-        "rpc_host": "127.0.0.1",
-        "rpc_port": 19332,
-        "rpc_user": "xu",
-        "rpc_password": "xu",
-        "zmqpubrawblock": "127.0.0.1:28332",
-        "zmqpubrawtx": "127.0.0.1:28333",
-    },
-    "geth": {
-        "dir": "$testnet_dir/data/geth",
-        "ancient_chaindata_dir": "$testnet_dir/data/geth/chaindata",
-        "external": False,
-        "rpc_host": "127.0.0.1",
-        "rpc_port": 8545,
-        "infura_project_id": None,
-        "infura_project_secret": None,
-    }
-}
-
-MAINNET = {
-    "bitcoind": {
-        "dir": "$mainnet_dir/data/bitcoind",
-        "external": False,
-        "rpc_host": "127.0.0.1",
-        "rpc_port": 8332,
-        "rpc_user": "xu",
-        "rpc_password": "xu",
-        "zmqpubrawblock": "127.0.0.1:28332",
-        "zmqpubrawtx": "127.0.0.1:28333",
-    },
-    "litecoind": {
-        "dir": "$mainnet_dir/data/litecoind",
-        "external": False,
-        "rpc_host": "127.0.0.1",
-        "rpc_port": 9332,
-        "rpc_user": "xu",
-        "rpc_password": "xu",
-        "zmqpubrawblock": "127.0.0.1:28332",
-        "zmqpubrawtx": "127.0.0.1:28333",
-    },
-    "geth": {
-        "dir": "$mainnet_dir/data/geth",
-        "ancient_chaindata_dir": "$mainnet_dir/data/geth/chaindata",
-        "external": False,
-        "rpc_host": "127.0.0.1",
-        "rpc_port": 8545,
-        "infura_project_id": None,
-        "infura_project_secret": None,
-    }
-}
+import re
+import sys
 
 
 class ContainerConfig:
-    def __init__(self, value, expand):
-        self._dict = value
-        self._expand = expand
-
-    def __getitem__(self, item):
-        if self._dict is None:
-            return None
-        return self._expand(self._dict.get(item, None))
-
-    def __setitem__(self, key, value):
-        if value is None:
-            return
-        if key in self._dict:
-            self._dict[key] = value
+    def __init__(self, network, name):
+        self.cpu_quota = None
+        self.expose_ports = {}
+        self.dir = f"${network}_dir/data/{name}"
 
 
-class Containers:
-    def __init__(self, network, expand):
+class BtcdConfig(ContainerConfig):
+    def __init__(self, network, name):
+        super().__init__(network, name)
+
+
+class BitcoindConfig(ContainerConfig):
+    def __init__(self, network, name):
+        super().__init__(network, name)
+        self.external = False
+        self.rpc_host = None
+        self.rpc_port = None
+        self.rpc_user = None
+        self.rpc_password = None
+        self.zmqpubrawblock = None
+        self.zmqpubrawtx = None
+
+
+class GethConfig(ContainerConfig):
+    def __init__(self, network, name):
+        super().__init__(network, name)
+        self.ancient_chaindata_dir = f"${network}_dir/data/geth/chaindata"
+        self.external = False
+        self.rpc_host = None
+        self.rpc_port = None
+        self.infura_project_id = None
+        self.infura_project_secret = None
+
+
+class LndConfig(ContainerConfig):
+    def __init__(self, network, name):
+        super().__init__(network, name)
+
+
+class RaidenConfig(ContainerConfig):
+    def __init__(self, network, name):
+        super().__init__(network, name)
+
+
+class XudConfig(ContainerConfig):
+    def __init__(self, network, name):
+        super().__init__(network, name)
         if network == "simnet":
-            self._config = {}
+            self.expose_ports.update({
+                '28885/tcp': 28885
+            })
         elif network == "testnet":
-            self._config = TESTNET
+            self.expose_ports.update({
+                '18885/tcp': 18885
+            })
         elif network == "mainnet":
-            self._config = MAINNET
-        self._expand = expand
+            self.expose_ports.update({
+                '8885/tcp': 8885
+            })
 
-    def __getitem__(self, item):
-        return ContainerConfig(self._config.get(item, None), self._expand)
+
+networks = {
+    "simnet": {
+        "ltcd": BtcdConfig("simnet", "ltcd"),
+        "lndbtc": LndConfig("simnet", "lndbtc"),
+        "lndltc": LndConfig("simnet", "lndltc"),
+        "raiden": RaidenConfig("simnet", "raiden"),
+        "xud": XudConfig("simnet", "xud"),
+    },
+    "testnet": {
+        "bitcoind": BitcoindConfig("testnet", "bitcoind"),
+        "litecoind": BitcoindConfig("testnet", "litecoind"),
+        "geth": GethConfig("testnet", "geth"),
+        "lndbtc": LndConfig("testnet", "lndbtc"),
+        "lndltc": LndConfig("testnet", "lndltc"),
+        "raiden": RaidenConfig("testnet", "raiden"),
+        "xud": XudConfig("testnet", "xud"),
+    },
+    "mainnet": {
+        "bitcoind": BitcoindConfig("mainnet", "bitcoind"),
+        "litecoind": BitcoindConfig("mainnet", "litecoind"),
+        "geth": GethConfig("mainnet", "geth"),
+        "lndbtc": LndConfig("mainnet", "lndbtc"),
+        "lndltc": LndConfig("mainnet", "lndltc"),
+        "raiden": RaidenConfig("mainnet", "raiden"),
+        "xud": XudConfig("mainnet", "xud"),
+    }
+}
 
 
 def merge_bitcoind(container, parsed):
     keys = ["dir", "external", "rpc_host", "rpc_port", "rpc_user", "rpc_password", "zmqpubrawblock", "zmqpubrawtx"]
     for key in keys:
-        container[key] = parsed.get(key.replace("_", "-"), None)
-    container["rpc_port"] = int(container["rpc_port"])
-
-
-def merge_litecoind(container, parsed):
-    merge_bitcoind(container, parsed)
+        value = parsed.get(key.replace("_", "-"), None)
+        if key == "rpc_port" and value:
+            value = int(value)
+        setattr(container, key, value)
 
 
 def merge_geth(container, parsed):
     keys = ["dir", "ancient_chaindata_dir", "external", "rpc_host", "rpc_port", "infura_project_id", "infura_project_secret"]
     for key in keys:
-        container[key] = parsed.get(key.replace("_", "-"), None)
+        value = parsed.get(key.replace("_", "-"), None)
+        setattr(container, key, value)
 
 
 class ArgumentError(Exception):
@@ -128,14 +124,14 @@ class ArgumentParser(argparse.ArgumentParser):
     """
     https://stackoverflow.com/questions/5943249/python-argparse-and-controlling-overriding-the-exit-status-code
     """
+
     def error(self, message):
         raise ArgumentError(message, self.format_usage())
 
 
 class Config:
     def __init__(self, args=None):
-        self._logger = logging.getLogger("launcher.Config")
-        self.__args = args
+        self._logger = logging.getLogger(__name__ + ".Config")
 
         self.branch = "master"
         self.disable_update = False
@@ -143,14 +139,17 @@ class Config:
         self.home_dir = os.environ["HOME_DIR"]
         self.network = os.environ["NETWORK"]
         self.network_dir = os.environ["NETWORK_DIR"]
-        self.containers = Containers(self.network, self._expand)
+        self.containers = networks[self.network]
         self.backup_dir = None
 
-    def parse(self):
         self._parse_config_file()
-        self._parse_command_line_arguments()
+        if not args:
+            args = sys.argv[1:]
+        else:
+            args = args.split()
+        self._parse_command_line_arguments(args)
 
-    def _parse_command_line_arguments(self):
+    def _parse_command_line_arguments(self, args):
         parser = ArgumentParser(argument_default=argparse.SUPPRESS, prog="launcher")
         parser.add_argument("--branch", "-b")
         parser.add_argument("--disable-update", action="store_true")
@@ -160,24 +159,47 @@ class Config:
         parser.add_argument("--external-ip")
         parser.add_argument("--backup-dir")
         parser.add_argument("--dev", action="store_true")
+        parser.add_argument("--cpu-quotas")
+        parser.add_argument("--expose-ports")
 
-        if self.__args:
-            self._args = parser.parse_args(self.__args.split())
-        else:
-            self._args = parser.parse_args()
-        self._logger.debug("Parsed command-line arguments: %r", self._args)
+        self._logger.debug("%s", args)
+        parsed = parser.parse_args(args)
 
-        if hasattr(self._args, "branch"):
-            self.branch = self._args.branch
+        if hasattr(parsed, "branch"):
+            self.branch = parsed.branch
 
-        if hasattr(self._args, "disable_update"):
+        if hasattr(parsed, "disable_update"):
             self.disable_update = True
 
-        if hasattr(self._args, "external_ip"):
-            self.external_ip = self._args.external_ip
+        if hasattr(parsed, "external_ip"):
+            self.external_ip = parsed.external_ip
 
-        if hasattr(self._args, "backup_dir"):
-            self.backup_dir = self._args.backup_dir
+        if hasattr(parsed, "backup_dir"):
+            self.backup_dir = parsed.backup_dir
+
+        if hasattr(parsed, "cpu_quotas"):
+            value = parsed.cpu_quotas
+            p = re.compile(r"^\d+$")
+            if p.match(value):
+                quota = int(value)
+                for c in self.containers.values():
+                    c.cpu_quota = quota
+            else:
+                parts = parsed.split(",")
+                for p in parts:
+                    kv = p.split("/")
+                    name = kv[0]
+                    quota = int(kv[1])
+                    self.containers[name].cpu_quota = quota
+
+        if hasattr(parsed, "expose_ports"):
+            value = parsed.expose_ports
+            parts = value.split(",")
+            for p in parts:
+                kv = p.split("/")
+                name = kv[0]
+                port = "/".join(kv[1:])
+                self.containers[name].expose_ports = port
 
     def _parse_config_file(self):
         network = self.network
@@ -193,7 +215,7 @@ class Config:
                     merge_bitcoind(self.containers["bitcoind"], parsed["bitcoind"])
 
                 if "litecoind" in parsed:
-                    merge_litecoind(self.containers["litecoind"], parsed["litecoind"])
+                    merge_bitcoind(self.containers["litecoind"], parsed["litecoind"])
 
                 if "geth" in parsed:
                     merge_geth(self.containers["geth"], parsed["geth"])

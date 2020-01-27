@@ -48,11 +48,11 @@ class Raiden(Node):
 
         if self.network in ["testnet", "mainnet"]:
             geth = config.containers["geth"]
-            if geth["external"]:
-                infura_project_id = geth["infura_project_id"]
-                infura_project_secret = geth["infura_project_secret"]
-                rpc_host = geth["rpc_host"]
-                rpc_port = geth["rpc_port"]
+            if geth.external:
+                infura_project_id = geth.infura_project_id
+                infura_project_secret = geth.infura_project_secret
+                rpc_host = geth.rpc_host
+                rpc_port = geth.rpc_port
                 if infura_project_id is not None:
                     if self.network == "mainnet":
                         environment.extend([

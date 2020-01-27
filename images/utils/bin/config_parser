@@ -4,6 +4,7 @@ import argparse
 import toml
 import os
 from shutil import copyfile
+import sys
 
 
 def _parse_xud_docker_conf():
@@ -16,14 +17,14 @@ network = os.environ["NETWORK"]
 network_dir = home_dir + "/" + network
 backup_dir = None
 
-copyfile("/usr/local/lib/python3.8/site-packages/launcher/config/xud-docker.conf", "/root/.xud-docker/sample-xud-docker.conf")
+copyfile("/usr/local/lib/python3.8/site-packages/utils-1.0-py3.8.egg/launcher/config/xud-docker.conf", "/root/.xud-docker/sample-xud-docker.conf")
 
 try:
     parsed = _parse_xud_docker_conf()
     network_dir = parsed.get(f"{network}-dir", network_dir)
     backup_dir = parsed.get("backup-dir", backup_dir)
 except toml.TomlDecodeError as e:
-    print("Failed to parse xud-docker.conf:", e)
+    print("❌ Failed to parse xud-docker.conf:", e, file=sys.stderr)
     exit(1)
 except:
     pass

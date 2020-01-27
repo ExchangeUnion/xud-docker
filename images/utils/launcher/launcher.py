@@ -28,7 +28,6 @@ class Launcher:
 
         try:
             config = Config()
-            config.parse()
 
             context = DockerContext(config)
             context.update()

@@ -7,7 +7,6 @@ from . import status, update
 cmd = None
 
 config = Config(args=os.environ["LAUNCH_ARGS"])
-config.parse()
 
 context = DockerContext(config)
 
