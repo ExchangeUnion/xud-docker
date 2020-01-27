@@ -7,7 +7,7 @@ import os
 
 def _parse_xud_docker_conf():
     with open("/root/.xud-docker/xud-docker.conf") as f:
-        return toml.load(f.read())
+        return toml.loads(f.read())
 
 
 home_dir = os.environ["HOME_DIR"]
@@ -17,12 +17,11 @@ backup_dir = None
 
 try:
     parsed = _parse_xud_docker_conf()
-    value = parsed[f"{network}-dir"]
-    if value != network_dir:
-        network_dir = value
-    backup_dir = parsed["backup-dir"]
-except:
-    pass
+    network_dir = parsed.get(f"{network}-dir", network_dir)
+    backup_dir = parsed.get("backup-dir", backup_dir)
+except Exception as e:
+    print("Failed to parse xud-docker.conf:", e)
+    exit(1)
 
 parser = argparse.ArgumentParser(argument_default=argparse.SUPPRESS)
 parser.add_argument(f"--{network}-dir")
@@ -34,7 +33,6 @@ if hasattr(args, f"{network}_dir"):
 if hasattr(args, "backup_dir"):
     backup_dir = getattr(args, "backup_dir")
 
-result = f"NETWORK_DIR={network_dir}"
+print(f"NETWORK_DIR={network_dir}")
 if backup_dir:
-    result += f" && BACKUP_DIR={backup_dir}"
-print(result)
+    print(f"BACKUP_DIR={backup_dir}")
