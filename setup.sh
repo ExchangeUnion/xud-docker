@@ -178,4 +178,5 @@ fi
 set -e
 
 cd "$NETWORK_DIR"
-NETWORK=$NETWORK bash --init-file init.sh
+LAUNCH_ARGS="$*"
+NETWORK=$NETWORK NETWORK_DIR=$NETWORK_DIR HOME_DIR=$HOME_DIR LAUNCH_ARGS=$LAUNCH_ARGS bash --init-file init.sh

@@ -1,9 +1,2 @@
 from .status import Command as status
-from .report import Command as report
-from .start import Command as start
-from .stop import Command as stop
-from .restart import Command as restart
-from .down import Command as down
-from .up import Command as up
-from .logs import Command as logs
-from .cli import Command as cli
+from .update import Command as update

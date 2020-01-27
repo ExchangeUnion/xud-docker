@@ -10,6 +10,6 @@ setup(
     version="1.0",
     description='Xud-Docker Utilities',
     packages=['launcher'],
-    scripts=['bin/args_parser', 'bin/config_parser', 'bin/run_command'],
+    scripts=['bin/args_parser', 'bin/config_parser'],
     install_requires=requirements,
 )

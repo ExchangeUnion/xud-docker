@@ -133,8 +133,10 @@ class ArgumentParser(argparse.ArgumentParser):
 
 
 class Config:
-    def __init__(self):
+    def __init__(self, args=None):
         self._logger = logging.getLogger("launcher.Config")
+        self.__args = args
+
         self.branch = "master"
         self.disable_update = False
         self.external_ip = None
@@ -159,7 +161,10 @@ class Config:
         parser.add_argument("--backup-dir")
         parser.add_argument("--dev", action="store_true")
 
-        self._args = parser.parse_args()
+        if self.__args:
+            self._args = parser.parse_args(self.__args.split())
+        else:
+            self._args = parser.parse_args()
         self._logger.debug("Parsed command-line arguments: %r", self._args)
 
         if hasattr(self._args, "branch"):

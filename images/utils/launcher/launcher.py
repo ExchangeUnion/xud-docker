@@ -3,7 +3,7 @@ import logging
 import sys
 
 from .config import Config
-from .docker_context import DockerContext
+from .context import DockerContext
 
 
 class Launcher:

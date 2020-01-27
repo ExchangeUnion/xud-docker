@@ -339,3 +339,6 @@ class DockerContext:
 
     def get_nodes(self):
         return self._containers
+
+    def get_containers(self):
+        return self._containers

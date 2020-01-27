@@ -1,17 +1,24 @@
+import threading
+import sys
+from concurrent.futures import ThreadPoolExecutor, wait
+import logging
+
 BRIGHT_BLACK = "\033[90m"
 BLUE = "\033[34m"
 RESET = "\033[0m"
 BOLD = "\033[0;1m"
 
+
 class Command:
     def __init__(self, context):
         self._context = context
+        self._logger = logging.getLogger("launcher.command.status")
 
     def match(self, *args):
         return args[0] == "status"
 
-    def run(self):
-        containers = self._containers
+    def run(self, *args):
+        containers = self._context.get_containers()
         names = list(containers)
         col1_title = "SERVICE"
         col2_title = "STATUS"
@@ -87,7 +94,7 @@ class Command:
         while len(containers) > 0:
             failed = {}
             with ThreadPoolExecutor(max_workers=len(containers)) as executor:
-                fs = {executor.submit(status_wrapper, container, name, update_status): (name, container) for name, container in self._containers.items()}
+                fs = {executor.submit(status_wrapper, container, name, update_status): (name, container) for name, container in containers.items()}
                 done, not_done = wait(fs, 30)
                 for f in done:
                     name, container = fs[f]
