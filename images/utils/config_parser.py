@@ -19,7 +19,7 @@ try:
     parsed = _parse_xud_docker_conf()
     network_dir = parsed.get(f"{network}-dir", network_dir)
     backup_dir = parsed.get("backup-dir", backup_dir)
-except Exception as e:
+except toml.TomlDecodeError as e:
     print("Failed to parse xud-docker.conf:", e)
     exit(1)
 
