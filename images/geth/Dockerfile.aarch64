@@ -10,7 +10,7 @@ WORKDIR /go-ethereum
 RUN make geth
 
 FROM alpine:$ALPINE_VERSION
-RUN apk add --no-cache ca-certificates
+RUN apk add --no-cache ca-certificates bash
 COPY --from=builder /go-ethereum/build/bin/geth /usr/local/bin/
 COPY entrypoint.sh ropsten-peers.txt mainnet-peers.txt /
 EXPOSE 8545 8546 8547 30303 30303/udp
