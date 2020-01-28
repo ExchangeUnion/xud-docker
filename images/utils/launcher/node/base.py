@@ -70,7 +70,7 @@ class Node:
 
     @property
     def network_dir(self):
-        return f"{self._config.home_dir}/{self.network}"
+        return self._config.network_dir
 
     @property
     def image(self):
