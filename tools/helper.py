@@ -78,7 +78,7 @@ def get_dockerfile(platform):
 def build_xud_simnet(platform):
     dockerfile = get_dockerfile(platform)
     if platform:
-        cmd = "docker buildx build --platform {} . -t xud-simnet -f {} --progress plain".format(platform, dockerfile)
+        cmd = "docker buildx build --platform {} . -t xud-simnet -f {} --progress plain --load".format(platform, dockerfile)
     else:
         cmd = "docker build . -t xud-simnet"
 
