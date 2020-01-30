@@ -89,8 +89,11 @@ def build_xud_simnet(platform):
     exit_code = os.system(cmd)
 
     if exit_code != 0:
-        print("Failed to build xud-simnet image", file=sys.stderr)
         exit(1)
+
+    if platform == "linux/arm64":
+        os.system("docker tag xud-simnet exchangeunion/xud-simnet-install")
+        os.system("docker push exchangeunion/xud-simnet-install")
 
 
 def build(image, platform):

@@ -7,4 +7,5 @@ if bash -x scripts/xud-simnet-install; then
     /install-raiden.sh
 else
     echo "!!! Failed to execute xud-simnet-install !!!"
+    exit 1
 fi
