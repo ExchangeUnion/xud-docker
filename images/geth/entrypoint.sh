@@ -13,7 +13,7 @@ OPTS=(
   "--rpcaddr 0.0.0.0"
   "--rpcapi eth,net,web3,txpool,personal,admin"
   "--rpcvhosts=*"
-  "--cache=1024"
+  "--cache=256"
   "--nousb"
   "--datadir.ancient=$ETHEREUM_DIR/chaindata"
 )
