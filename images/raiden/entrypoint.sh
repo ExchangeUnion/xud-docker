@@ -51,7 +51,6 @@ OPTS=(
   "--password-file $RAIDEN_DIR/passphrase.txt"
   "--datadir $RAIDEN_DIR"
   "--api-address 0.0.0.0:5001"
-  "--matrix-server https://raidentransport.exchangeunion.com"
   "--address $ADDRESS"
   "--keystore-path $KEYSTORE_DIR"
 )

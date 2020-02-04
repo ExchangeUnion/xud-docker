@@ -37,5 +37,4 @@ exec python -m raiden \
   --one-to-n-contract-address $ONE_TO_N_CONTRACT \
   --monitoring-service-contract-address $MONITORING_SERVICE_CONTRACT \
   --gas-price $GAS_PRICE \
-  --matrix-server $MATRIX_SERVER \
   --routing-mode $ROUTING_MODE

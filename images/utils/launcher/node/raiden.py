@@ -40,7 +40,6 @@ class Raiden(Node):
                 "USER_DEPOSIT_CONTRACT=0x19f8B656fBf17a83a5023eEbd675B1Ae5Bb5dF50",
                 "MONITORING_SERVICE_CONTRACT=0x3B26A3d3D0c262359d1807863aE0D0FB6831D081",
                 "GAS_PRICE=10000000000",
-                "MATRIX_SERVER=https://raidentransport.exchangeunion.com",
                 "ROUTING_MODE=private",
             ]
         else:
