@@ -103,7 +103,6 @@ $UTILS_IMAGE \
 $@)"
 
 NETWORK_DIR=$(realpath "$NETWORK_DIR")
-RESTORE=0
 
 if [ ! -z "$BACKUP_DIR" ] && [[ ! -e $BACKUP_DIR ]]; then
     read -p "$BACKUP_DIR does not exist, would you like to create this directory? [Y/n] " -n 1 -r
@@ -155,7 +154,6 @@ docker run --rm -it \
 -e HOME_DIR="$HOME_DIR" \
 -e NETWORK="$NETWORK" \
 -e NETWORK_DIR="$NETWORK_DIR" \
--e RESTORE="$RESTORE" \
 --entrypoint python \
 $UTILS_IMAGE \
 -m launcher $@

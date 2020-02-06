@@ -611,11 +611,14 @@ your issue.""")
 
         if self.no_lnd_wallet(lndbtc) or self.no_lnd_wallet(lndltc):
             self.wait_xud(xud)
-            restore = os.environ["RESTORE"]
-            if restore == "1":
-                self.xucli_restore_wrapper(xud)
-            else:
+            print("Would you like to create a new xud node or restore an existing one?")
+            print("1) New")
+            print("2) Restore")
+            reply = self._shell.input("Please choose: ")
+            if reply == "1":
                 self.xucli_create_wrapper(xud)
+            else:
+                self.xucli_restore_wrapper(xud)
 
     def wait_for_channels(self):
         # TODO wait for channels
