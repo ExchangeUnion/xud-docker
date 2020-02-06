@@ -1,7 +1,8 @@
 import time
 from .node import Node, PasswordNotMatch, MnemonicNot24Words, InvalidPassword, LndApiError, XudApiError
+from .context import DockerContext
 
-def _no_lnd_wallet(self, lnd):
+def _no_lnd_wallet(lnd):
     while True:
         try:
             info = lnd.api.getinfo()
@@ -17,14 +18,14 @@ def _no_lnd_wallet(self, lnd):
     return False
 
 
-def _pristine(self):
-    lndbtc = self._get_node("lndbtc")
-    lndltc = self._get_node("lndltc")
-    return self._no_lnd_wallet(lndbtc) or self._no_lnd_wallet(lndltc)
+def _pristine(context: DockerContext):
+    lndbtc = context.get_node("lndbtc")
+    lndltc = context.get_node("lndltc")
+    return _no_lnd_wallet(lndbtc) or _no_lnd_wallet(lndltc)
 
 
-def _ensure_xud(self):
-    xud = self._get_node("xud")
+def _ensure_xud(context: DockerContext):
+    xud = context.get_node("xud")
     while True:
         try:
             xud.api.getinfo()
@@ -34,9 +35,11 @@ def _ensure_xud(self):
         time.sleep(3)
 
 
-def _check_wallets(self):
-    if self._pristine():
-        self._ensure_xud()
+def _check_wallets(context: DockerContext):
+    if _pristine(context):
+        _ensure_xud(context)
+
+        xud = context.get_node("xud")
 
         while True:
             print("Would you like to create a new xud node or restore an existing one?")
@@ -44,9 +47,9 @@ def _check_wallets(self):
             print("2) Restore")
             reply = input("Please choose: ")
             if reply == "1":
-                self.xucli_restore_wrapper(xud)
+                xucli_restore_wrapper(xud, context.config.backup_dir)
             elif reply == "2":
-                self.xucli_create_wrapper(xud)
+                xucli_create_wrapper(xud)
 
 
 def _wait_channels(self):
@@ -54,20 +57,17 @@ def _wait_channels(self):
     pass
 
 
-def _get_commands(self):
-    pass
-
-
 def _confirm(prompt):
-    pass
+    reply = input(prompt)
+    return reply == ""
 
 
-def xucli_create_wrapper(self, xud):
+def xucli_create_wrapper(xud):
     counter = 0
     ok = False
     while counter < 3:
         try:
-            xud.cli("create", self._shell)
+            xud.cli("create")
             while True:
                 confirmed = _confirm("YOU WILL NOT BE ABLE TO DISPLAY YOUR XUD SEED AGAIN. Press ENTER to continue...")
                 if confirmed:
@@ -81,15 +81,15 @@ def xucli_create_wrapper(self, xud):
         raise Exception("Failed to create wallets")
 
 
-def xucli_restore_wrapper(self, xud):
+def xucli_restore_wrapper(xud, backup_dir):
     counter = 0
     ok = False
     while counter < 3:
         try:
             command = "restore"
-            if self._config.backup_dir:
+            if backup_dir:
                 command += " /root/.xud-backup"
-            xud.cli(command, self._shell)
+            xud.cli(command)
             ok = True
             break
         except (PasswordNotMatch, InvalidPassword, MnemonicNot24Words):
@@ -99,8 +99,9 @@ def xucli_restore_wrapper(self, xud):
         raise Exception("Failed to restore wallets")
 
 
-def run():
-    if self.network in ["testnet", "mainnet"]:
-        self._check_wallets()
-    elif self.network == "simnet":
-        self._wait_channels()
+def run(context: DockerContext):
+    network = context.network
+    if network in ["testnet", "mainnet"]:
+        _check_wallets(context)
+    elif network == "simnet":
+        _wait_channels(context)

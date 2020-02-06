@@ -4,6 +4,7 @@ import sys
 
 from .config import Config
 from .context import DockerContext
+from .pre_actions import run as run_pre_actions
 
 
 class Launcher:
@@ -32,6 +33,8 @@ class Launcher:
             context = DockerContext(config)
             context.update()
             context.start()
+
+            run_pre_actions(context)
 
             self._print_banner()
             self._emit_init_script()

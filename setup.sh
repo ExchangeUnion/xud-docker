@@ -35,28 +35,30 @@ function parse_args() {
 }
 
 function choose_network() {
-    echo "1) Simnet"
-    echo "2) Testnet"
-    echo "3) Mainnet"
-    read -p "Please choose the network: " -r
-    shopt -s nocasematch
-    REPLY=$(echo "$REPLY" | awk '{$1=$1;print}') # trim whitespaces
-    case $REPLY in
-    1 | simnet)
-        NETWORK=simnet
-        ;;
-    2 | testnet)
-        NETWORK=testnet
-        ;;
-    3 | mainnet)
-        NETWORK=mainnet
-        ;;
-    *)
-        echo >&2 "❌ Invalid network: $REPLY"
-        exit 1
-        ;;
-    esac
-    shopt -u nocasematch
+    while true; do
+        echo "1) Simnet"
+        echo "2) Testnet"
+        echo "3) Mainnet"
+        read -p "Please choose the network: " -r
+        shopt -s nocasematch
+        REPLY=$(echo "$REPLY" | awk '{$1=$1;print}') # trim whitespaces
+        case $REPLY in
+        1 | simnet)
+            NETWORK=simnet
+            ;;
+        2 | testnet)
+            NETWORK=testnet
+            ;;
+        3 | mainnet)
+            NETWORK=mainnet
+            ;;
+        *)
+            continue
+            ;;
+        esac
+        shopt -u nocasematch
+        break
+    done
 }
 
 function ensure_utils_image() {

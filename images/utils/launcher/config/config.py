@@ -1,10 +1,12 @@
-import logging
 import argparse
-import toml
+import logging
 import os
-from shutil import copyfile
 import re
 import sys
+from shutil import copyfile
+from typing import Union, Dict
+
+import toml
 
 
 class ContainerConfig:
@@ -30,16 +32,34 @@ class BitcoindConfig(ContainerConfig):
         self.zmqpubrawblock = None
         self.zmqpubrawtx = None
 
+    def update(self, parsed):
+        keys = ["dir", "external", "rpc_host", "rpc_port", "rpc_user", "rpc_password", "zmqpubrawblock", "zmqpubrawtx"]
+        for key in keys:
+            value = parsed.get(key.replace("_", "-"), None)
+            if key == "rpc_port" and value:
+                value = int(value)
+            if value:
+                setattr(self, key, value)
+
 
 class GethConfig(ContainerConfig):
     def __init__(self, network, name):
         super().__init__(network, name)
-        self.ancient_chaindata_dir = f"${network}_dir/data/geth/chaindata"
+        self.ancient_chaindata_dir = None
         self.external = False
         self.rpc_host = None
         self.rpc_port = None
         self.infura_project_id = None
         self.infura_project_secret = None
+
+    def update(self, parsed):
+        keys = ["dir", "ancient_chaindata_dir", "external", "rpc_host", "rpc_port", "infura_project_id", "infura_project_secret"]
+        for key in keys:
+            value = parsed.get(key.replace("_", "-"), None)
+            if key == "rpc_port" and value:
+                value = int(value)
+            if value:
+                setattr(self, key, value)
 
 
 class LndConfig(ContainerConfig):
@@ -98,22 +118,6 @@ networks = {
 }
 
 
-def merge_bitcoind(container, parsed):
-    keys = ["dir", "external", "rpc_host", "rpc_port", "rpc_user", "rpc_password", "zmqpubrawblock", "zmqpubrawtx"]
-    for key in keys:
-        value = parsed.get(key.replace("_", "-"), None)
-        if key == "rpc_port" and value:
-            value = int(value)
-        setattr(container, key, value)
-
-
-def merge_geth(container, parsed):
-    keys = ["dir", "ancient_chaindata_dir", "external", "rpc_host", "rpc_port", "infura_project_id", "infura_project_secret"]
-    for key in keys:
-        value = parsed.get(key.replace("_", "-"), None)
-        setattr(container, key, value)
-
-
 class ArgumentError(Exception):
     def __init__(self, message, usage):
         super().__init__(message)
@@ -130,24 +134,65 @@ class ArgumentParser(argparse.ArgumentParser):
 
 
 class Config:
+    def _dump_container(self, name, config):
+        result = f"{name}:\n"
+        for attr in dir(config):
+            if not attr.startswith("__"):
+                result += "  %s: %s\n" % (attr, getattr(config, attr))
+        return result
+
+    def dump(self):
+        result = ""
+        result += "branch: %s\n" % self.branch
+        result += "disable_update: %s\n" % self.disable_update
+        result += "external_ip: %s\n" % self.external_ip
+        result += "network: %s\n" % self.network
+        result += "home_dir: %s\n" % self.home_dir
+        result += "network_dir: %s\n" % self.network_dir
+        result += "backup_dir: %s\n" % self.backup_dir
+
+        for name, config in self.containers.items():
+            result += self._dump_container(name, config)
+
+        return result
+
     def __init__(self, args=None):
         self._logger = logging.getLogger(__name__ + ".Config")
 
         self.branch = "master"
         self.disable_update = False
         self.external_ip = None
-        self.home_dir = os.environ["HOME_DIR"]
         self.network = os.environ["NETWORK"]
+        self.home_dir = os.environ["HOME_DIR"]
         self.network_dir = os.environ["NETWORK_DIR"]
-        self.containers = networks[self.network]
         self.backup_dir = None
+        self.containers: Dict[str, Union[
+            BtcdConfig,
+            BitcoindConfig,
+            GethConfig,
+            LndConfig,
+            RaidenConfig,
+            XudConfig
+        ]] = networks[self.network]
+
+        self._logger.debug("Initial configurations\n%s", self.dump())
 
         self._parse_config_file()
+        self._logger.debug("Parsed config file\n%s", self.dump())
+
         if not args:
             args = sys.argv[1:]
         else:
             args = args.split()
         self._parse_command_line_arguments(args)
+        self._logger.debug("Parsed command line arguments\n%s", self.dump())
+
+        for c in self.containers.values():
+            c.dir = self._expand(c.dir)
+
+        if self.network in ["testnet", "mainnet"]:
+            geth: GethConfig = self.containers["geth"]
+            geth.ancient_chaindata_dir = self._expand(geth.ancient_chaindata_dir)
 
     def _parse_command_line_arguments(self, args):
         parser = ArgumentParser(argument_default=argparse.SUPPRESS, prog="launcher")
@@ -212,13 +257,13 @@ class Config:
                 self._logger.debug("Parsed %s config file: %r", network, parsed)
 
                 if "bitcoind" in parsed:
-                    merge_bitcoind(self.containers["bitcoind"], parsed["bitcoind"])
+                    self.containers["bitcoind"].update(parsed["bitcoind"])
 
                 if "litecoind" in parsed:
-                    merge_bitcoind(self.containers["litecoind"], parsed["litecoind"])
+                    self.containers["litecoind"].update(parsed["litecoind"])
 
                 if "geth" in parsed:
-                    merge_geth(self.containers["geth"], parsed["geth"])
+                    self.containers["geth"].update(parsed["geth"])
 
         except FileNotFoundError:
             copyfile(os.path.dirname(__file__) + f'/{network}.conf', config_file)
@@ -236,7 +281,7 @@ class Config:
             pass
 
     def _expand(self, value):
-        if value is None:
+        if not value:
             return None
         if isinstance(value, str):
             if "$home_dir" in value:

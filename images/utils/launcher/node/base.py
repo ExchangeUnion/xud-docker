@@ -172,46 +172,7 @@ class Node:
         # TODO external cli
         self._logger.debug("cli: %s", cmd)
         full_cmd = "%s %s" % (self._cli, cmd)
-        _, socket = self._container.exec_run(full_cmd, stdin=True, tty=True, socket=True)
-
-        shell.redirect_stdin(socket._sock)
-        try:
-            output = ""
-            pre_data = None
-            while True:
-                data = socket.read(1024)
-
-                if pre_data is not None:
-                    data = pre_data + data
-
-                if len(data) == 0:
-                    break
-
-                try:
-                    text = data.decode()
-                    pre_data = None
-                except:
-                    pre_data = data
-                    continue
-
-                text = self.cli_filter(cmd, text)
-                output += text
-
-                # Write text in chunks in case trigger BlockingIOError: could not complete without blocking
-                # because text is too large to fit the output buffer
-                # https://stackoverflow.com/questions/54185874/logging-chokes-on-blockingioerror-write-could-not-complete-without-blocking
-                i = 0
-                while i < len(text):
-                    os.write(sys.stdout.fileno(), text[i: i + 1024].encode())
-                    i = i + 1024
-                sys.stdout.flush()
-        finally:
-            shell.stop_redirect_stdin()
-
-        # TODO get exit code here
-        exception = self.extract_exception(cmd, output)
-        if exception:
-            raise exception
+        os.system(f"docker exec -it {self.container_name} {full_cmd}")
 
     def extract_exception(self, cmd, text):
         return None
@@ -266,11 +227,14 @@ class Node:
 
     def _compare_volumes(self, x, y):
         # FIXME better normalize volumes
-        x = [p["Source"] + ":" + p["Destination"] + ":" + p["Mode"] for p in x]
-        y = [key + ":" + value["bind"] + ":" + value["mode"] for key, value in y.items()]
-        if set(x) != set(y):
-            return set(x) - set(y), set(y) - set(x)
-        return None
+        try:
+            x = [p["Source"] + ":" + p["Destination"] + ":" + p["Mode"] for p in x]
+            y = [key + ":" + value["bind"] + ":" + value["mode"] for key, value in y.items()]
+            if set(x) != set(y):
+                return set(x) - set(y), set(y) - set(x)
+            return None
+        except:
+            self._logger.exception("compare volumes\nx --- %r\ny --- %r", x, y)
 
     def _compare_ports(self, x, y):
         # FIXME better normalize ports
@@ -281,14 +245,13 @@ class Node:
         return None
 
     def check_updates(self, images_check_result):
-        self._logger.debug("Checking container: %s", self.container_name)
+        self._logger.debug("Checking container %s", self.container_name)
         config = self._config.containers[self.name]
         assert config is not None
         try:
             container = self._client.containers.get(self.container_name)
 
-            # TODO make sure config __getitem__ return None if item not exists
-            if config["external"]:
+            if hasattr(config, "external") and config.external:
                 return "external_with_container", None
 
             attr = container.attrs
@@ -314,7 +277,7 @@ class Node:
                 return "outdated", details
 
         except NotFound:
-            if config["external"]:
+            if hasattr(config, "external") and config.external:
                 return "external", None
             return "missing", None
 

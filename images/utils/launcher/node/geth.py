@@ -21,7 +21,10 @@ class GethApi:
 class Geth(Node):
     def __init__(self, client: DockerClient, config: Config, name):
         super().__init__(client, config, name)
-        self.external = config.containers[name].external
+
+        geth_config = config.containers[name]
+
+        self.external = geth_config.external
         if self.external:
             c = config.containers[name]
             self.external_config = {
@@ -31,20 +34,22 @@ class Geth(Node):
                 "infura_project_secret": c.infura_project_secret,
             }
 
-        data_dir = config.containers[name].dir
-        ancient_chaindata_dir = config.containers[name].ancient_chaindata_dir
-        volumes = {
+        data_dir = geth_config.dir
+        self.container_spec.volumes.update({
             data_dir: {
                 'bind': '/root/.ethereum',
                 'mode': 'rw'
-            },
-            ancient_chaindata_dir: {
-                'bind': '/root/.ethereum/chaindata',
-                'mode': 'rw'
-            },
-        }
+            }
+        })
 
-        self.container_spec.volumes.update(volumes)
+        ancient_chaindata_dir = geth_config.ancient_chaindata_dir
+        if ancient_chaindata_dir:
+            self.container_spec.volumes.update({
+                ancient_chaindata_dir: {
+                    'bind': '/root/.ethereum/chaindata/ancient',
+                    'mode': 'rw'
+                }
+            })
 
         if self.network == "testnet":
             self._cli = "geth --testnet"
