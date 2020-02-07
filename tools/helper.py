@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
 
+import sys
 import os
+from os.path import dirname, abspath, join, isdir
 from argparse import ArgumentParser
 from configparser import ConfigParser
 from contextlib import contextmanager
 from functools import wraps
-from os.path import dirname, abspath, join, isdir
+import re
 
 
 def parse_versions():
@@ -64,12 +66,37 @@ def dir(new_dir):
     return inner_function
 
 
+def get_dockerfile(platform):
+    if platform == "linux/arm64":
+        f = "Dockerfile.aarch64"
+        if os.path.exists(f):
+            return f
+    return "Dockerfile"
+
+
 @dir(supportsdir)
-def build_xud_simnet():
-    os.system("docker build . -t xud-simnet")
+def build_xud_simnet(platform):
+    dockerfile = get_dockerfile(platform)
+    if platform:
+        cmd = "docker buildx build --platform {} . -t xud-simnet -f {} --progress plain --load".format(platform, dockerfile)
+    else:
+        cmd = "docker build . -t xud-simnet"
+
+    print()
+    print(cmd)
+    print()
+
+    exit_code = os.system(cmd)
+
+    if exit_code != 0:
+        exit(1)
+
+    if platform == "linux/arm64":
+        os.system("docker tag xud-simnet exchangeunion/xud-simnet-install")
+        os.system("docker push exchangeunion/xud-simnet-install")
 
 
-def build(image):
+def build(image, platform):
     print("-" * 80)
     print(":: Building %s ::" % image)
     print("-" * 80)
@@ -92,7 +119,7 @@ def build(image):
     }
     if image.endswith("-simnet"):
         tag = "{}/{}".format(tagprefix, image)
-        build_xud_simnet()
+        build_xud_simnet(platform)
     else:
         if image in versions["application"]:
             version = versions["application"][image]
@@ -110,23 +137,33 @@ def build(image):
 
         tag = "{}/{}:{}".format(tagprefix, image, tagsuffix)
 
-    used_args = os.popen("cat %s/Dockerfile | sed -nE 's/ARG (.+)/\\1/p'" % image).read().splitlines()
+    os.chdir(image)
+    try:
+        dockerfile = get_dockerfile(platform)
+        with open(dockerfile) as f:
+            p = re.compile(r"^ARG (.+)$", re.MULTILINE)
+            used_args = p.findall(f.read())
 
-    build_args = {k: v for k, v in build_args.items() if k in used_args}
-    build_args = ["--build-arg %s=%s" % (k, v) for k, v in build_args.items()]
+        build_args = {k: v for k, v in build_args.items() if k in used_args}
+        build_args = ["--build-arg %s=%s" % (k, v) for k, v in build_args.items()]
 
-    args = [
-        "-t {}".format(tag),
-        image,
-        " ".join(build_args),
-        " ".join(labels),
-    ]
-    build_cmd = "docker build {}".format(" ".join(args))
-    print()
-    print(build_cmd)
-    print()
-    os.system(build_cmd)
-    print()
+        args = [
+            "-t {}".format(tag),
+            " ".join(build_args),
+            " ".join(labels),
+        ]
+
+        if platform:
+            build_cmd = "docker buildx build --platform {} --progress plain --load -f {} {} .".format(platform, dockerfile, " ".join(args))
+        else:
+            build_cmd = "docker build {} .".format(" ".join(args))
+        print()
+        print(build_cmd)
+        print()
+        os.system(build_cmd)
+        print()
+    finally:
+        os.chdir("..")
 
 
 def push(image):
@@ -162,6 +199,7 @@ def main():
     subparsers = parser.add_subparsers(dest="command")
 
     build_parser = subparsers.add_parser("build")
+    build_parser.add_argument("--platform", type=str)
     build_parser.add_argument("images", type=str, nargs="*")
 
     push_parser = subparsers.add_parser("push")
@@ -183,7 +221,7 @@ def main():
         else:
             x = list(filter(lambda i: i in images, args.images))
         for image in x:
-            build(image)
+            build(image, args.platform)
     elif args.command == "push":
         if len(args.images) == 0:
             x = images
