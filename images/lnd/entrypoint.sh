@@ -19,12 +19,21 @@ if [[ ! -e $LND_DIR/lnd.conf ]]; then
   fi
 fi
 
+NEUTRINO=${NEUTRINO:-}
+
+if [ ! -z ${NEUTRINO} ]; then
+  echo "[DEBUG] Enabling neutrino"
+  sed -i "s/bitcoin.node=bitcoind/bitcoin.node=neutrino/g" $LND_DIR/lnd.conf
+fi
+
 set +e
+
 [[ -n ${RPCHOST:-} ]] && sed -i "s/rpchost.*/rpchost=$RPCHOST/g" $LND_DIR/lnd.conf
 [[ -n ${RPCUSER:-} ]] && sed -i "s/rpcuser.*/rpcuser=$RPCUSER/g" $LND_DIR/lnd.conf
 [[ -n ${RPCPASS:-} ]] && sed -i "s/rpcpass.*/rpcpass=$RPCPASS/g" $LND_DIR/lnd.conf
 [[ -n ${ZMQPUBRAWBLOCK:-} ]] && sed -i "s|zmqpubrawblock.*|zmqpubrawblock=$ZMQPUBRAWBLOCK|g" $LND_DIR/lnd.conf
 [[ -n ${ZMQPUBRAWTX:-} ]] && sed -i "s|zmqpubrawtx.*|zmqpubrawtx=$ZMQPUBRAWTX|g" $LND_DIR/lnd.conf
+
 set -e
 
 LND_HOSTNAME="$HOME/.lnd/tor/hostname"

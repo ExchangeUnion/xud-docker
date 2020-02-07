@@ -8,6 +8,7 @@ from shutil import copyfile
 TESTNET = {
     "bitcoind": {
         "dir": "$testnet_dir/data/bitcoind",
+        "neutrino": False,
         "external": False,
         "rpc_host": "127.0.0.1",
         "rpc_port": 18332,
@@ -40,6 +41,7 @@ TESTNET = {
 MAINNET = {
     "bitcoind": {
         "dir": "$mainnet_dir/data/bitcoind",
+        "neutrino": False,
         "external": False,
         "rpc_host": "127.0.0.1",
         "rpc_port": 8332,
@@ -102,7 +104,7 @@ class Containers:
 
 
 def merge_bitcoind(container, parsed):
-    keys = ["dir", "external", "rpc_host", "rpc_port", "rpc_user", "rpc_password", "zmqpubrawblock", "zmqpubrawtx"]
+    keys = ["dir", "neutrino", "external", "rpc_host", "rpc_port", "rpc_user", "rpc_password", "zmqpubrawblock", "zmqpubrawtx"]
     for key in keys:
         container[key] = parsed.get(key.replace("_", "-"), None)
     container["rpc_port"] = int(container["rpc_port"])
