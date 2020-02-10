@@ -22,8 +22,19 @@ fi
 NEUTRINO=${NEUTRINO:-}
 
 if [ ! -z ${NEUTRINO} ]; then
+  PEERS="[neutrino]\n"
+
+  case $NETWORK in
+    testnet)
+      PEERS="${PEERS}neutrino.addpeer=159.203.125.125:18333\nneutrino.addpeer=159.203.125.125:18333"
+      ;;
+    mainnet)
+      PEERS="${PEERS}neutrino.addpeer=78.46.126.167:8333\nneutrino.addpeer=144.76.68.78:8333"
+      ;;
+  esac
+
   echo "[DEBUG] Enabling neutrino"
-  sed -i "s/bitcoin.node=bitcoind/bitcoin.node=neutrino/g" $LND_DIR/lnd.conf
+  sed -i "s/bitcoin.node=bitcoind/bitcoin.node=neutrino\n\n${PEERS}/g" $LND_DIR/lnd.conf
 fi
 
 set +e
