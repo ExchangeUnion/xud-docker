@@ -56,14 +56,14 @@ function choose_network() {
 function ensure_utils_image() {
     UTILS_IMAGE="exchangeunion/utils"
 
-    if [[ $BRANCH != "master" ]]; then
-        UTILS_IMAGE="exchangeunion/utils:latest__${BRANCH//\//-}"
-    fi
-
-    if ! docker pull "$UTILS_IMAGE" >/dev/null 2>&1; then
-        echo >&2 "Failed to pull $UTILS_IMAGE"
-        exit 1
-    fi
+#    if [[ $BRANCH != "master" ]]; then
+#        UTILS_IMAGE="exchangeunion/utils:latest__${BRANCH//\//-}"
+#    fi
+#
+#    if ! docker pull "$UTILS_IMAGE" >/dev/null 2>&1; then
+#        echo >&2 "Failed to pull $UTILS_IMAGE"
+#        exit 1
+#    fi
 }
 
 # shellcheck disable=SC2068
@@ -84,7 +84,6 @@ choose_network
 echo "🚀 Launching $NETWORK environment"
 
 HOME_DIR=$HOME/.xud-docker
-BACKUP_DIR=""
 
 if [[ ! -e $HOME_DIR ]]; then
     mkdir "$HOME_DIR"
@@ -96,6 +95,7 @@ fi
 eval "$(docker run --rm \
 -v /var/run/docker.sock:/var/run/docker.sock \
 -v "$HOME_DIR":/root/.xud-docker \
+-v /:/mnt/hostfs \
 -e HOME_DIR="$HOME_DIR" \
 -e NETWORK="$NETWORK" \
 --entrypoint config_parser \
@@ -103,19 +103,6 @@ $UTILS_IMAGE \
 $@)"
 
 NETWORK_DIR=$(realpath "$NETWORK_DIR")
-
-if [ ! -z "$BACKUP_DIR" ] && [[ ! -e $BACKUP_DIR ]]; then
-    read -p "$BACKUP_DIR does not exist, would you like to create this directory? [Y/n] " -n 1 -r
-    if [[ -n $REPLY ]]; then
-        echo
-    fi
-
-    if [[ $REPLY =~ ^[Yy[:space:]]$ || -z $REPLY ]]; then
-        mkdir -p "$BACKUP_DIR"
-    else
-        exit 1
-    fi
-fi
 
 if [[ ! -e $NETWORK_DIR ]]; then
     read -p "$NETWORK_DIR does not exist, would you like to create this directory? [Y/n] " -n 1 -r

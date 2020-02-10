@@ -35,6 +35,10 @@ class ContainersCheckAbortion(Exception):
     pass
 
 
+class BackupDirNotAvailable(Exception):
+    pass
+
+
 class ContainerNotFound(Exception):
     def __init__(self, container):
         super().__init__(container)
@@ -604,6 +608,61 @@ your issue.""")
         if not ok:
             raise Exception("Failed to restore wallets")
 
+    def check_backup_dir(self, backup_dir):
+        if not os.path.exists(backup_dir):
+            return False
+
+        if not os.path.isdir(backup_dir):
+            return False
+
+        if not os.access(backup_dir, os.R_OK):
+            return False
+
+        if not os.access(backup_dir, os.W_OK):
+            return False
+
+        return True
+
+
+    def persist_backup_dir(self, backup_dir):
+        network = self.network
+        config_file = f"/root/.xud-docker/{network}/{network}.conf"
+
+        exit_code = os.system("grep {config_file} backup-dir")
+
+        if exit_code == 0:
+            os.system(f"sed 's/backup-dir/backup-dir={backup_dir}' {config_file}")
+        else:
+            with open(config_file, 'a') as f:
+                f.write("# The path to the directory to store your backup in. This should be located on an external drive, which usually is mounted in /mnt or /media.\n")
+                host_backup_dir = backup_dir.replace("/mnt/hostfs", "")
+                f.write(f"xud_backup = \"{host_backup_dir}\"")
+
+    def setup_backup_dir(self):
+        while True:
+            reply: str = self._shell.input("Enter path to backup location: ")
+            if reply.startswith("/"):
+                backup_dir = "/mnt/hostfs" + reply
+            else:
+                backup_dir = "/mnt/hostfs/" + reply
+
+            print("Checking... ", end="")
+            if self.check_backup_dir(backup_dir):
+                print("OK.")
+                self.persist_backup_dir(backup_dir)
+                break
+            else:
+                print("Failed. ", end="")
+                sys.stdout.flush()
+                r = self._shell.input("Retry? [y/N] ")
+                if r == "n" or r == "N" or r == "":
+                    raise BackupDirNotAvailable()
+
+        self._config.backup_dir = backup_dir
+
+    def is_backup_dir_set(self):
+        return self._config.backup_dir is not None
+
     def check_wallets(self):
         lndbtc = self._containers.get("lndbtc")
         lndltc = self._containers.get("lndltc")
@@ -619,6 +678,19 @@ your issue.""")
                 self.xucli_create_wrapper(xud)
             else:
                 self.xucli_restore_wrapper(xud)
+
+            print("Please enter a path to a destination where to store a backup of "
+                  "your environment. It includes everything, but NOT your wallet "
+                  "balance which is secured by your XUD SEED. The path should be an"
+                  " external drive, like a USB or network drive, which is "
+                  "permanently available on your device since backups are written "
+                  "constantly.")
+
+            self.setup_backup_dir()
+        else:
+            if not self.is_backup_dir_set():
+                print("Backup location not available.")
+                self.setup_backup_dir()
 
     def wait_for_channels(self):
         # TODO wait for channels
@@ -655,6 +727,8 @@ class Launcher:
         except KeyboardInterrupt:
             print()
             exit_code = 2
+        except BackupDirNotAvailable:
+            exit_code = 3
         except ArgumentError as e:
             print(f"❌ {e}")
         except:
