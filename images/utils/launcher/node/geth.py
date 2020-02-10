@@ -55,7 +55,7 @@ class Geth(Node):
 
     @property
     def image(self):
-        return "exchangeunion/geth:1.9.9"
+        return "exchangeunion/geth:1.9.10"
 
     def start(self):
         if self.external:
