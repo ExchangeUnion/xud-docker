@@ -143,8 +143,13 @@ class Config:
         self.home_dir = os.environ["HOME_DIR"]
         self.network = os.environ["NETWORK"]
         self.network_dir = os.environ["NETWORK_DIR"]
+        self.backup_dir = os.environ["BACKUP_DIR"]
+        if self.backup_dir == "":
+            self.backup_dir = None
+        self.restore_dir = os.environ["RESTORE_DIR"]
+        if self.restore_dir == "":
+            self.restore_dir = None
         self.containers = Containers(self.network, self._expand)
-        self.backup_dir = None
 
     def parse(self):
         self._parse_config_file()
@@ -159,6 +164,7 @@ class Config:
         parser.add_argument("--mainnet-dir")
         parser.add_argument("--external-ip")
         parser.add_argument("--backup-dir")
+        parser.add_argument("--restore-dir")
         parser.add_argument("--bitcoin-neutrino", type=bool)
 
         self._args = parser.parse_args()
@@ -172,9 +178,6 @@ class Config:
 
         if hasattr(self._args, "external_ip"):
             self.external_ip = self._args.external_ip
-
-        if hasattr(self._args, "backup_dir"):
-            self.backup_dir = self._args.backup_dir
 
         if hasattr(self._args, "bitcoin_neutrino"):
             self.containers["bitcoind"]["neutrino"] = self._args.bitcoin_neutrino

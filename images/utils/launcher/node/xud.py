@@ -74,15 +74,11 @@ class Xud(Node):
                 'bind': '/root/.raiden',
                 'mode': 'rw'
             },
-            f"{self.network_dir}/data/raiden": {
-                'bind': '/root/.raiden',
-                'mode': 'rw'
-            },
         }
 
         if config.backup_dir:
-            volumes[config.backup_dir] = {
-                'bind': '/root/.xud-backup',
+            volumes["/"] = {
+                'bind': '/mnt/hostfs',
                 'mode': 'rw'
             }
 

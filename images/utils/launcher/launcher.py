@@ -39,6 +39,10 @@ class BackupDirNotAvailable(Exception):
     pass
 
 
+class RestoreDirNotAvailable(Exception):
+    pass
+
+
 class ContainerNotFound(Exception):
     def __init__(self, container):
         super().__init__(container)
@@ -596,9 +600,7 @@ your issue.""")
         ok = False
         while counter < 3:
             try:
-                command = "restore"
-                if self._config.backup_dir:
-                    command += " /root/.xud-backup"
+                command = f"restore /mnt/hostfs/{self._config.restore_dir}"
                 xud.cli(command, self._shell)
                 ok = True
                 break
@@ -623,6 +625,20 @@ your issue.""")
 
         return True
 
+    def check_restore_dir(self, backup_dir):
+        if not os.path.exists(backup_dir):
+            return False
+
+        if not os.path.isdir(backup_dir):
+            return False
+
+        if not os.access(backup_dir, os.R_OK):
+            return False
+
+        if not os.access(backup_dir, os.W_OK):
+            return False
+
+        return True
 
     def persist_backup_dir(self, backup_dir):
         network = self.network
@@ -631,7 +647,7 @@ your issue.""")
         exit_code = os.system("grep {config_file} backup-dir")
 
         if exit_code == 0:
-            os.system(f"sed 's/backup-dir/backup-dir={backup_dir}' {config_file}")
+            os.system(f"sed -Ei 's/^.*backup-dir = .*$/backup-dir = {backup_dir}' {config_file}")
         else:
             with open(config_file, 'a') as f:
                 f.write("# The path to the directory to store your backup in. This should be located on an external drive, which usually is mounted in /mnt or /media.\n")
@@ -639,14 +655,19 @@ your issue.""")
                 f.write(f"xud_backup = \"{host_backup_dir}\"")
 
     def setup_backup_dir(self):
+        if self._config.backup_dir:
+            self._config.backup_dir = "/mnt/hostfs" + self._config.backup_dir
+            return
+
         while True:
             reply: str = self._shell.input("Enter path to backup location: ")
             if reply.startswith("/"):
                 backup_dir = "/mnt/hostfs" + reply
             else:
-                backup_dir = "/mnt/hostfs/" + reply
+                backup_dir = "/mnt/hostfs" + os.environ["HOST_PWD"] + "/" + reply
 
             print("Checking... ", end="")
+            sys.stdout.flush()
             if self.check_backup_dir(backup_dir):
                 print("OK.")
                 self.persist_backup_dir(backup_dir)
@@ -663,6 +684,32 @@ your issue.""")
     def is_backup_dir_set(self):
         return self._config.backup_dir is not None
 
+    def setup_restore_dir(self):
+        if self._config.restore_dir:
+            self._config.restore_dir = "/mnt/hostfs" + self._config.restore_dir
+            return
+
+        while True:
+            reply: str = self._shell.input("Enter path to restore location: ")
+            if reply.startswith("/"):
+                restore_dir = "/mnt/hostfs" + reply
+            else:
+                restore_dir = "/mnt/hostfs" + os.environ["HOST_PWD"] + "/" + reply
+
+            print("Checking... ", end="")
+            sys.stdout.flush()
+            if self.check_restore_dir(restore_dir):
+                print("OK.")
+                break
+            else:
+                print("Failed. ", end="")
+                sys.stdout.flush()
+                r = self._shell.input("Retry? [y/N] ")
+                if r == "n" or r == "N" or r == "":
+                    raise RestoreDirNotAvailable()
+
+        self._config.restore_dir = restore_dir
+
     def check_wallets(self):
         lndbtc = self._containers.get("lndbtc")
         lndltc = self._containers.get("lndltc")
@@ -677,6 +724,7 @@ your issue.""")
             if reply == "1":
                 self.xucli_create_wrapper(xud)
             else:
+                self.setup_restore_dir()
                 self.xucli_restore_wrapper(xud)
 
             print("Please enter a path to a destination where to store a backup of "
@@ -729,6 +777,8 @@ class Launcher:
             exit_code = 2
         except BackupDirNotAvailable:
             exit_code = 3
+        except RestoreDirNotAvailable:
+            exit_code = 4
         except ArgumentError as e:
             print(f"❌ {e}")
         except:

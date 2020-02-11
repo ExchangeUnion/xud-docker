@@ -15,6 +15,7 @@ home_dir = os.environ["HOME_DIR"]
 network = os.environ["NETWORK"]
 network_dir = home_dir + "/" + network
 backup_dir = None
+restore_dir = None
 
 copyfile("/usr/local/lib/python3.8/site-packages/launcher/config/xud-docker.conf", "/root/.xud-docker/sample-xud-docker.conf")
 
@@ -31,13 +32,20 @@ except:
 parser = argparse.ArgumentParser(argument_default=argparse.SUPPRESS)
 parser.add_argument(f"--{network}-dir")
 parser.add_argument(f"--backup-dir")
+parser.add_argument(f"--restore-dir")
 args, unknown = parser.parse_known_args()
 
 if hasattr(args, f"{network}_dir"):
     network_dir = getattr(args, f"{network}_dir")
 if hasattr(args, "backup_dir"):
     backup_dir = getattr(args, "backup_dir")
+if hasattr(args, "restore_dir"):
+    restore_dir = getattr(args, "restore_dir")
 
 print(f"NETWORK_DIR={network_dir}")
-if backup_dir:
-    print(f"BACKUP_DIR={backup_dir}")
+if not backup_dir:
+    backup_dir = ""
+print(f"BACKUP_DIR={backup_dir}")
+if not restore_dir:
+    restore_dir = ""
+print(f"RESTORE_DIR={restore_dir}")
