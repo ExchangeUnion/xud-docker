@@ -625,17 +625,17 @@ your issue.""")
 
         return True
 
-    def check_restore_dir(self, backup_dir):
-        if not os.path.exists(backup_dir):
+    def check_restore_dir(self, restore_dir):
+        if not os.path.exists(restore_dir):
             return False
 
-        if not os.path.isdir(backup_dir):
+        if not os.path.isdir(restore_dir):
             return False
 
-        if not os.access(backup_dir, os.R_OK):
+        if not os.access(restore_dir, os.R_OK):
             return False
 
-        if not os.access(backup_dir, os.W_OK):
+        if not os.access(restore_dir, os.W_OK):
             return False
 
         return True
@@ -644,15 +644,16 @@ your issue.""")
         network = self.network
         config_file = f"/root/.xud-docker/{network}/{network}.conf"
 
-        exit_code = os.system("grep {config_file} backup-dir")
+        exit_code = os.system("grep -q {config_file} backup-dir >/dev/null 2>&1")
 
         if exit_code == 0:
             os.system(f"sed -Ei 's/^.*backup-dir = .*$/backup-dir = {backup_dir}' {config_file}")
         else:
             with open(config_file, 'a') as f:
+                f.write("\n")
                 f.write("# The path to the directory to store your backup in. This should be located on an external drive, which usually is mounted in /mnt or /media.\n")
                 host_backup_dir = backup_dir.replace("/mnt/hostfs", "")
-                f.write(f"xud_backup = \"{host_backup_dir}\"")
+                f.write(f"xud_backup = \"{host_backup_dir}\"\n")
 
     def setup_backup_dir(self):
         if self._config.backup_dir:

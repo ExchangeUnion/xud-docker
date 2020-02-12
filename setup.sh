@@ -154,6 +154,7 @@ docker run --rm -it \
 -v /var/run/docker.sock:/var/run/docker.sock \
 -v "$HOME_DIR":/root/.xud-docker \
 -v "$NETWORK_DIR":/root/.xud-docker/$NETWORK \
+-v /:/mnt/hostfs \
 -e HOST_PWD="$PWD" \
 -e HOME_DIR="$HOME_DIR" \
 -e NETWORK="$NETWORK" \
