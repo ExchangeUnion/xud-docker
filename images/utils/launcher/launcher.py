@@ -600,7 +600,7 @@ your issue.""")
         ok = False
         while counter < 3:
             try:
-                command = f"restore /mnt/hostfs/{self._config.restore_dir}"
+                command = f"restore {self._config.restore_dir}"
                 xud.cli(command, self._shell)
                 ok = True
                 break
