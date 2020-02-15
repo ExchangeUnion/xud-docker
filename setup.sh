@@ -53,6 +53,8 @@ function choose_network() {
     shopt -u nocasematch
 }
 
+DOCKER_REGISTRY="https://registry-1.docker.io"
+
 function get_token() {
     curl -sf "https://auth.docker.io/token?service=registry.docker.io&scope=repository:$1:pull" | sed -E 's/^.*"token":"([^,]*)",.*$/\1/g'
 }
@@ -64,7 +66,7 @@ function get_image_metadata() {
     NAME=$(echo "$1" | cut -d':' -f1)
     TAG=$(echo "$1" | cut -d':' -f2)
     TOKEN=$(get_token "$NAME")
-    curl -sf -H "Authorization: Bearer $TOKEN" "https://registry-1.docker.io/v2/$NAME/manifests/$TAG"
+    curl -sf -H "Authorization: Bearer $TOKEN" "$DOCKER_REGISTRY/v2/$NAME/manifests/$TAG"
 }
 
 function get_cloud_image() {
@@ -89,28 +91,70 @@ function get_local_image() {
     docker image inspect -f '{{index .Config.Labels "com.exchangeunion.image.created"}}' "$1"
 }
 
+function get_image_without_branch() {
+    echo "$1" | sed -E 's/__.*//g'
+}
+
+function get_pull_image() {
+    if docker image inspect "$1" >/dev/null 2>&1; then
+        echo "$2"
+    fi
+}
+
 function get_image_status() {
-    # possible return values: up-to-date, outdated, newer, missing, local-only
+    # possible return values: up-to-date, outdated, newer, missing
     local LOCAL CLOUD
     local L_SHA256 C_SHA256
     local L_CREATED C_CREATED
-    LOCAL=$(get_local_image "$1")
+    local M_IMG # master branch image (name)
+    local B_IMG # branch image
+    local P_IMG # pulling image
+    local U_IMG # use image
+
+    if [[ $BRANCH == "master" ]]; then
+        B_IMG="$1"
+    else
+        B_IMG="${1}__${BRANCH//\//-}"
+    fi
+
+    P_IMG=$B_IMG
+
+    CLOUD=$(get_cloud_image "$B_IMG")
+    echo -e "get_cloud_image $B_IMG\n$CLOUD" >> "$LOGFILE"
+
+    if [[ -z $CLOUD ]]; then
+        if [[ $B_IMG =~ __ ]]; then
+            M_IMG=$(get_image_without_branch "$B_IMG")
+            CLOUD=$(get_cloud_image "$M_IMG")
+            echo -e "get_cloud_image $M_IMG\n$CLOUD" >> "$LOGFILE"
+            if [[ -z $CLOUD ]]; then
+                echo >&2 "❌ Image not found in $DOCKER_REGISTRY: $B_IMG, $M_IMG"
+                exit 1
+            else
+                P_IMG=$M_IMG
+            fi
+        else
+            echo >&2 "❌ Image not found in $DOCKER_REGISTRY: $B_IMG"
+            exit 1
+        fi
+    fi
+
+    C_SHA256=$(echo "$CLOUD" | sed -n '1p')
+    U_IMG=$P_IMG
+    P_IMG=$(get_pull_image "$C_SHA256" "$P_IMG")
+
+    LOCAL=$(get_local_image "$B_IMG")
     if [[ -z $LOCAL ]]; then
-        echo "missing"
+        echo "missing $B_IMG $U_IMG $P_IMG"
         return
     fi
 
-    CLOUD=$(get_cloud_image "$1")
-    if [[ -z $CLOUD ]]; then
-        echo "local-only"
-        return
-    fi
+    echo -e "get_local_image $B_IMG\n$LOCAL" >> "$LOGFILE"
 
     L_SHA256=$(echo "$LOCAL" | sed -n '1p')
-    C_SHA256=$(echo "$CLOUD" | sed -n '1p')
 
     if [[ $L_SHA256 == "$C_SHA256" ]]; then
-        echo "up-to-date"
+        echo "up-to-date $B_IMG $U_IMG $P_IMG"
         return
     fi
 
@@ -118,9 +162,9 @@ function get_image_status() {
     C_CREATED=$(echo "$CLOUD" | sed -n '2p')
 
     if [[ $L_CREATED > $C_CREATED ]]; then
-        echo "newer"
+        echo "newer $B_IMG $U_IMG $P_IMG"
     else
-        echo "outdated"
+        echo "outdated $B_IMG $U_IMG $P_IMG"
     fi
 }
 
@@ -132,83 +176,37 @@ function pull_image() {
     fi
 }
 
-function retag_branch_image() {
-    local IMG
-    if [[ $1 =~ __ ]]; then
-        IMG=$(echo "$1" | sed -E 's/__.*//g')
-        if ! docker tag "$1" "$IMG" >/dev/null 2>&1; then
-            echo >&2 "❌ Failed to re-tag image from $1 to $IMG"
-            exit 1
-        fi
-    fi
-}
-
 function ensure_utils_image() {
-    local P_IMG # The image to pull
     local STATUS
+    local B_IMG # branch image
+    local P_IMG # pulling image
+    local U_IMG # use image
 
-    if [[ $BRANCH == "master" ]]; then
-        P_IMG="exchangeunion/utils:latest"
-    else
-        P_IMG="exchangeunion/utils:latest__${BRANCH//\//-}"
+    read -r STATUS B_IMG U_IMG P_IMG <<<"$(get_image_status "exchangeunion/utils:latest")"
+    if [[ -z $U_IMG ]]; then
+        exit 1
     fi
-
-    STATUS=$(get_image_status "$P_IMG")
+    echo "STATUS=$STATUS" >> "$LOGFILE"
+    echo "B_IMG=$B_IMG" >> "$LOGFILE"
+    echo "U_IMG=$U_IMG" >> "$LOGFILE"
+    echo "P_IMG=$P_IMG" >> "$LOGFILE"
 
     case $STATUS in
         missing|outdated)
-            pull_image "$P_IMG"
+            if [[ -n $P_IMG ]]; then
+                pull_image "$P_IMG"
+                if [[ $BRANCH != "master" && ! $P_IMG =~ __ ]]; then
+                    echo "Warning: Branch image $B_IMG not found. Fallback to $P_IMG"
+                fi
+            fi
+            ;;
+        newer)
+            echo "Warning: Use local $B_IMG (newer than $P_IMG)"
             ;;
     esac
 
-    retag_branch_image "$P_IMG"
+    UTILS_IMG=$U_IMG
 }
-
-# shellcheck disable=SC2068
-parse_branch $@
-
-ensure_utils_image
-
-# shellcheck disable=SC2068
-# shellcheck disable=SC2086
-docker run --rm \
--e PROG="$0" \
---entrypoint args_parser \
-exchangeunion/utils \
-$@
-
-choose_network
-
-echo "🚀 Launching $NETWORK environment"
-
-HOME_DIR=$HOME/.xud-docker
-
-if [[ ! -e $HOME_DIR ]]; then
-    mkdir "$HOME_DIR"
-fi
-
-# shellcheck disable=SC2068
-# shellcheck disable=SC2086
-# NETWORK_DIR, BACKUP_DIR and RESTORE_DIR will be evaluated after running the command below
-VARS="$(docker run --rm \
--v /var/run/docker.sock:/var/run/docker.sock \
--v "$HOME_DIR":/root/.xud-docker \
--v /:/mnt/hostfs \
--e HOME_DIR="$HOME_DIR" \
--e NETWORK="$NETWORK" \
---entrypoint config_parser \
-exchangeunion/utils \
-$@)"
-
-eval "$VARS"
-
-NETWORK_DIR=$(realpath "$NETWORK_DIR")
-if [[ -n $BACKUP_DIR ]]; then
-    BACKUP_DIR=$(realpath "$BACKUP_DIR")
-fi
-if [[ -n $RESTORE_DIR ]]; then
-    RESTORE_DIR=$(realpath "$RESTORE_DIR")
-fi
 
 function ensure_directory() {
     if [[ -z $1 ]]; then
@@ -243,9 +241,88 @@ function ensure_directory() {
     fi
 }
 
+###############################################################################
+# MAIN
+###############################################################################
+
+if [[ ! -e $HOME/.xud-docker ]]; then
+    mkdir "$HOME/.xud-docker"
+fi
+
+LOGFILE=$(mktemp -t "xud-docker")
+
+trap "{ rm -f $LOGFILE; }" EXIT
+
+echo "--------------------------------------------------------------------------------" > "$LOGFILE"
+echo ":: XUD-DOCKER ::" >> "$LOGFILE"
+echo "--------------------------------------------------------------------------------" >> "$LOGFILE"
+
+date >> "$LOGFILE"
+echo "" >> "$LOGFILE"
+
+uname -a >> "$LOGFILE"
+echo "" >> "$LOGFILE"
+
+bash --version >> "$LOGFILE"
+echo "" >> "$LOGFILE"
+
+docker version >> "$LOGFILE"
+echo "" >> "$LOGFILE"
+
+echo "$*" >> "$LOGFILE"
+echo "" >> "$LOGFILE"
+
+# shellcheck disable=SC2068
+parse_branch $@
+
+ensure_utils_image
+
+# shellcheck disable=SC2068
+# shellcheck disable=SC2086
+docker run --rm \
+-e PROG="$0" \
+--entrypoint args_parser \
+"$UTILS_IMG" \
+$@
+
+choose_network
+
+echo "🚀 Launching $NETWORK environment"
+
+HOME_DIR=$HOME/.xud-docker
+
+if [[ ! -e $HOME_DIR ]]; then
+    mkdir "$HOME_DIR"
+fi
+
+# shellcheck disable=SC2068
+# shellcheck disable=SC2086
+# NETWORK_DIR, BACKUP_DIR and RESTORE_DIR will be evaluated after running the command below
+VARS="$(docker run --rm \
+-v /var/run/docker.sock:/var/run/docker.sock \
+-v "$HOME_DIR":/root/.xud-docker \
+-v /:/mnt/hostfs \
+-e HOME_DIR="$HOME_DIR" \
+-e NETWORK="$NETWORK" \
+--entrypoint config_parser \
+"$UTILS_IMG" \
+$@)"
+
+eval "$VARS"
+
+NETWORK_DIR=$(realpath "$NETWORK_DIR")
+if [[ -n $BACKUP_DIR ]]; then
+    BACKUP_DIR=$(realpath "$BACKUP_DIR")
+fi
+if [[ -n $RESTORE_DIR ]]; then
+    RESTORE_DIR=$(realpath "$RESTORE_DIR")
+fi
+
 ensure_directory "$NETWORK_DIR"
 ensure_directory "$BACKUP_DIR"
 ensure_directory "$RESTORE_DIR"
+
+cat "$LOGFILE" > "$NETWORK_DIR/${NETWORK}.log"
 
 # shellcheck disable=SC2068
 # shellcheck disable=SC2086
@@ -262,5 +339,5 @@ docker run --rm -it \
 -e BACKUP_DIR="$BACKUP_DIR" \
 -e RESTORE_DIR="$RESTORE_DIR" \
 --entrypoint python \
-exchangeunion/utils \
+"$UTILS_IMG" \
 -m launcher $@
