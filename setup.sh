@@ -56,14 +56,14 @@ function choose_network() {
 function ensure_utils_image() {
     UTILS_IMAGE="exchangeunion/utils"
 
-#    if [[ $BRANCH != "master" ]]; then
-#        UTILS_IMAGE="exchangeunion/utils:latest__${BRANCH//\//-}"
-#    fi
-#
-#    if ! docker pull "$UTILS_IMAGE" >/dev/null 2>&1; then
-#        echo >&2 "Failed to pull $UTILS_IMAGE"
-#        exit 1
-#    fi
+    if [[ $BRANCH != "master" ]]; then
+        UTILS_IMAGE="exchangeunion/utils:latest__${BRANCH//\//-}"
+    fi
+
+    if ! docker pull "$UTILS_IMAGE" >/dev/null 2>&1; then
+        echo >&2 "Failed to pull $UTILS_IMAGE"
+        exit 1
+    fi
 }
 
 # shellcheck disable=SC2068
@@ -92,7 +92,7 @@ fi
 # shellcheck disable=SC2068
 # shellcheck disable=SC2086
 # NETWORK_DIR, BACKUP_DIR and RESTORE_DIR will be evaluated after running the command below
-eval "$(docker run --rm \
+VARS="$(docker run --rm \
 -v /var/run/docker.sock:/var/run/docker.sock \
 -v "$HOME_DIR":/root/.xud-docker \
 -v /:/mnt/hostfs \
@@ -101,6 +101,8 @@ eval "$(docker run --rm \
 --entrypoint config_parser \
 $UTILS_IMAGE \
 $@)"
+
+eval "$VARS"
 
 NETWORK_DIR=$(realpath "$NETWORK_DIR")
 if [[ -n $BACKUP_DIR ]]; then
