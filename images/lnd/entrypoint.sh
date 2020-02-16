@@ -26,7 +26,7 @@ if [ ! -z ${NEUTRINO} ]; then
 
   case $NETWORK in
     testnet)
-      PEERS="${PEERS}neutrino.addpeer=159.203.125.125:18333\nneutrino.addpeer=159.203.125.125:18333"
+      PEERS="${PEERS}neutrino.addpeer=159.203.125.125:18333\nneutrino.addpeer=64.79.152.132:18333"
       ;;
     mainnet)
       PEERS="${PEERS}neutrino.addpeer=78.46.126.167:8333\nneutrino.addpeer=144.76.68.78:8333"
