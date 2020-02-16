@@ -159,6 +159,7 @@ class Config:
         parser.add_argument("--mainnet-dir")
         parser.add_argument("--external-ip")
         parser.add_argument("--backup-dir")
+        parser.add_argument("--bitcoin-neutrino", type=bool)
 
         self._args = parser.parse_args()
         self._logger.debug("Parsed command-line arguments: %r", self._args)
@@ -174,6 +175,9 @@ class Config:
 
         if hasattr(self._args, "backup_dir"):
             self.backup_dir = self._args.backup_dir
+
+        if hasattr(self._args, "bitcoin_neutrino"):
+            self.containers["bitcoind"]["neutrino"] = self._args.bitcoin_neutrino
 
     def _parse_config_file(self):
         network = self.network
