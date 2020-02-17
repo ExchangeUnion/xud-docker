@@ -253,7 +253,8 @@ fi
 
 ensure_directory "$HOME_DIR"
 
-LOGFILE=$(touch "$HOME_DIR/xud-docker-$(date +%s).log")
+LOGFILE="$HOME_DIR/xud-docker-$(date +%s).log"
+touch "$LOGFILE"
 
 echo "--------------------------------------------------------------------------------" >> "$LOGFILE"
 echo ":: XUD-DOCKER ::" >> "$LOGFILE"
