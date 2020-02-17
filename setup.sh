@@ -245,11 +245,13 @@ function ensure_directory() {
 # MAIN
 ###############################################################################
 
-if [[ ! -e $HOME/.xud-docker ]]; then
-    mkdir "$HOME/.xud-docker"
+HOME_DIR="$HOME/.xud-docker"
+
+if [[ ! -e $HOME_DIR ]]; then
+    mkdir "$HOME_DIR"
 fi
 
-LOGFILE=$(mktemp -t "xud-docker")
+LOGFILE=$(touch "$HOME_DIR/xud-docker-$(date +%s).log")
 
 trap "{ rm -f $LOGFILE; }" EXIT
 
