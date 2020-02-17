@@ -251,6 +251,8 @@ if [[ ! -e $HOME_DIR ]]; then
     mkdir "$HOME_DIR"
 fi
 
+ensure_directory "$HOME_DIR"
+
 LOGFILE=$(touch "$HOME_DIR/xud-docker-$(date +%s).log")
 
 trap "{ rm -f $LOGFILE; }" EXIT
