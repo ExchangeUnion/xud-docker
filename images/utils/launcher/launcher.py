@@ -728,12 +728,13 @@ your issue.""")
                 self.setup_restore_dir()
                 self.xucli_restore_wrapper(xud)
 
-            print("Please enter a path to a destination where to store a backup of "
-                  "your environment. It includes everything, but NOT your wallet "
-                  "balance which is secured by your XUD SEED. The path should be an"
-                  " external drive, like a USB or network drive, which is "
-                  "permanently available on your device since backups are written "
-                  "constantly.")
+            print("""
+Please enter a path to a destination where to store a backup of your \
+environment. It includes everything, but NOT your wallet balance which is \
+secured by your XUD SEED. The path should be an external drive, like a USB or \
+network drive, which is permanently available on your device since backups are \
+written constantly.
+""")
 
             self.setup_backup_dir()
         else:
