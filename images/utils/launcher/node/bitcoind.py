@@ -135,7 +135,7 @@ class Bitcoind(Node):
             return self.get_external_status()
 
         if self.neutrino:
-            return "Ready (Conntected to Neutrino)"
+            return "Ready (Connected to Neutrino)"
 
         status = super().status()
         if status == "exited":
