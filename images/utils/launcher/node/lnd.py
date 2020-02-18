@@ -74,7 +74,7 @@ class Lnd(Node):
         if self.network == "simnet":
             return "exchangeunion/lnd-simnet:latest"
         else:
-            return "exchangeunion/lnd:0.8.2-beta"
+            return "exchangeunion/lnd:0.9.0-beta"
 
     def status(self):
         status = super().status()
