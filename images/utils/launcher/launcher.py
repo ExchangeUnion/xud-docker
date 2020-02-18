@@ -680,7 +680,14 @@ your issue.""")
                 if r == "n" or r == "N" or r == "":
                     raise BackupDirNotAvailable()
 
-        self._config.backup_dir = backup_dir
+        if self._config.backup_dir != backup_dir:
+            # Recreate xud container
+            print(f"Recreating xud container to apply new backup_dir value: {self._config.backup_dir} -> {backup_dir}")
+            self._config.backup_dir = backup_dir
+            self._containers["xud"].stop()
+            self._containers["xud"].remove()
+            self._containers["xud"] = Xud(self._client, self._config, "xud")
+            self._containers["xud"].start()
 
     def is_backup_dir_set(self):
         return self._config.backup_dir is not None

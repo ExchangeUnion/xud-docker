@@ -77,8 +77,8 @@ class Xud(Node):
         }
 
         if config.backup_dir:
-            volumes["/"] = {
-                'bind': '/mnt/hostfs',
+            config.backup_dir = {
+                'bind': '/root/.xud-backup',
                 'mode': 'rw'
             }
 
