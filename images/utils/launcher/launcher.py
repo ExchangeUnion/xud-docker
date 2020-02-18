@@ -644,7 +644,7 @@ your issue.""")
         network = self.network
         config_file = f"/root/.xud-docker/{network}/{network}.conf"
 
-        exit_code = os.system("grep -q {config_file} backup-dir >/dev/null 2>&1")
+        exit_code = os.system(f"grep -q {config_file} backup-dir >/dev/null 2>&1")
 
         if exit_code == 0:
             os.system(f"sed -Ei 's/^.*backup-dir = .*$/backup-dir = {backup_dir}' {config_file}")

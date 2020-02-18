@@ -253,7 +253,8 @@ fi
 
 ensure_directory "$HOME_DIR"
 
-LOGFILE="$HOME_DIR/xud-docker-$(date +%s).log"
+LOG_TIMESTAMP="$(date +%s)"
+LOGFILE="$HOME_DIR/xud-docker-$LOG_TIMESTAMP.log"
 touch "$LOGFILE"
 
 echo "--------------------------------------------------------------------------------" >> "$LOGFILE"
@@ -325,7 +326,8 @@ ensure_directory "$NETWORK_DIR"
 ensure_directory "$BACKUP_DIR"
 ensure_directory "$RESTORE_DIR"
 
-cat "$LOGFILE" > "$NETWORK_DIR/${NETWORK}.log"
+# TODO properly handle network logfile permission problem
+# cat "$LOGFILE" > "$NETWORK_DIR/${NETWORK}.log"
 
 # shellcheck disable=SC2068
 # shellcheck disable=SC2086
@@ -341,6 +343,7 @@ docker run --rm -it \
 -e NETWORK_DIR="$NETWORK_DIR" \
 -e BACKUP_DIR="$BACKUP_DIR" \
 -e RESTORE_DIR="$RESTORE_DIR" \
+-e LOG_TIMESTAMP="$LOG_TIMESTAMP" \
 --entrypoint python \
 "$UTILS_IMG" \
 -m launcher $@
