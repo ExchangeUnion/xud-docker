@@ -74,13 +74,11 @@ class Xud(Node):
                 'bind': '/root/.raiden',
                 'mode': 'rw'
             },
-        }
-
-        if config.backup_dir:
-            config.backup_dir = {
-                'bind': '/root/.xud-backup',
+            f"/": {
+                'bind': '/mnt/hostfs',
                 'mode': 'rw'
             }
+        }
 
         self.container_spec.volumes.update(volumes)
         self.container_spec.ports.update(ports)

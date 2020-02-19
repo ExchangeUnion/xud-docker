@@ -12,8 +12,8 @@ from .shell import Shell
 import functools
 import sys
 import threading
-import argparse
 import shlex
+import toml
 
 CONTAINERS = {
     "simnet": ["ltcd", "lndbtc", "lndltc", "raiden", "xud"],
@@ -600,7 +600,7 @@ your issue.""")
         ok = False
         while counter < 3:
             try:
-                command = f"restore {self._config.restore_dir}"
+                command = f"restore /mnt/hostfs{self._config.restore_dir}"
                 xud.cli(command, self._shell)
                 ok = True
                 break
@@ -611,34 +611,24 @@ your issue.""")
             raise Exception("Failed to restore wallets")
 
     def check_backup_dir(self, backup_dir):
-        if not os.path.exists(backup_dir):
+        hostfs_dir = "/mnt/hostfs" + backup_dir
+
+        if not os.path.exists(hostfs_dir):
             return False
 
-        if not os.path.isdir(backup_dir):
+        if not os.path.isdir(hostfs_dir):
             return False
 
-        if not os.access(backup_dir, os.R_OK):
+        if not os.access(hostfs_dir, os.R_OK):
             return False
 
-        if not os.access(backup_dir, os.W_OK):
+        if not os.access(hostfs_dir, os.W_OK):
             return False
 
         return True
 
     def check_restore_dir(self, restore_dir):
-        if not os.path.exists(restore_dir):
-            return False
-
-        if not os.path.isdir(restore_dir):
-            return False
-
-        if not os.access(restore_dir, os.R_OK):
-            return False
-
-        if not os.access(restore_dir, os.W_OK):
-            return False
-
-        return True
+        self.check_backup_dir(restore_dir)
 
     def persist_backup_dir(self, backup_dir):
         network = self.network
@@ -652,15 +642,21 @@ your issue.""")
             with open(config_file, 'a') as f:
                 f.write("\n")
                 f.write("# The path to the directory to store your backup in. This should be located on an external drive, which usually is mounted in /mnt or /media.\n")
-                host_backup_dir = backup_dir.replace("/mnt/hostfs", "")
-                f.write(f"xud_backup = \"{host_backup_dir}\"\n")
+                f.write(f"xud_backup = \"{backup_dir}\"\n")
 
     def setup_backup_dir(self):
         if self._config.backup_dir:
             return
 
+        backup_dir = None
+
         while True:
             reply: str = self._shell.input("Enter path to backup location: ")
+            reply = reply.strip()
+
+            if len(reply) == 0:
+                continue
+
             if reply.startswith("/"):
                 backup_dir = reply
             else:
@@ -668,7 +664,7 @@ your issue.""")
 
             print("Checking... ", end="")
             sys.stdout.flush()
-            if self.check_backup_dir("/mnt/hostfs" + backup_dir):
+            if self.check_backup_dir(backup_dir):
                 print("OK.")
                 self.persist_backup_dir(backup_dir)
                 break
@@ -681,27 +677,29 @@ your issue.""")
 
         if self._config.backup_dir != backup_dir:
             # Recreate xud container
-            print(f"Recreating xud container to apply new backup_dir value: {self._config.backup_dir} -> {backup_dir}")
+            print(f"Inject backup_dir into running xud container: {backup_dir}")
             self._config.backup_dir = backup_dir
-            self._containers["xud"].stop()
-            self._containers["xud"].remove()
-            self._containers["xud"] = Xud(self._client, self._config, "xud")
-            self._containers["xud"].start()
+            self._containers["xud"].exec(f"bash -c \"echo '/mnt/hostfs{backup_dir}' > /root/.xud/.backup-dir-value\"")
 
     def is_backup_dir_set(self):
         return self._config.backup_dir is not None
 
     def setup_restore_dir(self):
         if self._config.restore_dir:
-            self._config.restore_dir = "/mnt/hostfs" + self._config.restore_dir
             return
+
+        restore_dir = None
 
         while True:
             reply: str = self._shell.input("Enter path to restore location: ")
+            reply = reply.strip()
+            if len(reply) == 0:
+                continue
+
             if reply.startswith("/"):
-                restore_dir = "/mnt/hostfs" + reply
+                restore_dir = reply
             else:
-                restore_dir = "/mnt/hostfs" + os.environ["HOST_PWD"] + "/" + reply
+                restore_dir = os.environ["HOST_PWD"] + "/" + reply
 
             print("Checking... ", end="")
             sys.stdout.flush()
@@ -789,6 +787,8 @@ class Launcher:
         except RestoreDirNotAvailable:
             exit_code = 4
         except ArgumentError as e:
+            print(f"❌ {e}")
+        except toml.TomlDecodeError as e:
             print(f"❌ {e}")
         except:
             print(f"❌ Failed to launch {network} environment. For more details, see {network_dir}/{network}-{log_timestamp}.log")
