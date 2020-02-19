@@ -29,7 +29,10 @@ class Bitcoind(Node):
     def __init__(self, client: DockerClient, config: Config, name, litecoin: bool = False):
         self.litecoin = litecoin
         super().__init__(client, config, name)
+
         self.external = config.containers[name]["external"]
+        self.neutrino = config.containers[name]["neutrino"]
+
         if self.external:
             c = config.containers[name]
             self.external_config = {
@@ -100,17 +103,17 @@ class Bitcoind(Node):
             return "exchangeunion/bitcoind:0.19.0.1"
 
     def start(self):
-        if self.external:
+        if self.external or self.neutrino:
             return
         super().start()
 
     def stop(self):
-        if self.external:
+        if self.external or self.neutrino:
             return
         super().stop()
 
     def remove(self):
-        if self.external:
+        if self.external or self.neutrino:
             return
         super().remove()
 
@@ -130,6 +133,9 @@ class Bitcoind(Node):
     def status(self):
         if self.external:
             return self.get_external_status()
+
+        if self.neutrino:
+            return "Ready (Connected to Neutrino)"
 
         status = super().status()
         if status == "exited":

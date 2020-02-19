@@ -8,6 +8,7 @@ from shutil import copyfile
 TESTNET = {
     "bitcoind": {
         "dir": "$testnet_dir/data/bitcoind",
+        "neutrino": False,
         "external": False,
         "rpc_host": "127.0.0.1",
         "rpc_port": 18332,
@@ -40,6 +41,7 @@ TESTNET = {
 MAINNET = {
     "bitcoind": {
         "dir": "$mainnet_dir/data/bitcoind",
+        "neutrino": False,
         "external": False,
         "rpc_host": "127.0.0.1",
         "rpc_port": 8332,
@@ -102,7 +104,7 @@ class Containers:
 
 
 def merge_bitcoind(container, parsed):
-    keys = ["dir", "external", "rpc_host", "rpc_port", "rpc_user", "rpc_password", "zmqpubrawblock", "zmqpubrawtx"]
+    keys = ["dir", "neutrino", "external", "rpc_host", "rpc_port", "rpc_user", "rpc_password", "zmqpubrawblock", "zmqpubrawtx"]
     for key in keys:
         container[key] = parsed.get(key.replace("_", "-"), None)
     container["rpc_port"] = int(container["rpc_port"])
@@ -157,6 +159,7 @@ class Config:
         parser.add_argument("--mainnet-dir")
         parser.add_argument("--external-ip")
         parser.add_argument("--backup-dir")
+        parser.add_argument("--bitcoin-neutrino", type=bool)
 
         self._args = parser.parse_args()
         self._logger.debug("Parsed command-line arguments: %r", self._args)
@@ -172,6 +175,9 @@ class Config:
 
         if hasattr(self._args, "backup_dir"):
             self.backup_dir = self._args.backup_dir
+
+        if hasattr(self._args, "bitcoin_neutrino"):
+            self.containers["bitcoind"]["neutrino"] = self._args.bitcoin_neutrino
 
     def _parse_config_file(self):
         network = self.network

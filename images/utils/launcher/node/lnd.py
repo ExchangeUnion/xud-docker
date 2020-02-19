@@ -42,7 +42,11 @@ class Lnd(Node):
             else:
                 layer1_node = config.containers["litecoind"]
 
-            if layer1_node["external"]:
+            if layer1_node["neutrino"]:
+                environment.extend([
+                    f'NEUTRINO=True',
+                ])
+            elif layer1_node["external"]:
                 environment.extend([
                     f'RPCHOST={layer1_node["rpc_host"]}',
                     f'RPCUSER={layer1_node["rpc_user"]}',
