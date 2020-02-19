@@ -775,6 +775,7 @@ class Launcher:
     def launch(self):
         network = os.environ["NETWORK"]
         network_dir = os.environ["NETWORK_DIR"]
+        log_timestamp = os.environ["LOG_TIMESTAMP"]
         exit_code = 0
         try:
             self._config.parse()
@@ -791,7 +792,7 @@ class Launcher:
         except ArgumentError as e:
             print(f"❌ {e}")
         except:
-            print(f"❌ Failed to launch {network} environment. For more details, see {network_dir}/{network}.log")
+            print(f"❌ Failed to launch {network} environment. For more details, see {network_dir}/{network}-{log_timestamp}.log")
             self._logger.exception("Failed to launch")
             exit_code = 1
         finally:

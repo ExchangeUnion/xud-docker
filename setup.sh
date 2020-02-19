@@ -253,7 +253,7 @@ fi
 
 ensure_directory "$HOME_DIR"
 
-LOG_TIMESTAMP="$(date +%s)"
+LOG_TIMESTAMP="$(date +%F-%H-%M-%S)"
 LOGFILE="$HOME_DIR/xud-docker-$LOG_TIMESTAMP.log"
 touch "$LOGFILE"
 
