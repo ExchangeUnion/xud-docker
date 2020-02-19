@@ -657,19 +657,18 @@ your issue.""")
 
     def setup_backup_dir(self):
         if self._config.backup_dir:
-            self._config.backup_dir = "/mnt/hostfs" + self._config.backup_dir
             return
 
         while True:
             reply: str = self._shell.input("Enter path to backup location: ")
             if reply.startswith("/"):
-                backup_dir = "/mnt/hostfs" + reply
+                backup_dir = reply
             else:
-                backup_dir = "/mnt/hostfs" + os.environ["HOST_PWD"] + "/" + reply
+                backup_dir = os.environ["HOST_PWD"] + "/" + reply
 
             print("Checking... ", end="")
             sys.stdout.flush()
-            if self.check_backup_dir(backup_dir):
+            if self.check_backup_dir("/mnt/hostfs" + backup_dir):
                 print("OK.")
                 self.persist_backup_dir(backup_dir)
                 break

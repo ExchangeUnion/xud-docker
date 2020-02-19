@@ -301,7 +301,7 @@ fi
 
 # shellcheck disable=SC2068
 # shellcheck disable=SC2086
-# NETWORK_DIR, BACKUP_DIR and RESTORE_DIR will be evaluated after running the command below
+# NETWORK_DIR will be evaluated after running the command below
 VARS="$(docker run --rm \
 -v /var/run/docker.sock:/var/run/docker.sock \
 -v "$HOME_DIR":/root/.xud-docker \
@@ -315,16 +315,8 @@ $@)"
 eval "$VARS"
 
 NETWORK_DIR=$(realpath "$NETWORK_DIR")
-if [[ -n $BACKUP_DIR ]]; then
-    BACKUP_DIR=$(realpath "$BACKUP_DIR")
-fi
-if [[ -n $RESTORE_DIR ]]; then
-    RESTORE_DIR=$(realpath "$RESTORE_DIR")
-fi
 
 ensure_directory "$NETWORK_DIR"
-ensure_directory "$BACKUP_DIR"
-ensure_directory "$RESTORE_DIR"
 
 # TODO properly handle network logfile permission problem
 # cat "$LOGFILE" > "$NETWORK_DIR/${NETWORK}.log"
@@ -341,8 +333,6 @@ docker run --rm -it \
 -e HOME_DIR="$HOME_DIR" \
 -e NETWORK="$NETWORK" \
 -e NETWORK_DIR="$NETWORK_DIR" \
--e BACKUP_DIR="$BACKUP_DIR" \
--e RESTORE_DIR="$RESTORE_DIR" \
 -e LOG_TIMESTAMP="$LOG_TIMESTAMP" \
 --entrypoint python \
 "$UTILS_IMG" \
