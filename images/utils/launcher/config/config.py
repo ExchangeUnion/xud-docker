@@ -161,6 +161,7 @@ class Config:
         parser.add_argument("--mainnet-dir")
         parser.add_argument("--external-ip")
         parser.add_argument("--backup-dir")
+        parser.add_argument("--dev", action="store_true")
         parser.add_argument("--bitcoin-neutrino", type=bool)
 
         self._args = parser.parse_args()

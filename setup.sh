@@ -3,6 +3,7 @@
 set -euo pipefail
 
 BRANCH=master
+DEV=false
 
 function parse_branch() {
     local OPTION VALUE
@@ -21,6 +22,10 @@ function parse_branch() {
                 VALUE=$1
             fi
             BRANCH=$VALUE
+            ;;
+        "--dev")
+            DEV=true
+            shift
             ;;
         *)
             shift
@@ -181,6 +186,11 @@ function ensure_utils_image() {
     local B_IMG # branch image
     local P_IMG # pulling image
     local U_IMG # use image
+
+    if [[ $DEV == "true" ]]; then
+        UTILS_IMG="exchangeunion/utils:latest"
+        return
+    fi
 
     read -r STATUS B_IMG U_IMG P_IMG <<<"$(get_image_status "exchangeunion/utils:latest")"
     if [[ -z $U_IMG ]]; then
