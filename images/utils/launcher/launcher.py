@@ -439,17 +439,18 @@ your issue.""")
                         result = f.result()
                         images_check_result[image] = result
                         self._logger.debug("Checking image: %s: %r" % (image, result))
-                    except:
-                        self._logger.exception("Failed to check for image(%s) updates", image)
-                        failed.append(image)
+                    except Exception as e:
+                        failed.append((image, e))
                 for f in not_done:
                     image = fs[f]
-                    failed.append(image)
+                    failed.append((image, "timeout"))
             if len(failed) > 0:
-                self._logger.debug("❌ Failed to check updates for: %s" % ", ".join(failed))
-                answer = self._shell.yes_or_no("Failed to check for image updates. Try again?")
+                print("Failed to check for image updates.")
+                for f in failed:
+                    print(f"* {f[0]} {str(f[1])}")
+                answer = self._shell.yes_or_no("Try again?")
                 if answer == "yes":
-                    images = failed
+                    images = [f[0] for f in failed]
                     continue
                 else:
                     raise ImagesCheckAbortion()
@@ -478,17 +479,18 @@ your issue.""")
                         result = f.result()
                         containers_check_result[container] = result
                         self._logger.debug("Checking container: %s: %r" % (container.container_name, result))
-                    except:
-                        self._logger.exception("Failed to check for container(%s) updates", container.container_name)
-                        failed.append(container)
+                    except Exception as e:
+                        failed.append((container, e))
                 for f in not_done:
                     container = fs[f]
-                    failed.append(container)
+                    failed.append((container, "timeout"))
             if len(failed) > 0:
-                self._logger.debug("Failed to check updates for: %s" % ", ".join([c.container_name for c in failed]))
-                answer = self._shell.yes_or_no("Failed to check for container updates. Try again?")
+                print("Failed to check for container updates.")
+                for f in failed:
+                    print(f"* {f[0].name} {str(f[1])}")
+                answer = self._shell.yes_or_no("Try again?")
                 if answer == "yes":
-                    containers = failed
+                    containers = [f[0] for f in failed]
                     continue
                 else:
                     raise ContainersCheckAbortion()

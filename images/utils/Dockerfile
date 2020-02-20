@@ -7,3 +7,4 @@ ADD config_parser.py /usr/local/bin/config_parser
 ADD args_parser.py /usr/local/bin/args_parser
 RUN chmod u+x /usr/local/bin/config_parser
 RUN chmod u+x /usr/local/bin/args_parser
+RUN echo b
