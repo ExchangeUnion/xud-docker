@@ -101,7 +101,7 @@ function get_image_without_branch() {
 }
 
 function get_pull_image() {
-    if docker image inspect "$1" >/dev/null 2>&1; then
+    if ! docker image inspect "$1" >/dev/null 2>&1; then
         echo "$2"
     fi
 }
