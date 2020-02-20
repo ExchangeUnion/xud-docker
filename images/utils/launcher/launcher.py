@@ -28,11 +28,21 @@ BOLD = "\033[0;1m"
 
 
 class ImagesCheckAbortion(Exception):
-    pass
+    def __init__(self, failed):
+        super().__init__()
+        self.failed = failed
 
 
 class ContainersCheckAbortion(Exception):
-    pass
+    def __init__(self, failed):
+        super().__init__()
+        self.failed = failed
+
+
+class ContainersEnsureAbortion(Exception):
+    def __init__(self, failed):
+        super().__init__()
+        self.failed = failed
 
 
 class BackupDirNotAvailable(Exception):
@@ -41,6 +51,12 @@ class BackupDirNotAvailable(Exception):
 
 class RestoreDirNotAvailable(Exception):
     pass
+
+
+class ImagesNotAvailable(Exception):
+    def __init__(self, images):
+        super().__init__()
+        self.images = images
 
 
 class ContainerNotFound(Exception):
@@ -394,7 +410,7 @@ your issue.""")
                 if not missing:
                     return "local", None
                 else:
-                    raise Exception("Image not found")
+                    return "not_found", None
 
         self._logger.debug("Comparing images local_image=%r, remote_image_name=%r, remove_image=%r", local_image, remote_name, remote_image)
 
@@ -447,13 +463,13 @@ your issue.""")
             if len(failed) > 0:
                 print("Failed to check for image updates.")
                 for f in failed:
-                    print(f"* {f[0]} {str(f[1])}")
+                    print(f"* {f[0]}: {str(f[1])}")
                 answer = self._shell.yes_or_no("Try again?")
                 if answer == "yes":
                     images = [f[0] for f in failed]
                     continue
                 else:
-                    raise ImagesCheckAbortion()
+                    raise ImagesCheckAbortion(failed)
             else:
                 break
 
@@ -463,6 +479,9 @@ your issue.""")
             if status in ["missing", "outdated"]:
                 print("* Image %s: %s" % (image, status))
                 outdated = True
+            elif status == "not_found":
+                not_found_images = [img for img, status in images_check_result.items() if status[0] == "not_found"]
+                raise ImagesNotAvailable(not_found_images)
 
         # Step 2. check all containers
         containers = self._containers.values()
@@ -487,13 +506,13 @@ your issue.""")
             if len(failed) > 0:
                 print("Failed to check for container updates.")
                 for f in failed:
-                    print(f"* {f[0].name} {str(f[1])}")
+                    print(f"* {f[0].name}: {str(f[1])}")
                 answer = self._shell.yes_or_no("Try again?")
                 if answer == "yes":
                     containers = [f[0] for f in failed]
                     continue
                 else:
-                    raise ContainersCheckAbortion()
+                    raise ContainersCheckAbortion(failed)
             else:
                 break
 
@@ -545,15 +564,36 @@ your issue.""")
         except:
             return "error"
 
-    def start_containers(self):
-        containers: List[Node] = list(self._containers.values())
-        with ThreadPoolExecutor(max_workers=len(containers)) as executor:
-            fs: Dict[Future, Node] = {executor.submit(self.start_container, c): c for c in containers}
-            for fut in as_completed(fs):
-                result = fut.result()
-                # print("Start %s ... %s" % (futs[fut].name, result))
-        for container in self._containers.values():
-            container.start()
+    def ensure_containers(self):
+        containers = self._containers.values()
+        while len(containers) > 0:
+            max_workers = len(containers)
+            failed = []
+            with ThreadPoolExecutor(max_workers=max_workers) as executor:
+                fs = {executor.submit(c.start): c for c in containers}
+                done, not_done = wait(fs, 60)
+                for f in done:
+                    container = fs[f]
+                    try:
+                        f.result()
+                    except Exception as e:
+                        failed.append((container, e))
+                for f in not_done:
+                    container = fs[f]
+                    failed.append((container, "timeout"))
+
+            if len(failed) > 0:
+                print("Failed to start these containers.")
+                for f in failed:
+                    print(f"* {f[0].name}: {str(f[1])}")
+                answer = self._shell.yes_or_no("Try again?")
+                if answer == "yes":
+                    containers = [f[0] for f in failed]
+                    continue
+                else:
+                    raise ContainersEnsureAbortion(failed)
+            else:
+                break
 
     def no_lnd_wallet(self, lnd):
         while True:
@@ -757,11 +797,16 @@ written constantly.
             self.check_updates()
         except (ImagesCheckAbortion, ContainersCheckAbortion):
             pass
-        self.start_containers()
-        if self.network in ["testnet", "mainnet"]:
-            self.check_wallets()
-        elif self.network == "simnet":
-            self.wait_for_channels()
+
+        try:
+            self.ensure_containers()
+            if self.network in ["testnet", "mainnet"]:
+                self.check_wallets()
+            elif self.network == "simnet":
+                self.wait_for_channels()
+        except ContainersEnsureAbortion:
+            pass
+
         self._shell.start(f"{self.network} > ", self.handle_command)
 
 
@@ -788,10 +833,19 @@ class Launcher:
             exit_code = 3
         except RestoreDirNotAvailable:
             exit_code = 4
+        except ImagesNotAvailable as e:
+            if len(e.images) == 1:
+                print(f"❌ No such image: {e.images[0]}")
+            elif len(e.images) > 1:
+                images_list = ", ".join(e.images)
+                print(f"❌ No such images: {images_list}")
+            exit_code = 5
         except ArgumentError as e:
             print(f"❌ {e}")
+            exit_code = 100
         except toml.TomlDecodeError as e:
             print(f"❌ {e}")
+            exit_code = 101
         except:
             print(f"❌ Failed to launch {network} environment. For more details, see {network_dir}/{network}-{log_timestamp}.log")
             self._logger.exception("Failed to launch")
