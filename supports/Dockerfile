@@ -1,4 +1,4 @@
-FROM node:lts-alpine
+FROM node:12-alpine3.10
 RUN apk add --no-cache git bash make python3 python3-dev python go rsync musl-dev libffi-dev patch
 ADD xud-simnet /root/xud-simnet
 WORKDIR /root/xud-simnet
