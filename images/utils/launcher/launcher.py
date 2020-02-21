@@ -53,6 +53,11 @@ class RestoreDirNotAvailable(Exception):
     pass
 
 
+class NetworkConfigFileSyntaxError(Exception):
+    def __init__(self, hint):
+        super().__init__(hint)
+
+
 class ImagesNotAvailable(Exception):
     def __init__(self, images):
         super().__init__()
@@ -270,16 +275,16 @@ class XudEnv:
                     name, container = fs[f]
                     try:
                         f.result()
-                    except:
+                    except Exception as e:
                         self._logger.exception("Failed to get %s status", name)
-                        failed[name] = container
+                        failed[name] = str(e)
                 for f in not_done:
                     name, container = fs[f]
                     self._logger.debug("Get %s status timeout", name)
-                    failed[name] = container
+                    failed[name] = "timeout"
             if len(failed) > 0:
-                for name in failed.keys():
-                    update_status(name, "failed to fetch status")
+                for container, error in failed.items():
+                    update_status(container, error)
             containers = {}
 
         stop_fetching_animation.set()
@@ -676,15 +681,20 @@ your issue.""")
         network = self.network
         config_file = f"/root/.xud-docker/{network}/{network}.conf"
 
-        exit_code = os.system(f"grep -q {config_file} backup-dir >/dev/null 2>&1")
+        exit_code = os.system(f"grep -q backup-dir {config_file} >/dev/null 2>&1")
 
         if exit_code == 0:
+            if not self._config.backup_dir:
+                raise NetworkConfigFileSyntaxError(f"The \"backup-dir\" option is in a wrong section of {network}.conf. Please check your configuration file.")
             os.system(f"sed -Ei 's/^.*backup-dir = .*$/backup-dir = {backup_dir}' {config_file}")
         else:
-            with open(config_file, 'a') as f:
-                f.write("\n")
+            with open(config_file, 'r') as f:
+                contents = f.readlines()
+            with open(config_file, 'w') as f:
                 f.write("# The path to the directory to store your backup in. This should be located on an external drive, which usually is mounted in /mnt or /media.\n")
-                f.write(f"xud_backup = \"{backup_dir}\"\n")
+                f.write(f"backup-dir = \"{backup_dir}\"\n")
+                f.write("\n")
+                f.write("".join(contents))
 
     def setup_backup_dir(self):
         if self._config.backup_dir:
@@ -718,8 +728,6 @@ your issue.""")
                     raise BackupDirNotAvailable()
 
         if self._config.backup_dir != backup_dir:
-            # Recreate xud container
-            print(f"Inject backup_dir into running xud container: {backup_dir}")
             self._config.backup_dir = backup_dir
             self._containers["xud"].exec(f"bash -c \"echo '/mnt/hostfs{backup_dir}' > /root/.xud/.backup-dir-value\"")
 
@@ -840,6 +848,9 @@ class Launcher:
                 images_list = ", ".join(e.images)
                 print(f"❌ No such images: {images_list}")
             exit_code = 5
+        except NetworkConfigFileSyntaxError as e:
+            print(f"❌ {e}")
+            exit_code = 6
         except ArgumentError as e:
             print(f"❌ {e}")
             exit_code = 100

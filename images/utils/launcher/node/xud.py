@@ -122,8 +122,10 @@ class Xud(Node):
                         not_ready.append("raiden")
                     return "Waiting for " + ", ".join(not_ready)
             except XudApiError as e:
-                if "xud is locked, run 'xucli unlock', 'xucli create', or 'xucli restore' then try again" in str(e):
+                if "xud is locked" in str(e):
                     return "Wallet locked. Unlock with xucli unlock."
+                else:
+                    return str(e)
             except:
                 self._logger.exception("Failed to get advanced running status")
                 return "Container running"
