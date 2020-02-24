@@ -800,7 +800,9 @@ written constantly.
 
         cmd = f"/update-backup-dir.sh '/mnt/hostfs{self._config.backup_dir}'"
         exit_code, output = self._containers["xud"].exec(cmd)
-        self._logger.debug(f"{cmd}\n{exit_code=}\n{output.decode()}")
+        lines = output.decode().splitlines()
+        if len(lines) > 0:
+            print(lines[0])
 
     def wait_for_channels(self):
         # TODO wait for channels
