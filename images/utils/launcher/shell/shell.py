@@ -116,6 +116,7 @@ class EventLoop(threading.Thread):
             if esc_i == 0:
                 if data[i] == '[':
                     esc_i = 1
+                    i = i + 1
                     continue
                 else:
                     esc_i = -1
@@ -125,18 +126,22 @@ class EventLoop(threading.Thread):
                 if data[i] == 'A':
                     esc_i = -1
                     self.queue.put("arrow_up")
+                    i = i + 1
                     continue
                 elif data[i] == 'B':
                     esc_i = -1
                     self.queue.put("arrow_down")
+                    i = i + 1
                     continue
                 elif data[i] == 'C':
                     esc_i = -1
                     self.queue.put("arrow_right")
+                    i = i + 1
                     continue
                 elif data[i] == 'D':
                     esc_i = -1
                     self.queue.put("arrow_left")
+                    i = i + 1
                     continue
                 else:
                     esc_i = -1
@@ -153,9 +158,9 @@ class EventLoop(threading.Thread):
                     if i + 1 < len(data) and data[i + 1] == '[':
                         # decode ANSI escape sequences
                         esc_i = 0
+                        i = i + 1
                         continue
                 ch = self._ch_dict.get(b, None)
-                pass
             elif b < 127:
                 # printable characters:
                 ch = data[i]
