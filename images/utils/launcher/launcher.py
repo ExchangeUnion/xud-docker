@@ -731,7 +731,6 @@ your issue.""")
 
         if self._config.backup_dir != backup_dir:
             self._config.backup_dir = backup_dir
-            self._containers["xud"].exec(f"bash -c \"echo '/mnt/hostfs{backup_dir}' > /root/.xud/.backup-dir-value\"")
 
     def is_backup_dir_set(self):
         return self._config.backup_dir is not None
@@ -762,10 +761,8 @@ your issue.""")
             else:
                 print(f"Failed ({reason}). ", end="")
                 sys.stdout.flush()
-                r = self._shell.input("Retry? [y/N] ")
-                if r == "n" or r == "N" or r == "":
-
-
+                r = self._shell.no_or_yes("Retry?")
+                if r == "no":
                     raise RestoreDirNotAvailable()
 
         self._config.restore_dir = restore_dir
@@ -800,6 +797,10 @@ written constantly.
             if not self.is_backup_dir_set():
                 print("Backup location not available.")
                 self.setup_backup_dir()
+
+        cmd = f"/update-backup-dir.sh '/mnt/hostfs{self._config.backup_dir}'"
+        exit_code, output = self._containers["xud"].exec(cmd)
+        self._logger.debug(f"{cmd}\n{exit_code=}\n{output.decode()}")
 
     def wait_for_channels(self):
         # TODO wait for channels

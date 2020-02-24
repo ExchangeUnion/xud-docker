@@ -10,24 +10,32 @@ done
 
 BACKUP_DIR=$(cat "$BACKUP_DIR_VALUE_PATH")
 
-if [[ ! -e $BACKUP_DIR ]]; then
-    echo "[xud-backup] $BACKUP_DIR is not existed"
-    exit 1
-fi
+function check_backup_dir() {
+    if [[ ! -e $1 ]]; then
+        echo "[xud-backup] $BACKUP_DIR is not existed"
+        return 1
+    fi
 
-if [[ ! -d $BACKUP_DIR ]]; then
-    echo "[xud-backup] $BACKUP_DIR is not a directory"
-    exit 1
-fi
+    if [[ ! -d $1 ]]; then
+        echo "[xud-backup] $BACKUP_DIR is not a directory"
+        return 1
+    fi
 
-if [[ ! -r $1 ]]; then
-    echo "[xud-backup] $BACKUP_DIR is not readable"
-    exit 1
-fi
+    if [[ ! -r $1 ]]; then
+        echo "[xud-backup] $BACKUP_DIR is not readable"
+        return 1
+    fi
 
-if [[ ! -w $1 ]]; then
-    echo "[xud-backup] $BACKUP_DIR is not writable"
-    exit 1
-fi
+    if [[ ! -w $1 ]]; then
+        echo "[xud-backup] $BACKUP_DIR is not writable"
+        return 1
+    fi
+
+    return 0
+}
+
+while ! check_backup_dir "$BACKUP_DIR"; do
+    sleep 5
+done
 
 ./bin/xud-backup -b "$BACKUP_DIR" --raiden.dbpath="$RAIDEN_DB_PATH"

@@ -154,7 +154,7 @@ class Node:
 
     def exec(self, cmd):
         if self._container is not None:
-            self._container.exec_run(cmd)
+            return self._container.exec_run(cmd)
 
     def cli(self, cmd, shell):
         # TODO external cli

@@ -29,6 +29,7 @@ COPY xud.conf /tmp/
 COPY entrypoint.sh /app
 COPY xud-backup.sh /app
 COPY start_tor.sh /
+COPY update-backup-dir.sh /
 RUN ln -s /app/bin/xucli /bin/xucli
 COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 COPY torrc /etc/tor/torrc
