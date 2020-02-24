@@ -724,8 +724,9 @@ your issue.""")
             else:
                 print(f"Failed ({reason}). ", end="")
                 sys.stdout.flush()
-                r = self._shell.input("Retry? [y/N] ")
-                if r == "n" or r == "N" or r == "":
+                r = self._shell.no_or_yes("Retry?")
+                if r == "no":
+                    self.command_down()
                     raise BackupDirNotAvailable()
 
         if self._config.backup_dir != backup_dir:
@@ -763,6 +764,8 @@ your issue.""")
                 sys.stdout.flush()
                 r = self._shell.input("Retry? [y/N] ")
                 if r == "n" or r == "N" or r == "":
+
+
                     raise RestoreDirNotAvailable()
 
         self._config.restore_dir = restore_dir

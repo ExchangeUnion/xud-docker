@@ -492,6 +492,13 @@ class Shell:
             return "yes"
         return "no"
 
+    def no_or_yes(self, prompt):
+        answer = self.input(prompt + " [y/N] ")
+        self._logger.debug(f"yes_or_no {answer=}")
+        if answer.lower() == "n" or len(answer) == 0:
+            return "no"
+        return "yes"
+
     def confirm(self, prompt):
         answer = self.input(prompt)
         self._logger.debug(f"confirm {answer=}")
