@@ -722,7 +722,8 @@ your issue.""")
                 self.persist_backup_dir(backup_dir)
                 break
             else:
-                print(f"Failed ({reason}). ", end="")
+                print(f"Failed. ", end="")
+                self._logger.debug(f"Failed to check backup dir {backup_dir}: {reason}")
                 sys.stdout.flush()
                 r = self._shell.no_or_yes("Retry?")
                 if r == "no":
@@ -759,7 +760,8 @@ your issue.""")
                 print("OK.")
                 break
             else:
-                print(f"Failed ({reason}). ", end="")
+                print(f"Failed. ", end="")
+                self._logger.debug(f"Failed to check restore dir {restore_dir}: {reason}")
                 sys.stdout.flush()
                 r = self._shell.no_or_yes("Retry?")
                 if r == "no":
