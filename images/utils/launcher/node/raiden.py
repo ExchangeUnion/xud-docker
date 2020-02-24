@@ -85,7 +85,7 @@ class Raiden(Node):
         if self.network == "simnet":
             return "exchangeunion/raiden-simnet:latest"
         else:
-            return "exchangeunion/raiden:0.100.5a0"
+            return "exchangeunion/raiden:latest"
 
     def status(self):
         status = super().status()

@@ -647,7 +647,7 @@ your issue.""")
         ok = False
         while counter < 3:
             try:
-                command = f"restore /mnt/hostfs{self._config.restore_dir}"
+                command = f"restore /mnt/hostfs{self._config.restore_dir} /root/.raiden/.xud-backup-raiden-db"
                 xud.cli(command, self._shell)
                 ok = True
                 break
@@ -661,21 +661,21 @@ your issue.""")
         hostfs_dir = "/mnt/hostfs" + backup_dir
 
         if not os.path.exists(hostfs_dir):
-            return False
+            return False, "not existed"
 
         if not os.path.isdir(hostfs_dir):
-            return False
+            return False, "not a directory"
 
         if not os.access(hostfs_dir, os.R_OK):
-            return False
+            return False, "not readable"
 
         if not os.access(hostfs_dir, os.W_OK):
-            return False
+            return False, "not writable"
 
-        return True
+        return True, None
 
     def check_restore_dir(self, restore_dir):
-        self.check_backup_dir(restore_dir)
+        return self.check_backup_dir(restore_dir)
 
     def persist_backup_dir(self, backup_dir):
         network = self.network
@@ -716,12 +716,13 @@ your issue.""")
 
             print("Checking... ", end="")
             sys.stdout.flush()
-            if self.check_backup_dir(backup_dir):
+            ok, reason = self.check_backup_dir(backup_dir)
+            if ok:
                 print("OK.")
                 self.persist_backup_dir(backup_dir)
                 break
             else:
-                print("Failed. ", end="")
+                print(f"Failed ({reason}). ", end="")
                 sys.stdout.flush()
                 r = self._shell.input("Retry? [y/N] ")
                 if r == "n" or r == "N" or r == "":
@@ -753,11 +754,12 @@ your issue.""")
 
             print("Checking... ", end="")
             sys.stdout.flush()
-            if self.check_restore_dir(restore_dir):
+            ok, reason = self.check_restore_dir(restore_dir)
+            if ok:
                 print("OK.")
                 break
             else:
-                print("Failed. ", end="")
+                print(f"Failed ({reason}). ", end="")
                 sys.stdout.flush()
                 r = self._shell.input("Retry? [y/N] ")
                 if r == "n" or r == "N" or r == "":
