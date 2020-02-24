@@ -10,8 +10,24 @@ done
 
 BACKUP_DIR=$(cat "$BACKUP_DIR_VALUE_PATH")
 
-if [[ -d $BACKUP_DIR ]]; then
-    ./bin/xud-backup -b "$BACKUP_DIR" --raiden.dbpath="$RAIDEN_DB_PATH"
-else
-    perl -MPOSIX -e '$0="xud-backup"; pause'
+if [[ ! -e $BACKUP_DIR ]]; then
+    echo "[xud-backup] $BACKUP_DIR is not existed"
+    exit 1
 fi
+
+if [[ ! -d $BACKUP_DIR ]]; then
+    echo "[xud-backup] $BACKUP_DIR is not a directory"
+    exit 1
+fi
+
+if [[ ! -r $1 ]]; then
+    echo "[xud-backup] $BACKUP_DIR is not readable"
+    exit 1
+fi
+
+if [[ ! -w $1 ]]; then
+    echo "[xud-backup] $BACKUP_DIR is not writable"
+    exit 1
+fi
+
+./bin/xud-backup -b "$BACKUP_DIR" --raiden.dbpath="$RAIDEN_DB_PATH"
