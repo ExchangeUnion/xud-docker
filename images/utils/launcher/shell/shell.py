@@ -459,7 +459,7 @@ class Shell:
 
         self.stop_event.wait()
 
-    def input(self, prompt):
+    def input(self, prompt: str) -> str:
         assert self.handler.answer is None
 
         old_prompt = self.handler.prompt
@@ -485,21 +485,21 @@ class Shell:
 
         return result
 
-    def yes_or_no(self, prompt):
+    def yes_or_no(self, prompt: str) -> str:
         answer = self.input(prompt + " [Y/n] ")
         self._logger.debug(f"yes_or_no {answer=}")
         if answer.lower() == "y" or len(answer) == 0:
             return "yes"
         return "no"
 
-    def no_or_yes(self, prompt):
+    def no_or_yes(self, prompt: str) -> str:
         answer = self.input(prompt + " [y/N] ")
         self._logger.debug(f"yes_or_no {answer=}")
         if answer.lower() == "n" or len(answer) == 0:
             return "no"
         return "yes"
 
-    def confirm(self, prompt):
+    def confirm(self, prompt: str) -> bool:
         answer = self.input(prompt)
         self._logger.debug(f"confirm {answer=}")
         return len(answer) == 0

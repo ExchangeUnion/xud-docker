@@ -53,6 +53,10 @@ class RestoreDirNotAvailable(Exception):
     pass
 
 
+class RestoreCancelled(Exception):
+    pass
+
+
 class NetworkConfigFileSyntaxError(Exception):
     def __init__(self, hint):
         super().__init__(hint)
@@ -291,10 +295,10 @@ class XudEnv:
 
     def command_down(self):
         for name, container in self._containers.items():
-            print(f"Stopping {name} ...")
+            print(f"Stopping {name}...")
             container.stop()
         for name, container in self._containers.items():
-            print(f"Removing {name} ...")
+            print(f"Removing {name}...")
             container.remove()
         print(f"Removing network {self.network_name}")
         self._docker_network.remove()
@@ -647,7 +651,10 @@ your issue.""")
         ok = False
         while counter < 3:
             try:
-                command = f"restore /mnt/hostfs{self._config.restore_dir} /root/.raiden/.xud-backup-raiden-db"
+                if self._config.restore_dir == "/tmp/fake-backup":
+                    command = f"restore /tmp/fake-backup /root/.raiden/.xud-backup-raiden-db"
+                else:
+                    command = f"restore /mnt/hostfs{self._config.restore_dir} /root/.raiden/.xud-backup-raiden-db"
                 xud.cli(command, self._shell)
                 ok = True
                 break
@@ -677,6 +684,18 @@ your issue.""")
     def check_restore_dir(self, restore_dir):
         return self.check_backup_dir(restore_dir)
 
+    def check_restore_dir_files(self, restore_dir):
+        files = os.listdir("/mnt/hostfs" + restore_dir)
+        if "xud" in files:
+            return True
+        if "lnd-BTC" in files:
+            return True
+        if "lnd-LTC" in files:
+            return True
+        if "raiden" in files:
+            return True
+        return False
+
     def persist_backup_dir(self, backup_dir):
         network = self.network
         config_file = f"/root/.xud-docker/{network}/{network}.conf"
@@ -703,18 +722,14 @@ your issue.""")
         backup_dir = None
 
         while True:
-            reply: str = self._shell.input("Enter path to backup location: ")
+            reply = self._shell.input("Enter path to backup location: ")
             reply = reply.strip()
-
             if len(reply) == 0:
                 continue
 
-            if reply.startswith("/"):
-                backup_dir = reply
-            else:
-                backup_dir = os.environ["HOST_PWD"] + "/" + reply
+            backup_dir = self.normalize_path(reply)
 
-            print("Checking... ", end="")
+            print("Checking backup location... ", end="")
             sys.stdout.flush()
             ok, reason = self.check_backup_dir(backup_dir)
             if ok:
@@ -733,8 +748,43 @@ your issue.""")
         if self._config.backup_dir != backup_dir:
             self._config.backup_dir = backup_dir
 
-    def is_backup_dir_set(self):
-        return self._config.backup_dir is not None
+    def is_backup_available(self):
+        if self._config.backup_dir is None:
+            return False
+
+        ok, reason = self.check_backup_dir(self._config.backup_dir)
+
+        if not ok:
+            return False
+
+        return True
+
+    def normalize_path(self, path: str) -> str:
+        parts = path.split("/")
+        pwd: str = os.environ["HOST_PWD"]
+        home: str = os.environ["HOST_HOME"]
+
+        # expand ~
+        while "~" in parts:
+            i = parts.index("~")
+            if i + 1 < len(parts):
+                parts = parts[:i] + home.split("/") + parts[i + 1:]
+            else:
+                parts = parts[:i] + home.split("/")
+
+        if len(parts[0]) > 0:
+            parts = pwd.split("/") + parts
+
+        # remove all '.'
+        if "." in parts:
+            parts.remove(".")
+
+        # remove all '..'
+        if ".." in parts:
+            parts = [p for i, p in enumerate(parts) if i + 1 < len(parts) and parts[i + 1] != ".." or i + 1 == len(parts)]
+            parts.remove("..")
+
+        return "/".join(parts)
 
     def setup_restore_dir(self):
         if self._config.restore_dir:
@@ -743,27 +793,36 @@ your issue.""")
         restore_dir = None
 
         while True:
-            reply: str = self._shell.input("Enter path to restore location: ")
+            reply = self._shell.input("Please paste the path to your XUD backup to restore your channel balance, your keys and other historical data: ")
             reply = reply.strip()
             if len(reply) == 0:
                 continue
 
-            if reply.startswith("/"):
-                restore_dir = reply
-            else:
-                restore_dir = os.environ["HOST_PWD"] + "/" + reply
+            restore_dir = self.normalize_path(reply)
 
-            print("Checking... ", end="")
+            print("Checking files... ", end="")
             sys.stdout.flush()
             ok, reason = self.check_restore_dir(restore_dir)
             if ok:
-                print("OK.")
-                break
+                if self.check_restore_dir_files(restore_dir):
+                    r = self._shell.yes_or_no("Looking good. This will restore xud, lndbtc, raiden. Do you wish to continue?")
+                    if r == "yes":
+                        break
+                    else:
+                        restore_dir = "/tmp/fake-backup"
+                        break
+                else:
+                    r = self._shell.yes_or_no("No backup files found. Do you wish to continue WITHOUT restoring channel balance, keys and historical data?")
+                    if r == "yes":
+                        break
+                    else:
+                        restore_dir = "/tmp/fake-backup"
+                        break
             else:
-                print(f"Failed. ", end="")
+                print(f"Path not available. ", end="")
                 self._logger.debug(f"Failed to check restore dir {restore_dir}: {reason}")
                 sys.stdout.flush()
-                r = self._shell.no_or_yes("Retry?")
+                r = self._shell.yes_or_no("Do you wish to continue WITHOUT restoring channel balance, keys and historical data?")
                 if r == "no":
                     raise RestoreDirNotAvailable()
 
@@ -776,27 +835,32 @@ your issue.""")
 
         if self.no_lnd_wallet(lndbtc) or self.no_lnd_wallet(lndltc):
             self.wait_xud(xud)
-            print("Would you like to create a new xud node or restore an existing one?")
-            print("1) New")
-            print("2) Restore")
-            reply = self._shell.input("Please choose: ")
-            if reply == "1":
-                self.xucli_create_wrapper(xud)
-            else:
-                self.setup_restore_dir()
-                self.xucli_restore_wrapper(xud)
 
-            print("""
-Please enter a path to a destination where to store a backup of your \
-environment. It includes everything, but NOT your wallet balance which is \
-secured by your XUD SEED. The path should be an external drive, like a USB or \
-network drive, which is permanently available on your device since backups are \
-written constantly.
-""")
+            while True:
+                print("Do you want to create a new XUD SEED or restore an existing one?")
+                print("1. Create New")
+                print("2. Restore Existing")
+                reply = self._shell.input("Please choose: ")
+                try:
+                    if reply == "1":
+                        self.xucli_create_wrapper(xud)
+                    else:
+                        self.setup_restore_dir()
+                        r = self._shell.yes_or_no("BEWARE: Restoring your environment will close your existing lnd channels and restore channel balance in your wallet. Do you wish to continue?")
+                        if r == "no":
+                            raise RestoreCancelled()
+                        self.xucli_restore_wrapper(xud)
+                    break
+                except:
+                    pass
+
+            print()
+            print("Please enter a path to a destination where to store a backup of your environment. It includes everything, but NOT your wallet balance which is secured by your XUD SEED. The path should be an external drive, like a USB or network drive, which is permanently available on your device since backups are written constantly.")
+            print()
 
             self.setup_backup_dir()
         else:
-            if not self.is_backup_dir_set():
+            if not self.is_backup_available():
                 print("Backup location not available.")
                 self.setup_backup_dir()
 
@@ -861,6 +925,8 @@ class Launcher:
         except NetworkConfigFileSyntaxError as e:
             print(f"❌ {e}")
             exit_code = 6
+        except RestoreCancelled:
+            exit_code = 7
         except ArgumentError as e:
             print(f"❌ {e}")
             exit_code = 100

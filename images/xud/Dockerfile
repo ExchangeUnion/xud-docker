@@ -34,6 +34,7 @@ RUN ln -s /app/bin/xucli /bin/xucli
 COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 COPY torrc /etc/tor/torrc
 RUN mkdir /root/.xud/tor
+RUN mkdir /tmp/fake-backup
 WORKDIR /app
 ENTRYPOINT ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]
 EXPOSE 8885 18885 8887

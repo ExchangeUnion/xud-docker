@@ -286,18 +286,14 @@ echo "" >> "$LOGFILE"
 echo "$*" >> "$LOGFILE"
 echo "" >> "$LOGFILE"
 
-# shellcheck disable=SC2068
-parse_branch $@
+parse_branch "$@"
 
 ensure_utils_image
 
-# shellcheck disable=SC2068
-# shellcheck disable=SC2086
 docker run --rm \
 -e PROG="$0" \
 --entrypoint args_parser \
-"$UTILS_IMG" \
-$@
+"$UTILS_IMG" "$@"
 
 choose_network
 
@@ -309,18 +305,15 @@ if [[ ! -e $HOME_DIR ]]; then
     mkdir "$HOME_DIR"
 fi
 
-# shellcheck disable=SC2068
-# shellcheck disable=SC2086
 # NETWORK_DIR will be evaluated after running the command below
-VARS="$(docker run --rm \
+VARS=$(docker run --rm \
 -v /var/run/docker.sock:/var/run/docker.sock \
 -v "$HOME_DIR":/root/.xud-docker \
 -v /:/mnt/hostfs \
 -e HOME_DIR="$HOME_DIR" \
 -e NETWORK="$NETWORK" \
 --entrypoint config_parser \
-"$UTILS_IMG" \
-$@)"
+"$UTILS_IMG" "$@")
 
 eval "$VARS"
 
@@ -331,19 +324,18 @@ ensure_directory "$NETWORK_DIR"
 # TODO properly handle network logfile permission problem
 # cat "$LOGFILE" > "$NETWORK_DIR/${NETWORK}.log"
 
-# shellcheck disable=SC2068
-# shellcheck disable=SC2086
 docker run --rm -it \
---name "${NETWORK}_utils" \
+--name "${NETWORK}_utils_${LOG_TIMESTAMP//-/_}" \
 -v /var/run/docker.sock:/var/run/docker.sock \
 -v "$HOME_DIR":/root/.xud-docker \
 -v "$NETWORK_DIR":/root/.xud-docker/$NETWORK \
 -v /:/mnt/hostfs \
 -e HOST_PWD="$PWD" \
+-e HOST_HOME="$HOME" \
 -e HOME_DIR="$HOME_DIR" \
 -e NETWORK="$NETWORK" \
 -e NETWORK_DIR="$NETWORK_DIR" \
 -e LOG_TIMESTAMP="$LOG_TIMESTAMP" \
 --entrypoint python \
 "$UTILS_IMG" \
--m launcher $@
+-m launcher "$@"
