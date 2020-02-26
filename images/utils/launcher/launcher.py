@@ -847,15 +847,20 @@ your issue.""")
                 print("1) Create New")
                 print("2) Restore Existing")
                 reply = self._shell.input("Please choose: ")
+                reply = reply.strip()
                 try:
                     if reply == "1":
                         self.xucli_create_wrapper(xud)
                     else:
                         self.setup_restore_dir()
-                        r = self._shell.yes_or_no("BEWARE: Restoring your environment will close your existing lnd channels and restore channel balance in your wallet. Do you wish to continue?")
-                        if r == "no":
-                            raise RestoreCancelled()
-                        self.xucli_restore_wrapper(xud)
+                        if self._config.restore_dir:
+                            r = self._shell.yes_or_no("BEWARE: Restoring your environment will close your existing lnd channels and restore channel balance in your wallet. Do you wish to continue?")
+                            if r == "yes":
+                                self.xucli_restore_wrapper(xud)
+                            else:
+                                self.xucli_create_wrapper(xud)
+                        else:
+                            self.xucli_create_wrapper(xud)
                     break
                 except:
                     pass
