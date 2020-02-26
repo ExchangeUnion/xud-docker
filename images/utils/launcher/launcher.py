@@ -843,7 +843,7 @@ your issue.""")
             self.wait_xud(xud)
 
             while True:
-                print("Do you want to create a new XUD SEED or restore an existing one?")
+                print("Do you want to create a new xud environment or restore an existing one?")
                 print("1) Create New")
                 print("2) Restore Existing")
                 reply = self._shell.input("Please choose: ")
