@@ -49,14 +49,6 @@ class BackupDirNotAvailable(Exception):
     pass
 
 
-class RestoreDirNotAvailable(Exception):
-    pass
-
-
-class RestoreCancelled(Exception):
-    pass
-
-
 class NetworkConfigFileSyntaxError(Exception):
     def __init__(self, hint):
         super().__init__(hint)
@@ -787,7 +779,12 @@ your issue.""")
 
         return "/".join(parts)
 
-    def setup_restore_dir(self):
+    def setup_restore_dir(self) -> None:
+        """This function will try to interactively setting up restore_dir. And
+        store it in self._config.restore_dir
+
+        :return: None
+        """
         if self._config.restore_dir:
             return
 
@@ -815,22 +812,20 @@ your issue.""")
                     if r == "yes":
                         break
                     else:
-                        restore_dir = "/tmp/fake-backup"
+                        restore_dir = None
                         break
                 else:
                     r = self._shell.yes_or_no("No backup files found. Do you wish to continue WITHOUT restoring channel balance, keys and historical data?")
                     if r == "yes":
                         break
-                    else:
-                        restore_dir = "/tmp/fake-backup"
-                        break
             else:
                 print(f"Path not available. ", end="")
-                self._logger.debug(f"Failed to check restore dir {restore_dir}: {reason}")
+                self._logger.info(f"Failed to check restore dir {restore_dir}: {reason}")
                 sys.stdout.flush()
                 r = self._shell.yes_or_no("Do you wish to continue WITHOUT restoring channel balance, keys and historical data?")
-                if r == "no":
-                    raise RestoreDirNotAvailable()
+                if r == "yes":
+                    restore_dir = "/tmp/fake-backup"
+                    break
 
         self._config.restore_dir = restore_dir
 
@@ -858,9 +853,9 @@ your issue.""")
                             if r == "yes":
                                 self.xucli_restore_wrapper(xud)
                             else:
-                                self.xucli_create_wrapper(xud)
+                                continue
                         else:
-                            self.xucli_create_wrapper(xud)
+                            continue
                     break
                 except:
                     pass
@@ -925,8 +920,6 @@ class Launcher:
             exit_code = 2
         except BackupDirNotAvailable:
             exit_code = 3
-        except RestoreDirNotAvailable:
-            exit_code = 4
         except ImagesNotAvailable as e:
             if len(e.images) == 1:
                 print(f"❌ No such image: {e.images[0]}")
@@ -937,8 +930,6 @@ class Launcher:
         except NetworkConfigFileSyntaxError as e:
             print(f"❌ {e}")
             exit_code = 6
-        except RestoreCancelled:
-            exit_code = 7
         except ArgumentError as e:
             print(f"❌ {e}")
             exit_code = 100
