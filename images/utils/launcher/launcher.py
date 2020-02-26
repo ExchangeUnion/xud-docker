@@ -868,6 +868,7 @@ your issue.""")
         else:
             if not self.is_backup_available():
                 print("Backup location not available.")
+                self._config.backup_dir = None
                 self.setup_backup_dir()
 
         cmd = f"/update-backup-dir.sh '/mnt/hostfs{self._config.backup_dir}'"
