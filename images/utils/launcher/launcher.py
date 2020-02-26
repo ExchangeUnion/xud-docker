@@ -686,15 +686,16 @@ your issue.""")
 
     def check_restore_dir_files(self, restore_dir):
         files = os.listdir("/mnt/hostfs" + restore_dir)
+        contents = []
         if "xud" in files:
-            return True
+            contents.append("xud")
         if "lnd-BTC" in files:
-            return True
+            contents.append("lndbtc")
         if "lnd-LTC" in files:
-            return True
+            contents.append("lndltc")
         if "raiden" in files:
-            return True
-        return False
+            contents.append("raiden")
+        return contents
 
     def persist_backup_dir(self, backup_dir):
         network = self.network
@@ -804,8 +805,13 @@ your issue.""")
             sys.stdout.flush()
             ok, reason = self.check_restore_dir(restore_dir)
             if ok:
-                if self.check_restore_dir_files(restore_dir):
-                    r = self._shell.yes_or_no("Looking good. This will restore xud, lndbtc, raiden. Do you wish to continue?")
+                contents = self.check_restore_dir_files(restore_dir)
+                if len(contents) > 0:
+                    if len(contents) > 1:
+                        contents_text = ", ".join(contents[:-1]) + " and " + contents[-1]
+                    else:
+                        contents_text = contents[0]
+                    r = self._shell.yes_or_no(f"Looking good. This will restore {contents_text}. Do you wish to continue?")
                     if r == "yes":
                         break
                     else:
