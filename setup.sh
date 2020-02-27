@@ -295,14 +295,14 @@ echo "" >> "$LOGFILE"
 
 parse_branch "$@"
 
+choose_network
+
 ensure_utils_image
 
 docker run --rm \
 -e PROG="$0" \
 --entrypoint args_parser \
 "$UTILS_IMG" "$@"
-
-choose_network
 
 echo "🚀 Launching $NETWORK environment"
 
