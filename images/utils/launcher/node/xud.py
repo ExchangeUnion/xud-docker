@@ -136,8 +136,8 @@ class Xud(Node):
         text = re.sub(r"D.*Warning: insecure environment read function 'getenv' used[\s\n\r]+", "", text)
         return text
 
-    def extract_exception(self, cmd, output):
-        if cmd == "create":
+    def extract_exception(self, cmd: str, output: str):
+        if cmd.startswith("create"):
             if "password must be at least 8 characters" in output:
                 return InvalidPassword()
             elif "Passwords do not match, please try again" in output:
@@ -148,7 +148,7 @@ class Xud(Node):
                 return None
             else:
                 return Exception("Unexpected xucli create error happens")
-        elif cmd == "restore":
+        elif cmd.startswith("restore"):
             if "Password must be at least 8 characters" in output:
                 return InvalidPassword()
             elif "Passwords do not match, please try again" in output:

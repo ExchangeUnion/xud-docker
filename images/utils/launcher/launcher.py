@@ -441,7 +441,7 @@ your issue.""")
         outdated = False
 
         # Step 1. check all images
-        print("🌍 Checking for updates ...")
+        print("🌍 Checking for updates...")
         images = set([c.image for c in self._containers.values()])
         images_check_result = {x: None for x in images}
         while len(images) > 0:
@@ -817,6 +817,7 @@ your issue.""")
                 else:
                     r = self._shell.yes_or_no("No backup files found. Do you wish to continue WITHOUT restoring channel balance, keys and historical data?")
                     if r == "yes":
+                        restore_dir = "/tmp/fake-backup"
                         break
             else:
                 print(f"Path not available. ", end="")
@@ -843,31 +844,38 @@ your issue.""")
                 print("2) Restore Existing")
                 reply = self._shell.input("Please choose: ")
                 reply = reply.strip()
-                try:
-                    if reply == "1":
+                if reply == "1":
+                    try:
                         self.xucli_create_wrapper(xud)
-                    else:
-                        self.setup_restore_dir()
-                        if self._config.restore_dir:
-                            if self._config.restore_dir != "/tmp/fake-backup":
-                                r = self._shell.yes_or_no("BEWARE: Restoring your environment will close your existing lnd channels and restore channel balance in your wallet. Do you wish to continue?")
-                                if r == "yes":
+                        break
+                    except:
+                        pass
+                else:
+                    self.setup_restore_dir()
+                    if self._config.restore_dir:
+                        if self._config.restore_dir != "/tmp/fake-backup":
+                            r = self._shell.yes_or_no("BEWARE: Restoring your environment will close your existing lnd channels and restore channel balance in your wallet. Do you wish to continue?")
+                            if r == "yes":
+                                try:
                                     self.xucli_restore_wrapper(xud)
-                                else:
-                                    continue
-                            else:
-                                self.xucli_restore_wrapper(xud)
+                                    break
+                                except:
+                                    pass
                         else:
-                            continue
-                    break
-                except:
-                    pass
+                            try:
+                                self.xucli_restore_wrapper(xud)
+                                break
+                            except:
+                                pass
 
-            print()
-            print("Please enter a path to a destination where to store a backup of your environment. It includes everything, but NOT your wallet balance which is secured by your XUD SEED. The path should be an external drive, like a USB or network drive, which is permanently available on your device since backups are written constantly.")
-            print()
+                    self._config.restore_dir = None
 
-            self.setup_backup_dir()
+            if not self.is_backup_available():
+                print()
+                print("Please enter a path to a destination where to store a backup of your environment. It includes everything, but NOT your wallet balance which is secured by your XUD SEED. The path should be an external drive, like a USB or network drive, which is permanently available on your device since backups are written constantly.")
+                print()
+                self._config.backup_dir = None
+                self.setup_backup_dir()
         else:
             if not self.is_backup_available():
                 print("Backup location not available.")
