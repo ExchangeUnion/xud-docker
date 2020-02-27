@@ -93,7 +93,7 @@ class Xud(Node):
         elif self.network == "testnet":
             return "exchangeunion/xud:latest"
         elif self.network == "mainnet":
-            return "exchangeunion/xud:1.0.0-beta"
+            return "exchangeunion/xud:1.0.0-beta.1"
 
     def status(self):
         status = super().status()
