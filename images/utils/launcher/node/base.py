@@ -38,6 +38,8 @@ class Node:
         self.name = name
         self.api = None
 
+        self.image = self._get_image()
+
         self.container_spec = ContainerSpec(
             name=self.container_name,
             image=self.image,
@@ -56,8 +58,6 @@ class Node:
         self._logger = logging.getLogger("launcher.node." + self.name)
 
         self._cli = None
-
-        self.image = self._get_image()
 
     def _get_image(self):
         with open(os.path.dirname(__file__) + '/nodes.json') as f:
