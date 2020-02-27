@@ -1,0 +1,65 @@
+{
+  "simnet": {
+    "ltcd": {
+      "image": "exchangeunion/ltcd-simnet:latest"
+    },
+    "lndbtc": {
+      "image": "exchangeunion/lnd-simnet:latest"
+    },
+    "lndltc": {
+      "image": "exchangeunion/lnd-simnet:latest"
+    },
+    "raiden": {
+      "image": "exchangeunion/raiden-simnet:latest"
+    },
+    "xud": {
+      "image": "exchangeunion/xud-simnet:latest"
+    }
+  },
+  "testnet": {
+    "bitcoind": {
+      "image": "exchangeunion/bitcoind:latest"
+    },
+    "litecoind": {
+      "image": "exchangeunion/litecoind:latest"
+    },
+    "geth": {
+      "image": "exchangeunion/geth:latest"
+    },
+    "lndbtc": {
+      "image": "exchangeunion/lnd:latest"
+    },
+    "lndltc": {
+      "image": "exchangeunion/lnd:latest"
+    },
+    "raiden": {
+      "image": "exchangeunion/raiden:latest"
+    },
+    "xud": {
+      "image": "exchangeunion/xud:latest"
+    }
+  },
+  "mainnet": {
+    "bitcoind": {
+      "image": "exchangeunion/bitcoind:0.19.0.1"
+    },
+    "litecoind": {
+      "image": "exchangeunion/litecoind:0.17.1"
+    },
+    "geth": {
+      "image": "exchangeunion/geth:1.9.11"
+    },
+    "lndbtc": {
+      "image": "exchangeunion/lnd:0.9.0-beta"
+    },
+    "lndltc": {
+      "image": "exchangeunion/lnd:0.9.0-beta"
+    },
+    "raiden": {
+      "image": "exchangeunion/raiden:0.100.5a1.dev162-2217bcb"
+    },
+    "xud": {
+      "image": "exchangeunion/xud:v1.0.0-beta.1"
+    }
+  }
+}

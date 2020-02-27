@@ -186,13 +186,20 @@ function ensure_utils_image() {
     local B_IMG # branch image
     local P_IMG # pulling image
     local U_IMG # use image
+    local I_IMG # initial image
 
     if [[ $DEV == "true" ]]; then
         UTILS_IMG="exchangeunion/utils:latest"
         return
     fi
 
-    read -r STATUS B_IMG U_IMG P_IMG <<<"$(get_image_status "exchangeunion/utils:latest")"
+    if [[ $NETWORK == "mainnet" ]]; then
+        I_IMG="exchangeunion/utils:20.02.27"
+    else
+        I_IMG="exchangeunion/utils:latest"
+    fi
+
+    read -r STATUS B_IMG U_IMG P_IMG <<<"$(get_image_status "$I_IMG")"
     if [[ -z $U_IMG ]]; then
         exit 1
     fi

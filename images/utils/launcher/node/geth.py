@@ -53,10 +53,6 @@ class Geth(Node):
 
         self.api = GethApi(CliBackend(client, self.container_name, self._logger, self._cli))
 
-    @property
-    def image(self):
-        return "exchangeunion/geth:1.9.11"
-
     def start(self):
         if self.external:
             return

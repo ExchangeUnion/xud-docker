@@ -73,13 +73,6 @@ class Lnd(Node):
         self._cli = f"lncli -n {self.network} -c {self.chain}"
         self.api = LndApi(CliBackend(client, self.container_name, self._logger, self._cli))
 
-    @property
-    def image(self):
-        if self.network == "simnet":
-            return "exchangeunion/lnd-simnet:latest"
-        else:
-            return "exchangeunion/lnd:0.9.0-beta"
-
     def status(self):
         status = super().status()
         if status == "exited":

@@ -80,13 +80,6 @@ class Raiden(Node):
         self._cli = "curl -s"
         self.api = RaidenApi(CliBackend(client, self.container_name, self._logger, self._cli))
 
-    @property
-    def image(self):
-        if self.network == "simnet":
-            return "exchangeunion/raiden-simnet:latest"
-        else:
-            return "exchangeunion/raiden:latest"
-
     def status(self):
         status = super().status()
         if status == "exited":
