@@ -644,7 +644,7 @@ your issue.""")
         while counter < 3:
             try:
                 if self._config.restore_dir == "/tmp/fake-backup":
-                    command = f"restore /tmp/fake-backup /root/.raiden/.xud-backup-raiden-db"
+                    command = f"restore"
                 else:
                     command = f"restore /mnt/hostfs{self._config.restore_dir} /root/.raiden/.xud-backup-raiden-db"
                 xud.cli(command, self._shell)
@@ -849,11 +849,14 @@ your issue.""")
                     else:
                         self.setup_restore_dir()
                         if self._config.restore_dir:
-                            r = self._shell.yes_or_no("BEWARE: Restoring your environment will close your existing lnd channels and restore channel balance in your wallet. Do you wish to continue?")
-                            if r == "yes":
-                                self.xucli_restore_wrapper(xud)
+                            if self._config.restore_dir != "/tmp/fake-backup":
+                                r = self._shell.yes_or_no("BEWARE: Restoring your environment will close your existing lnd channels and restore channel balance in your wallet. Do you wish to continue?")
+                                if r == "yes":
+                                    self.xucli_restore_wrapper(xud)
+                                else:
+                                    continue
                             else:
-                                continue
+                                self.xucli_restore_wrapper(xud)
                         else:
                             continue
                     break
