@@ -107,6 +107,75 @@ class EventLoop(threading.Thread):
             else:
                 _remove_oflag_opost(sys.stdin.fileno())
 
+    def decode_input(self, data):
+        i = 0
+        esc_i = -1
+        while i < len(data):
+            b = ord(data[i])
+
+            if esc_i == 0:
+                if data[i] == '[':
+                    esc_i = 1
+                    i = i + 1
+                    continue
+                else:
+                    esc_i = -1
+                    self.queue.put("esc")
+
+            if esc_i == 1:
+                if data[i] == 'A':
+                    esc_i = -1
+                    self.queue.put("arrow_up")
+                    i = i + 1
+                    continue
+                elif data[i] == 'B':
+                    esc_i = -1
+                    self.queue.put("arrow_down")
+                    i = i + 1
+                    continue
+                elif data[i] == 'C':
+                    esc_i = -1
+                    self.queue.put("arrow_right")
+                    i = i + 1
+                    continue
+                elif data[i] == 'D':
+                    esc_i = -1
+                    self.queue.put("arrow_left")
+                    i = i + 1
+                    continue
+                else:
+                    esc_i = -1
+                    self.queue.put("esc")
+                    self.queue.put("[")
+
+            ch = None
+
+            if b < 0:
+                raise Exception(f"Illegal byte: {b!r}")
+            elif b < 32:
+                # control characters:
+                if b == 27:
+                    if i + 1 < len(data) and data[i + 1] == '[':
+                        # decode ANSI escape sequences
+                        esc_i = 0
+                        i = i + 1
+                        continue
+                ch = self._ch_dict.get(b, None)
+            elif b < 127:
+                # printable characters:
+                ch = data[i]
+            elif b == 127:
+                # del
+                ch = 'del'
+            else:
+                # >= 128 characters UTF-8 Unicode characters
+                pass
+
+            if ch:
+                self.queue.put(ch)
+
+            i = i + 1
+
     def callback(self, stdin, mask):
         with self._lock:
             data = stdin.read()
@@ -118,29 +187,7 @@ class EventLoop(threading.Thread):
                     self._logger.exception("Failed to send data to socket")
                     self.socket = None
 
-            ch = None
-            if len(data) == 3 and ord(data[0]) == 27 and data[1] == '[':
-                if data[2] == 'A':
-                    ch = "arrow_up"
-                elif data[2] == 'B':
-                    ch = "arrow_down"
-                elif data[2] == 'C':
-                    ch = "arrow_right"
-                elif data[2] == 'D':
-                    ch = "arrow_left"
-            elif len(data) == 1:
-                c0 = ord(data[0])
-                if c0 < 32:
-                    ch = self._ch_dict.get(c0, None)
-                elif c0 < 127:
-                    ch = data[0]
-                elif c0 == 127:
-                    ch = "del"
-
-            if ch:
-                self.queue.put(ch)
-            else:
-                self._logger.debug(f"Discard {data.encode()}")
+            self.decode_input(data)
 
     def _loop(self):
         try:
@@ -412,7 +459,7 @@ class Shell:
 
         self.stop_event.wait()
 
-    def input(self, prompt):
+    def input(self, prompt: str) -> str:
         assert self.handler.answer is None
 
         old_prompt = self.handler.prompt
@@ -438,14 +485,21 @@ class Shell:
 
         return result
 
-    def yes_or_no(self, prompt):
+    def yes_or_no(self, prompt: str) -> str:
         answer = self.input(prompt + " [Y/n] ")
         self._logger.debug(f"yes_or_no {answer=}")
         if answer.lower() == "y" or len(answer) == 0:
             return "yes"
         return "no"
 
-    def confirm(self, prompt):
+    def no_or_yes(self, prompt: str) -> str:
+        answer = self.input(prompt + " [y/N] ")
+        self._logger.debug(f"yes_or_no {answer=}")
+        if answer.lower() == "n" or len(answer) == 0:
+            return "no"
+        return "yes"
+
+    def confirm(self, prompt: str) -> bool:
         answer = self.input(prompt)
         self._logger.debug(f"confirm {answer=}")
         return len(answer) == 0

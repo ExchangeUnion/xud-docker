@@ -74,17 +74,11 @@ class Xud(Node):
                 'bind': '/root/.raiden',
                 'mode': 'rw'
             },
-            f"{self.network_dir}/data/raiden": {
-                'bind': '/root/.raiden',
-                'mode': 'rw'
-            },
-        }
-
-        if config.backup_dir:
-            volumes[config.backup_dir] = {
-                'bind': '/root/.xud-backup',
+            f"/": {
+                'bind': '/mnt/hostfs',
                 'mode': 'rw'
             }
+        }
 
         self.container_spec.volumes.update(volumes)
         self.container_spec.ports.update(ports)
@@ -128,8 +122,10 @@ class Xud(Node):
                         not_ready.append("raiden")
                     return "Waiting for " + ", ".join(not_ready)
             except XudApiError as e:
-                if "xud is locked, run 'xucli unlock', 'xucli create', or 'xucli restore' then try again" in str(e):
+                if "xud is locked" in str(e):
                     return "Wallet locked. Unlock with xucli unlock."
+                else:
+                    return str(e)
             except:
                 self._logger.exception("Failed to get advanced running status")
                 return "Container running"
@@ -140,8 +136,8 @@ class Xud(Node):
         text = re.sub(r"D.*Warning: insecure environment read function 'getenv' used[\s\n\r]+", "", text)
         return text
 
-    def extract_exception(self, cmd, output):
-        if cmd == "create":
+    def extract_exception(self, cmd: str, output: str):
+        if cmd.startswith("create"):
             if "password must be at least 8 characters" in output:
                 return InvalidPassword()
             elif "Passwords do not match, please try again" in output:
@@ -152,7 +148,7 @@ class Xud(Node):
                 return None
             else:
                 return Exception("Unexpected xucli create error happens")
-        elif cmd == "restore":
+        elif cmd.startswith("restore"):
             if "Password must be at least 8 characters" in output:
                 return InvalidPassword()
             elif "Passwords do not match, please try again" in output:

@@ -10,7 +10,6 @@ ADD https://api.github.com/repos/${REPO}/commits/${BRANCH} /dev/null
 RUN git clone -b ${BRANCH} https://github.com/${REPO}
 WORKDIR /xud
 RUN git show HEAD > git_head.txt
-RUN sed -Ei 's/argv.password/password1/g' lib/cli/commands/create.ts
 RUN npm install
 RUN npm run compile
 RUN npm run compile:seedutil
@@ -30,6 +29,7 @@ COPY xud.conf /tmp/
 COPY entrypoint.sh /app
 COPY xud-backup.sh /app
 COPY start_tor.sh /
+COPY update-backup-dir.sh /
 RUN ln -s /app/bin/xucli /bin/xucli
 COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 COPY torrc /etc/tor/torrc

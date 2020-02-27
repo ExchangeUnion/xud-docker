@@ -152,6 +152,10 @@ class Node:
             return "Container missing"
         return self._container.status
 
+    def exec(self, cmd):
+        if self._container is not None:
+            return self._container.exec_run(cmd)
+
     def cli(self, cmd, shell):
         # TODO external cli
         self._logger.debug("cli: %s", cmd)

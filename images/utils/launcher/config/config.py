@@ -143,8 +143,10 @@ class Config:
         self.home_dir = os.environ["HOME_DIR"]
         self.network = os.environ["NETWORK"]
         self.network_dir = os.environ["NETWORK_DIR"]
-        self.containers = Containers(self.network, self._expand)
         self.backup_dir = None
+        self.restore_dir = None
+
+        self.containers = Containers(self.network, self._expand)
 
     def parse(self):
         self._parse_config_file()
@@ -159,6 +161,7 @@ class Config:
         parser.add_argument("--mainnet-dir")
         parser.add_argument("--external-ip")
         parser.add_argument("--backup-dir")
+        parser.add_argument("--dev", action="store_true")
         parser.add_argument("--bitcoin-neutrino", type=bool)
 
         self._args = parser.parse_args()
@@ -173,9 +176,6 @@ class Config:
         if hasattr(self._args, "external_ip"):
             self.external_ip = self._args.external_ip
 
-        if hasattr(self._args, "backup_dir"):
-            self.backup_dir = self._args.backup_dir
-
         if hasattr(self._args, "bitcoin_neutrino"):
             self.containers["bitcoind"]["neutrino"] = self._args.bitcoin_neutrino
 
@@ -187,7 +187,10 @@ class Config:
             copyfile(os.path.dirname(__file__) + f'/{network}.conf', sample_config_file)
             with open(config_file) as f:
                 parsed = toml.load(f)
-                self._logger.debug("Parsed %s config file: %r", network, parsed)
+                self._logger.debug("Parsed %s.conf file: %r", network, parsed)
+
+                if "backup-dir" in parsed and len(parsed["backup-dir"].strip()) > 0:
+                    self.backup_dir = parsed["backup-dir"]
 
                 if "bitcoind" in parsed:
                     merge_bitcoind(self.containers["bitcoind"], parsed["bitcoind"])

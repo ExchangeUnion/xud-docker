@@ -12,8 +12,8 @@ from .shell import Shell
 import functools
 import sys
 import threading
-import argparse
 import shlex
+import toml
 
 CONTAINERS = {
     "simnet": ["ltcd", "lndbtc", "lndltc", "raiden", "xud"],
@@ -28,11 +28,36 @@ BOLD = "\033[0;1m"
 
 
 class ImagesCheckAbortion(Exception):
-    pass
+    def __init__(self, failed):
+        super().__init__()
+        self.failed = failed
 
 
 class ContainersCheckAbortion(Exception):
+    def __init__(self, failed):
+        super().__init__()
+        self.failed = failed
+
+
+class ContainersEnsureAbortion(Exception):
+    def __init__(self, failed):
+        super().__init__()
+        self.failed = failed
+
+
+class BackupDirNotAvailable(Exception):
     pass
+
+
+class NetworkConfigFileSyntaxError(Exception):
+    def __init__(self, hint):
+        super().__init__(hint)
+
+
+class ImagesNotAvailable(Exception):
+    def __init__(self, images):
+        super().__init__()
+        self.images = images
 
 
 class ContainerNotFound(Exception):
@@ -246,26 +271,26 @@ class XudEnv:
                     name, container = fs[f]
                     try:
                         f.result()
-                    except:
+                    except Exception as e:
                         self._logger.exception("Failed to get %s status", name)
-                        failed[name] = container
+                        failed[name] = str(e)
                 for f in not_done:
                     name, container = fs[f]
                     self._logger.debug("Get %s status timeout", name)
-                    failed[name] = container
+                    failed[name] = "timeout"
             if len(failed) > 0:
-                for name in failed.keys():
-                    update_status(name, "failed to fetch status")
+                for container, error in failed.items():
+                    update_status(container, error)
             containers = {}
 
         stop_fetching_animation.set()
 
     def command_down(self):
         for name, container in self._containers.items():
-            print(f"Stopping {name} ...")
+            print(f"Stopping {name}...")
             container.stop()
         for name, container in self._containers.items():
-            print(f"Removing {name} ...")
+            print(f"Removing {name}...")
             container.remove()
         print(f"Removing network {self.network_name}")
         self._docker_network.remove()
@@ -386,7 +411,7 @@ your issue.""")
                 if not missing:
                     return "local", None
                 else:
-                    raise Exception("Image not found")
+                    return "not_found", None
 
         self._logger.debug("Comparing images local_image=%r, remote_image_name=%r, remove_image=%r", local_image, remote_name, remote_image)
 
@@ -416,7 +441,7 @@ your issue.""")
         outdated = False
 
         # Step 1. check all images
-        print("🌍 Checking for updates ...")
+        print("🌍 Checking for updates...")
         images = set([c.image for c in self._containers.values()])
         images_check_result = {x: None for x in images}
         while len(images) > 0:
@@ -431,20 +456,21 @@ your issue.""")
                         result = f.result()
                         images_check_result[image] = result
                         self._logger.debug("Checking image: %s: %r" % (image, result))
-                    except:
-                        self._logger.exception("Failed to check for image(%s) updates", image)
-                        failed.append(image)
+                    except Exception as e:
+                        failed.append((image, e))
                 for f in not_done:
                     image = fs[f]
-                    failed.append(image)
+                    failed.append((image, "timeout"))
             if len(failed) > 0:
-                self._logger.debug("❌ Failed to check updates for: %s" % ", ".join(failed))
-                answer = self._shell.yes_or_no("Failed to check for image updates. Try again?")
+                print("Failed to check for image updates.")
+                for f in failed:
+                    print(f"* {f[0]}: {str(f[1])}")
+                answer = self._shell.yes_or_no("Try again?")
                 if answer == "yes":
-                    images = failed
+                    images = [f[0] for f in failed]
                     continue
                 else:
-                    raise ImagesCheckAbortion()
+                    raise ImagesCheckAbortion(failed)
             else:
                 break
 
@@ -454,6 +480,9 @@ your issue.""")
             if status in ["missing", "outdated"]:
                 print("* Image %s: %s" % (image, status))
                 outdated = True
+            elif status == "not_found":
+                not_found_images = [img for img, status in images_check_result.items() if status[0] == "not_found"]
+                raise ImagesNotAvailable(not_found_images)
 
         # Step 2. check all containers
         containers = self._containers.values()
@@ -470,20 +499,21 @@ your issue.""")
                         result = f.result()
                         containers_check_result[container] = result
                         self._logger.debug("Checking container: %s: %r" % (container.container_name, result))
-                    except:
-                        self._logger.exception("Failed to check for container(%s) updates", container.container_name)
-                        failed.append(container)
+                    except Exception as e:
+                        failed.append((container, e))
                 for f in not_done:
                     container = fs[f]
-                    failed.append(container)
+                    failed.append((container, "timeout"))
             if len(failed) > 0:
-                self._logger.debug("Failed to check updates for: %s" % ", ".join([c.container_name for c in failed]))
-                answer = self._shell.yes_or_no("Failed to check for container updates. Try again?")
+                print("Failed to check for container updates.")
+                for f in failed:
+                    print(f"* {f[0].name}: {str(f[1])}")
+                answer = self._shell.yes_or_no("Try again?")
                 if answer == "yes":
-                    containers = failed
+                    containers = [f[0] for f in failed]
                     continue
                 else:
-                    raise ContainersCheckAbortion()
+                    raise ContainersCheckAbortion(failed)
             else:
                 break
 
@@ -535,15 +565,36 @@ your issue.""")
         except:
             return "error"
 
-    def start_containers(self):
-        containers: List[Node] = list(self._containers.values())
-        with ThreadPoolExecutor(max_workers=len(containers)) as executor:
-            fs: Dict[Future, Node] = {executor.submit(self.start_container, c): c for c in containers}
-            for fut in as_completed(fs):
-                result = fut.result()
-                # print("Start %s ... %s" % (futs[fut].name, result))
-        for container in self._containers.values():
-            container.start()
+    def ensure_containers(self):
+        containers = self._containers.values()
+        while len(containers) > 0:
+            max_workers = len(containers)
+            failed = []
+            with ThreadPoolExecutor(max_workers=max_workers) as executor:
+                fs = {executor.submit(c.start): c for c in containers}
+                done, not_done = wait(fs, 60)
+                for f in done:
+                    container = fs[f]
+                    try:
+                        f.result()
+                    except Exception as e:
+                        failed.append((container, e))
+                for f in not_done:
+                    container = fs[f]
+                    failed.append((container, "timeout"))
+
+            if len(failed) > 0:
+                print("Failed to start these containers.")
+                for f in failed:
+                    print(f"* {f[0].name}: {str(f[1])}")
+                answer = self._shell.yes_or_no("Try again?")
+                if answer == "yes":
+                    containers = [f[0] for f in failed]
+                    continue
+                else:
+                    raise ContainersEnsureAbortion(failed)
+            else:
+                break
 
     def no_lnd_wallet(self, lnd):
         while True:
@@ -592,9 +643,10 @@ your issue.""")
         ok = False
         while counter < 3:
             try:
-                command = "restore"
-                if self._config.backup_dir:
-                    command += " /root/.xud-backup"
+                if self._config.restore_dir == "/tmp/fake-backup":
+                    command = f"restore"
+                else:
+                    command = f"restore /mnt/hostfs{self._config.restore_dir} /root/.raiden/.xud-backup-raiden-db"
                 xud.cli(command, self._shell)
                 ok = True
                 break
@@ -604,6 +656,180 @@ your issue.""")
         if not ok:
             raise Exception("Failed to restore wallets")
 
+    def check_backup_dir(self, backup_dir):
+        hostfs_dir = "/mnt/hostfs" + backup_dir
+
+        if not os.path.exists(hostfs_dir):
+            return False, "not existed"
+
+        if not os.path.isdir(hostfs_dir):
+            return False, "not a directory"
+
+        if not os.access(hostfs_dir, os.R_OK):
+            return False, "not readable"
+
+        if not os.access(hostfs_dir, os.W_OK):
+            return False, "not writable"
+
+        return True, None
+
+    def check_restore_dir(self, restore_dir):
+        return self.check_backup_dir(restore_dir)
+
+    def check_restore_dir_files(self, restore_dir):
+        files = os.listdir("/mnt/hostfs" + restore_dir)
+        contents = []
+        if "xud" in files:
+            contents.append("xud")
+        if "lnd-BTC" in files:
+            contents.append("lndbtc")
+        if "lnd-LTC" in files:
+            contents.append("lndltc")
+        if "raiden" in files:
+            contents.append("raiden")
+        return contents
+
+    def persist_backup_dir(self, backup_dir):
+        network = self.network
+        config_file = f"/root/.xud-docker/{network}/{network}.conf"
+
+        exit_code = os.system(f"grep -q backup-dir {config_file} >/dev/null 2>&1")
+
+        if exit_code == 0:
+            if not self._config.backup_dir:
+                raise NetworkConfigFileSyntaxError(f"The \"backup-dir\" option is in a wrong section of {network}.conf. Please check your configuration file.")
+            os.system(f"sed -Ei 's/^.*backup-dir = .*$/backup-dir = {backup_dir}' {config_file}")
+        else:
+            with open(config_file, 'r') as f:
+                contents = f.readlines()
+            with open(config_file, 'w') as f:
+                f.write("# The path to the directory to store your backup in. This should be located on an external drive, which usually is mounted in /mnt or /media.\n")
+                f.write(f"backup-dir = \"{backup_dir}\"\n")
+                f.write("\n")
+                f.write("".join(contents))
+
+    def setup_backup_dir(self):
+        if self._config.backup_dir:
+            return
+
+        backup_dir = None
+
+        while True:
+            reply = self._shell.input("Enter path to backup location: ")
+            reply = reply.strip()
+            if len(reply) == 0:
+                continue
+
+            backup_dir = self.normalize_path(reply)
+
+            print("Checking backup location... ", end="")
+            sys.stdout.flush()
+            ok, reason = self.check_backup_dir(backup_dir)
+            if ok:
+                print("OK.")
+                self.persist_backup_dir(backup_dir)
+                break
+            else:
+                print(f"Failed. ", end="")
+                self._logger.debug(f"Failed to check backup dir {backup_dir}: {reason}")
+                sys.stdout.flush()
+                r = self._shell.no_or_yes("Retry?")
+                if r == "no":
+                    self.command_down()
+                    raise BackupDirNotAvailable()
+
+        if self._config.backup_dir != backup_dir:
+            self._config.backup_dir = backup_dir
+
+    def is_backup_available(self):
+        if self._config.backup_dir is None:
+            return False
+
+        ok, reason = self.check_backup_dir(self._config.backup_dir)
+
+        if not ok:
+            return False
+
+        return True
+
+    def normalize_path(self, path: str) -> str:
+        parts = path.split("/")
+        pwd: str = os.environ["HOST_PWD"]
+        home: str = os.environ["HOST_HOME"]
+
+        # expand ~
+        while "~" in parts:
+            i = parts.index("~")
+            if i + 1 < len(parts):
+                parts = parts[:i] + home.split("/") + parts[i + 1:]
+            else:
+                parts = parts[:i] + home.split("/")
+
+        if len(parts[0]) > 0:
+            parts = pwd.split("/") + parts
+
+        # remove all '.'
+        if "." in parts:
+            parts.remove(".")
+
+        # remove all '..'
+        if ".." in parts:
+            parts = [p for i, p in enumerate(parts) if i + 1 < len(parts) and parts[i + 1] != ".." or i + 1 == len(parts)]
+            parts.remove("..")
+
+        return "/".join(parts)
+
+    def setup_restore_dir(self) -> None:
+        """This function will try to interactively setting up restore_dir. And
+        store it in self._config.restore_dir
+
+        :return: None
+        """
+        if self._config.restore_dir:
+            return
+
+        restore_dir = None
+
+        while True:
+            reply = self._shell.input("Please paste the path to your XUD backup to restore your channel balance, your keys and other historical data: ")
+            reply = reply.strip()
+            if len(reply) == 0:
+                continue
+
+            restore_dir = self.normalize_path(reply)
+
+            print("Checking files... ", end="")
+            sys.stdout.flush()
+            ok, reason = self.check_restore_dir(restore_dir)
+            if ok:
+                contents = self.check_restore_dir_files(restore_dir)
+                if len(contents) > 0:
+                    if len(contents) > 1:
+                        contents_text = ", ".join(contents[:-1]) + " and " + contents[-1]
+                    else:
+                        contents_text = contents[0]
+                    r = self._shell.yes_or_no(f"Looking good. This will restore {contents_text}. Do you wish to continue?")
+                    if r == "yes":
+                        break
+                    else:
+                        restore_dir = None
+                        break
+                else:
+                    r = self._shell.yes_or_no("No backup files found. Do you wish to continue WITHOUT restoring channel balance, keys and historical data?")
+                    if r == "yes":
+                        restore_dir = "/tmp/fake-backup"
+                        break
+            else:
+                print(f"Path not available. ", end="")
+                self._logger.info(f"Failed to check restore dir {restore_dir}: {reason}")
+                sys.stdout.flush()
+                r = self._shell.yes_or_no("Do you wish to continue WITHOUT restoring channel balance, keys and historical data?")
+                if r == "yes":
+                    restore_dir = "/tmp/fake-backup"
+                    break
+
+        self._config.restore_dir = restore_dir
+
     def check_wallets(self):
         lndbtc = self._containers.get("lndbtc")
         lndltc = self._containers.get("lndltc")
@@ -611,11 +837,56 @@ your issue.""")
 
         if self.no_lnd_wallet(lndbtc) or self.no_lnd_wallet(lndltc):
             self.wait_xud(xud)
-            restore = os.environ["RESTORE"]
-            if restore == "1":
-                self.xucli_restore_wrapper(xud)
-            else:
-                self.xucli_create_wrapper(xud)
+
+            while True:
+                print("Do you want to create a new xud environment or restore an existing one?")
+                print("1) Create New")
+                print("2) Restore Existing")
+                reply = self._shell.input("Please choose: ")
+                reply = reply.strip()
+                if reply == "1":
+                    try:
+                        self.xucli_create_wrapper(xud)
+                        break
+                    except:
+                        pass
+                else:
+                    self.setup_restore_dir()
+                    if self._config.restore_dir:
+                        if self._config.restore_dir != "/tmp/fake-backup":
+                            r = self._shell.yes_or_no("BEWARE: Restoring your environment will close your existing lnd channels and restore channel balance in your wallet. Do you wish to continue?")
+                            if r == "yes":
+                                try:
+                                    self.xucli_restore_wrapper(xud)
+                                    break
+                                except:
+                                    pass
+                        else:
+                            try:
+                                self.xucli_restore_wrapper(xud)
+                                break
+                            except:
+                                pass
+
+                    self._config.restore_dir = None
+
+            if not self.is_backup_available():
+                print()
+                print("Please enter a path to a destination where to store a backup of your environment. It includes everything, but NOT your wallet balance which is secured by your XUD SEED. The path should be an external drive, like a USB or network drive, which is permanently available on your device since backups are written constantly.")
+                print()
+                self._config.backup_dir = None
+                self.setup_backup_dir()
+        else:
+            if not self.is_backup_available():
+                print("Backup location not available.")
+                self._config.backup_dir = None
+                self.setup_backup_dir()
+
+        cmd = f"/update-backup-dir.sh '/mnt/hostfs{self._config.backup_dir}'"
+        exit_code, output = self._containers["xud"].exec(cmd)
+        lines = output.decode().splitlines()
+        if len(lines) > 0:
+            print(lines[0])
 
     def wait_for_channels(self):
         # TODO wait for channels
@@ -626,11 +897,16 @@ your issue.""")
             self.check_updates()
         except (ImagesCheckAbortion, ContainersCheckAbortion):
             pass
-        self.start_containers()
-        if self.network in ["testnet", "mainnet"]:
-            self.check_wallets()
-        elif self.network == "simnet":
-            self.wait_for_channels()
+
+        try:
+            self.ensure_containers()
+            if self.network in ["testnet", "mainnet"]:
+                self.check_wallets()
+            elif self.network == "simnet":
+                self.wait_for_channels()
+        except ContainersEnsureAbortion:
+            pass
+
         self._shell.start(f"{self.network} > ", self.handle_command)
 
 
@@ -643,6 +919,7 @@ class Launcher:
     def launch(self):
         network = os.environ["NETWORK"]
         network_dir = os.environ["NETWORK_DIR"]
+        log_timestamp = os.environ["LOG_TIMESTAMP"]
         exit_code = 0
         try:
             self._config.parse()
@@ -652,10 +929,26 @@ class Launcher:
         except KeyboardInterrupt:
             print()
             exit_code = 2
+        except BackupDirNotAvailable:
+            exit_code = 3
+        except ImagesNotAvailable as e:
+            if len(e.images) == 1:
+                print(f"❌ No such image: {e.images[0]}")
+            elif len(e.images) > 1:
+                images_list = ", ".join(e.images)
+                print(f"❌ No such images: {images_list}")
+            exit_code = 5
+        except NetworkConfigFileSyntaxError as e:
+            print(f"❌ {e}")
+            exit_code = 6
         except ArgumentError as e:
             print(f"❌ {e}")
+            exit_code = 100
+        except toml.TomlDecodeError as e:
+            print(f"❌ {e}")
+            exit_code = 101
         except:
-            print(f"❌ Failed to launch {network} environment. For more details, see {network_dir}/{network}.log")
+            print(f"❌ Failed to launch {network} environment. For more details, see {network_dir}/{network}-{log_timestamp}.log")
             self._logger.exception("Failed to launch")
             exit_code = 1
         finally:
