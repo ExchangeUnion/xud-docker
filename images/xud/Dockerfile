@@ -4,7 +4,7 @@ FROM node:$NODE_VERSION AS builder
 ARG REPO
 ARG BRANCH
 # Use pure JS implemented secp256k1 bindings
-RUN apk add --no-cache git rsync bash musl-dev go
+RUN apk add --no-cache git rsync bash musl-dev go python3 make g++
 # This is a "hack" to automatically invalidate the cache in case there are new commits
 ADD https://api.github.com/repos/${REPO}/commits/${BRANCH} /dev/null
 RUN git clone -b ${BRANCH} https://github.com/${REPO}
