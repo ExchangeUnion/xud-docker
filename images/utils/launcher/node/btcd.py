@@ -46,19 +46,6 @@ class Btcd(Node):
 
         self.api = BitcoindApi(CliBackend(client, self.container_name, self._logger, self._cli))
 
-    @property
-    def image(self):
-        if self.litecoin:
-            if self.network == "simnet":
-                return "exchangeunion/ltcd-simnet:latest"
-            else:
-                return "exchangeunion/ltcd:latest"
-        else:
-            if self.network == "simnet":
-                return "exchangeunion/btcd-simnet:latest"
-            else:
-                return "exchangeunion/btcd:latest"
-
     def status(self):
         status = super().status()
         if status == "exited":

@@ -86,15 +86,6 @@ class Xud(Node):
         self._cli = "xucli"
         self.api = XudApi(CliBackend(client, self.container_name, self._logger, self._cli))
 
-    @property
-    def image(self):
-        if self.network == "simnet":
-            return "exchangeunion/xud-simnet:latest"
-        elif self.network == "testnet":
-            return "exchangeunion/xud:latest"
-        elif self.network == "mainnet":
-            return "exchangeunion/xud:1.0.0-beta"
-
     def status(self):
         status = super().status()
         if status == "exited":

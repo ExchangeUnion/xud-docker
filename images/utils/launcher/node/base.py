@@ -8,6 +8,7 @@ import sys
 import functools
 import datetime
 import itertools
+import json
 
 
 class InvalidNetwork(Exception):
@@ -37,6 +38,8 @@ class Node:
         self.name = name
         self.api = None
 
+        self.image = self._get_image()
+
         self.container_spec = ContainerSpec(
             name=self.container_name,
             image=self.image,
@@ -56,6 +59,11 @@ class Node:
 
         self._cli = None
 
+    def _get_image(self):
+        with open(os.path.dirname(__file__) + '/nodes.json') as f:
+            j = json.load(f)
+            return j[self.network][self.name]["image"]
+
     @property
     def container_name(self):
         return f"{self.network}_{self.name}_1"
@@ -71,10 +79,6 @@ class Node:
     @property
     def network_dir(self):
         return self._config.network_dir
-
-    @property
-    def image(self):
-        raise NotImplementedError()
 
     def _get_ports(self, spec_ports: Dict):
         ports = []

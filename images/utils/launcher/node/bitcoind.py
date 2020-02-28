@@ -95,13 +95,6 @@ class Bitcoind(Node):
 
         self.api = BitcoindApi(CliBackend(client, self.container_name, self._logger, self._cli))
 
-    @property
-    def image(self):
-        if self.litecoin:
-            return "exchangeunion/litecoind:0.17.1"
-        else:
-            return "exchangeunion/bitcoind:0.19.0.1"
-
     def start(self):
         if self.external or self.neutrino:
             return
