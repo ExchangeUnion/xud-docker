@@ -4,21 +4,15 @@ import sys
 import os
 from os.path import dirname, abspath, join, isdir
 from argparse import ArgumentParser
-from configparser import ConfigParser
 from contextlib import contextmanager
 from functools import wraps
+from shutil import copyfile
+import json
+from subprocess import check_output
+import shlex
 import re
-
-
-def parse_versions():
-    parser = ConfigParser(inline_comment_prefixes=(';', '#'))
-    parser.read("versions.ini")
-    return parser
-
-
-def is_git_dirty():
-    return os.system("git diff --quiet") != 0
-
+import platform
+from datetime import datetime
 
 projectdir = abspath(dirname(dirname(__file__)))
 projectgithub = "https://github.com/exchangeunion/xud-docker"
@@ -26,158 +20,188 @@ imagesdir = join(projectdir, "images")
 supportsdir = join(projectdir, "supports")
 labelprefix = "com.exchangeunion.image"
 tagprefix = "exchangeunion"
+travis = "TRAVIS_BRANCH" in os.environ
+buildx_installed = os.system("docker buildx version | grep -q github.com/docker/buildx") == 0
+arch = platform.machine()
 
 os.chdir(projectdir)
 
-branch = os.popen("git rev-parse --abbrev-ref HEAD").read().strip()
-created = os.popen("date -u +'%Y-%m-%dT%H:%M:%SZ'").read().strip()
-revision = os.popen("git rev-parse HEAD").read().strip()
 
-if is_git_dirty:
-    revision = revision + "-dirty"
+def get_git_info():
+    if os.path.exists(".git"):
+        b = os.popen("git rev-parse --abbrev-ref HEAD").read().strip()
+        if b == "HEAD":
+            b = os.environ["TRAVIS_BRANCH"]
+        if b == "local":
+            print("ERROR: Git branch name (local) is reserved", file=sys.stderr)
+            exit(1)
+        if "__" in b:
+            print("ERROR: Git branch name (%s) contains \"__\"" % b, file=sys.stderr)
+            exit(1)
+        r = os.popen("git rev-parse HEAD").read().strip()
+        if os.system("git diff --quiet") != 0:
+            r = r + "-dirty"
+        return b, r
+    return None, None
+
+now = datetime.utcnow()
+created = now.strftime('%Y-%m-%dT%H:%M:%SZ')
+utils_tag_date = now.strftime('%y.%m.%d')
+branch, revision = get_git_info()
 
 os.chdir(imagesdir)
 
-versions = parse_versions()
 images = list(filter(isdir, os.listdir(".")))
 
 
 ####################################################################
 
-@contextmanager
-def pushd(new_dir):
-    prev_dir = os.getcwd()
-    os.chdir(new_dir)
-    try:
-        yield
-    finally:
-        os.chdir(prev_dir)
 
-
-def dir(new_dir):
-    def inner_function(function):
-        @wraps(function)
-        def wrapper(*args, **kwargs):
-            with pushd(supportsdir):
-                function(*args, **kwargs)
-
-        return wrapper
-
-    return inner_function
-
-
-def get_dockerfile(platform):
-    if platform == "linux/arm64":
-        f = "Dockerfile.aarch64"
-        if os.path.exists(f):
-            return f
-    return "Dockerfile"
-
-
-@dir(supportsdir)
-def build_xud_simnet(platform):
-    dockerfile = get_dockerfile(platform)
-    if platform:
-        cmd = "docker buildx build --platform {} . -t xud-simnet -f {} --progress plain --load".format(platform, dockerfile)
-    else:
-        cmd = "docker build . -t xud-simnet"
-
-    print()
-    print(cmd)
-    print()
-
-    exit_code = os.system(cmd)
-
-    if exit_code != 0:
-        exit(1)
-
-    if platform == "linux/arm64":
-        os.system("docker tag xud-simnet exchangeunion/xud-simnet-install")
-        os.system("docker push exchangeunion/xud-simnet-install")
-
-
-def build(image, platform):
+def print_title(title):
     print("-" * 80)
-    print(":: Building %s ::" % image)
+    print(":: %s ::" % title)
     print("-" * 80)
+
+
+def get_labels(image):
     labels = [
-        "--label {}.branch={}".format(labelprefix, branch),
         "--label {}.created={}".format(labelprefix, created),
-        "--label {}.revision={}".format(labelprefix, revision),
     ]
+    if branch:
+        labels.extend([
+            "--label {}.branch={}".format(labelprefix, branch),
+            "--label {}.revision={}".format(labelprefix, revision),
+        ])
     if not revision.endswith("-dirty"):
         source = "{}/blob/{}/images/{}/Dockerfile".format(
             projectgithub, revision, image)
         labels += [
             "--label {}.source={}".format(labelprefix, source)
         ]
-    build_args = {
-        "ALPINE_VERSION": versions["base"]["alpine"],
-        "GOLANG_VERSION": versions["base"]["golang"],
-        "PYTHON_VERSION": versions["base"]["python"],
-        "NODE_VERSION": versions["base"]["node"],
-    }
-    if image.endswith("-simnet"):
-        tag = "{}/{}".format(tagprefix, image)
-        build_xud_simnet(platform)
+    return labels
+
+
+def get_build_args(args):
+    result = []
+    for arg in args:
+        result.append("--build-arg " + arg)
+    return result
+
+
+def get_branch_tag(tag):
+    if branch:
+        if branch == "master":
+            return tag
+        else:
+            return tag + "__" + branch.replace("/", "-")
+    return tag + "__local"
+
+
+def get_existed_dockerfile(file):
+    if not os.path.exists(file):
+        print("ERROR: Missing dockerfile: {}".format(file), file=sys.stderr)
+        exit(1)
+    return file
+
+
+def get_dockerfile(build_dir, arch):
+    f = "{}/Dockerfile".format(build_dir)
+    if arch == "x86_64":
+        return get_existed_dockerfile(f)
+    elif arch == "aarch64":
+        f2 = "{}/Dockerfile.aarch64".format(build_dir)
+        if os.path.exists(f2):
+            return f2
+        else:
+            return get_existed_dockerfile(f)
+
+
+def parse_image_with_tag(image):
+    if ":" in image:
+        parts = image.split(":")
+        name = parts[0]
+        tag = parts[1]
     else:
-        if image in versions["application"]:
-            version = versions["application"][image]
-            if ":" in version:
-                repo_name, repo_branch = version.split(":")
-                build_args["REPO"] = repo_name
-                build_args["BRANCH"] = repo_branch
-            else:
-                build_args["VERSION"] = version
+        name = image
+        tag = utils_tag_date
+    return name, tag
 
-        if image in versions["tag"]:
-            tagsuffix = versions["tag"][image]
-        else:
-            tagsuffix = "latest"
 
-        tag = "{}/{}:{}".format(tagprefix, image, tagsuffix)
+def build(image):
+    image, tag = parse_image_with_tag(image)
+    args = []
 
-    os.chdir(image)
+    print_title("Building {}:{}".format(image, tag))
+
+    labels = get_labels(image)
+    build_args = get_build_args(args)
+    build_tag = "{}/{}:{}".format(tagprefix, image, get_branch_tag(tag))
+
+    if image == "utils":
+        build_dir = "utils"
+    else:
+        build_dir = "{}/{}".format(image, tag)
+
+    if not os.path.exists(build_dir):
+        print("ERROR: Missing build directory: " + build_dir, file=sys.stderr)
+        exit(1)
+
+    args = [
+        " ".join(build_args),
+        " ".join(labels),
+    ]
+
+    shared_dir = "{}/shared".format(image)
+    shared_files = []
+    if os.path.exists(shared_dir):
+        shared_files = os.listdir(shared_dir)
+        for f in shared_files:
+            print("Copying shared file: " + f)
+            copyfile("{}/{}".format(shared_dir, f), "{}/{}".format(build_dir, f))
+        print()
+
     try:
-        dockerfile = get_dockerfile(platform)
-        with open(dockerfile) as f:
-            p = re.compile(r"^ARG (.+)$", re.MULTILINE)
-            used_args = p.findall(f.read())
-
-        build_args = {k: v for k, v in build_args.items() if k in used_args}
-        build_args = ["--build-arg %s=%s" % (k, v) for k, v in build_args.items()]
-
-        args = [
-            "-t {}".format(tag),
-            " ".join(build_args),
-            " ".join(labels),
-        ]
-
-        if platform:
-            build_cmd = "docker buildx build --platform {} --progress plain --load -f {} {} .".format(platform, dockerfile, " ".join(args))
-        else:
-            build_cmd = "docker build {} .".format(" ".join(args))
-        print()
+        build_cmd = "docker build -f {} -t {} {} {}".format(get_dockerfile(build_dir, arch), build_tag + "__" + arch, " ".join(args), build_dir)
         print(build_cmd)
-        print()
-        os.system(build_cmd)
-        print()
+        exit_code = os.system(build_cmd)
+        if exit_code != 0:
+            print("ERROR: Failed to build {} image".format(arch), file=sys.stderr)
+            exit(1)
+
+        if arch == "x86_64" and buildx_installed:
+            build_cmd = "docker buildx build --platform linux/arm64 --progress plain --load -f {} -t {} {} {}".format(get_dockerfile(build_dir, "aarch64"), build_tag + "__aarch64", " ".join(args), build_dir)
+            print(build_cmd)
+            exit_code = os.system(build_cmd)
+            if exit_code != 0:
+                print("ERROR: Failed to build aarch64 image", file=sys.stderr)
+                exit(1)
     finally:
-        os.chdir("..")
+        print()
+        for f in shared_files:
+            print("Removing shared file: " + f)
+            os.remove("{}/{}".format(build_dir, f))
+
+
+def run_command(cmd, errmsg):
+    exit_code = os.system(cmd)
+    if exit_code != 0:
+        print("ERROR: {}".format(errmsg), file=sys.stderr)
+        exit(1)
 
 
 def push(image):
-    if image in versions["tag"]:
-        tagsuffix = versions["tag"][image]
-    else:
-        tagsuffix = "latest"
-    tag = "{}/{}:{}".format(tagprefix, image, tagsuffix)
-    if branch == "master":
-        os.system("docker push {}".format(tag))
-    else:
-        newtag = tag + "__" + branch.replace('/', '-')
-        os.system("docker tag {} {}".format(tag, newtag))
-        os.system("docker push {}".format(newtag))
+    image, tag = parse_image_with_tag(image)
+
+    push_tag = "{}/{}:{}".format(tagprefix, image, get_branch_tag(tag))
+    arch_tag = push_tag + "__" + arch
+
+    run_command("docker push {}".format(arch_tag), "Failed to push {}".format(arch_tag))
+
+    if arch == "x86_64" and buildx_installed:
+        aarch64_tag = push_tag + "__aarch64"
+        run_command("docker push {}".format(aarch64_tag), "Failed to push {}".format(aarch64_tag))
+        run_command("docker manifest create {} --amend {} --amend {}".format(push_tag, arch_tag, aarch64_tag), "Failed to create manifest")
+        run_command("docker manifest push -p {}".format(push_tag), "Failed to push manifest")
 
 
 def test(args):
@@ -193,13 +217,47 @@ def test(args):
         os.system(cmd)
 
 
+def get_modified_images(nodes):
+    os.system("git status")
+    master = check_output(shlex.split("git ls-remote origin master")).decode().split()[0]
+    print("master is {}".format(master))
+    lines = check_output(shlex.split("git diff --name-only {}".format(master))).decode().splitlines()
+
+    def f(x):
+        if x.startswith("images/utils"):
+            return "utils"
+        else:
+            p = re.compile(r"^images/([^/]*)/([^/]*)/.*$")
+            m = p.match(x)
+            if m:
+                if m.group(2) == "shared":
+                    all_tags = []
+                    for tag in os.listdir(m.group(1)):
+                        if tag != "shared":
+                            all_tags.append("{}:{}".format(m.group(1), tag))
+                    return all_tags
+                else:
+                    return "{}:{}".format(m.group(1), m.group(2))
+            else:
+                return None
+
+    modified = set()
+    for x in lines:
+        r = f(x)
+        if x.startswith("images") and r:
+            if isinstance(r, list):
+                modified.update(r)
+            else:
+                modified.add(r)
+    return modified
+
+
 def main():
     parser = ArgumentParser()
     parser.add_argument("-d", "--debug", action="store_true")
     subparsers = parser.add_subparsers(dest="command")
 
     build_parser = subparsers.add_parser("build")
-    build_parser.add_argument("--platform", type=str)
     build_parser.add_argument("images", type=str, nargs="*")
 
     push_parser = subparsers.add_parser("push")
@@ -215,20 +273,27 @@ def main():
 
     args = parser.parse_args()
 
+    print("Current branch is " + branch)
+
+    nodes = json.load(open("utils/launcher/node/nodes.json"))
+
     if args.command == "build":
         if len(args.images) == 0:
-            x = images
+            # Auto-detect modified images
+            for image in get_modified_images(nodes):
+                build(image)
         else:
-            x = list(filter(lambda i: i in images, args.images))
-        for image in x:
-            build(image, args.platform)
+            for image in args.images:
+                build(image)
     elif args.command == "push":
         if len(args.images) == 0:
-            x = images
+            # Auto-detect modified images
+            for image in get_modified_images(nodes):
+                push(image)
         else:
-            x = list(filter(lambda i: i in images, args.images))
-        for image in x:
-            push(image)
+            for image in args.images:
+                push(image)
+
     elif args.command == "test":
         test(args)
 

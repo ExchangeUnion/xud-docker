@@ -194,9 +194,9 @@ function ensure_utils_image() {
     fi
 
     if [[ $NETWORK == "mainnet" ]]; then
-        I_IMG="exchangeunion/utils:20.02.27"
+        I_IMG="exchangeunion/utils:20.03.04"
     else
-        I_IMG="exchangeunion/utils:latest"
+        I_IMG="exchangeunion/utils:20.03.04"
     fi
 
     read -r STATUS B_IMG U_IMG P_IMG <<<"$(get_image_status "$I_IMG")"

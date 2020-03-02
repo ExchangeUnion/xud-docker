@@ -1,0 +1,4 @@
+475c475
+< 	if !(cfg.Bitcoin.RegTest || cfg.Bitcoin.SimNet ||
+---
+> 	if true || !(cfg.Bitcoin.RegTest || cfg.Bitcoin.SimNet ||

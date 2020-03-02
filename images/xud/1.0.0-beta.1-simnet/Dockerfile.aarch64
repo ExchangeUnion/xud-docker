@@ -1,0 +1,32 @@
+FROM node:12-alpine3.10 AS builder
+ARG REPO=ExchangeUnion/xud
+ARG BRANCH=v1.0.0-beta.1
+# Use pure JS implemented secp256k1 bindings
+RUN apk add --no-cache git rsync bash musl-dev go python3 make g++
+# Pre-built binaries not found for sqlite3@4.1.0 and node@12.16.1 (node-v72 ABI, musl) (falling back to source compile with node-gyp)
+# python: not found
+RUN apk add --no-cache python
+# This is a "hack" to automatically invalidate the cache in case there are new commits
+#ADD https://api.github.com/repos/$REPO/commits/$BRANCH /dev/null
+RUN git clone -b $BRANCH https://github.com/$REPO
+WORKDIR /xud
+RUN git show HEAD > git_head.txt
+RUN sed -Ei 's/"grpc-tools": "1.8.0",//g' package.json
+RUN npm install
+RUN npm run compile
+RUN npm run compile:seedutil
+
+FROM node:12-alpine3.10
+RUN apk add --no-cache bash supervisor tor
+RUN mkdir /root/.xud
+VOLUME [ "/root/.xud" ]
+COPY --from=builder /xud /app
+COPY xud.conf /tmp/
+COPY entrypoint.sh /app
+RUN ln -s /app/bin/xucli /bin/xucli
+COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+COPY torrc /etc/tor/torrc
+RUN mkdir /root/.xud/tor
+WORKDIR /app
+ENTRYPOINT ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]
+EXPOSE 28885 8887

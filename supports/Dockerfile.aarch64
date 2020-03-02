@@ -1,8 +1,0 @@
-FROM node:12-alpine3.10
-RUN apk add --no-cache git bash make python3 python3-dev python go rsync musl-dev libffi-dev patch
-RUN apk add --no-cache g++
-ADD xud-simnet /root/xud-simnet
-ADD install-raiden.sh install.sh /
-# Use '"'"' to escape single quote inside single quote string
-RUN sed -Ei '/cd xud/a sed -Ei '"'"'s/"grpc-tools": "1.8.0",//g\'"'"' package.json' /root/xud-simnet/scripts/xud-simnet-install
-RUN /install.sh

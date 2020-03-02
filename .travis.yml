@@ -1,0 +1,9 @@
+language: python
+arch:
+  - amd64
+  - arm64
+services:
+  - docker
+script:
+  - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
+  - tools/build && tools/push

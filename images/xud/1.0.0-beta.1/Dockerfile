@@ -1,0 +1,29 @@
+FROM node:12-alpine3.10 AS builder
+ARG REPO=ExchangeUnion/xud
+ARG BRANCH=v1.0.0-beta.1
+# Use pure JS implemented secp256k1 bindings
+RUN apk add --no-cache git rsync bash musl-dev go python3 make g++
+# This is a "hack" to automatically invalidate the cache in case there are new commits
+ADD https://api.github.com/repos/$REPO/commits/$BRANCH /dev/null
+RUN git clone -b $BRANCH https://github.com/$REPO
+WORKDIR /xud
+RUN git show HEAD > git_head.txt
+RUN npm install
+RUN npm run compile
+RUN npm run compile:seedutil
+
+
+FROM node:12-alpine3.10
+RUN apk add --no-cache bash supervisor tor
+COPY --from=builder /xud /app
+COPY xud.conf /tmp/
+COPY entrypoint.sh xud-backup.sh /app/
+COPY start_tor.sh update-backup-dir.sh /
+COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+COPY torrc /etc/tor/torrc
+RUN ln -s /app/bin/xucli /usr/local/bin/xucli
+RUN mkdir -p /root/.xud/tor
+WORKDIR /app
+ENTRYPOINT ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]
+VOLUME [ "/root/.xud" ]
+EXPOSE 8885 18885 8887
