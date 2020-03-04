@@ -17,7 +17,7 @@ network_dir = home_dir + "/" + network
 backup_dir = None
 restore_dir = None
 
-copyfile("/usr/local/lib/python3.8/site-packages/launcher/config/xud-docker.conf", "/root/.xud-docker/sample-xud-docker.conf")
+copyfile("/usr/local/lib/python3.8/site-packages/launcher-1.0.0-py3.8.egg/launcher/config/xud-docker.conf", "/root/.xud-docker/sample-xud-docker.conf")
 
 try:
     parsed = _parse_xud_docker_conf()
