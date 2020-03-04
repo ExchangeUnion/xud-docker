@@ -4,6 +4,13 @@ arch:
   - arm64
 services:
   - docker
+cache:
+  directories:
+  - docker_images
+before_script:
+  - docker load -i docker_images/images.tar || true
+before_cache:
+  - docker save -o docker_images/images.tar $(docker images -a -q)
 script:
   - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
   - tools/build && tools/push
