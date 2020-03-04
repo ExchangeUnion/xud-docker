@@ -221,7 +221,6 @@ def test(args):
 
 def get_modified_images(nodes):
     master = check_output(shlex.split("git ls-remote origin master")).decode().split()[0]
-    print("master is {}".format(master))
     lines = check_output(shlex.split("git diff --name-only {}".format(master))).decode().splitlines()
 
     def f(x):
@@ -250,7 +249,12 @@ def get_modified_images(nodes):
                 modified.update(r)
             else:
                 modified.add(r)
-    return sorted(modified)
+    modified = sorted(modified)
+
+    print("Detected modified images:")
+    for img in modified:
+        print("- {}".format(img))
+    return modified
 
 
 def main():
@@ -273,8 +277,6 @@ def main():
     test_parser.add_argument("--test-script", type=str, default="test-branch.sh " + branch)
 
     args = parser.parse_args()
-
-    print("Current branch is " + branch)
 
     nodes = json.load(open("utils/launcher/node/nodes.json"))
 
