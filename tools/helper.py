@@ -251,7 +251,7 @@ def get_modified_images(nodes):
                 modified.update(r)
             else:
                 modified.add(r)
-    return modified
+    return sorted(modified)
 
 
 def main():
