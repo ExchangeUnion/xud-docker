@@ -190,6 +190,8 @@ def run_command(cmd, errmsg):
 
 
 def push(image):
+    build(image)
+
     image, tag = parse_image_with_tag(image)
 
     push_tag = "{}/{}:{}".format(tagprefix, image, get_branch_tag(tag))
