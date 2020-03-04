@@ -4,11 +4,9 @@ import sys
 import os
 from os.path import dirname, abspath, join, isdir
 from argparse import ArgumentParser
-from contextlib import contextmanager
-from functools import wraps
 from shutil import copyfile
 import json
-from subprocess import check_output
+from subprocess import check_output, Popen, PIPE, STDOUT
 import shlex
 import re
 import platform
@@ -127,6 +125,23 @@ def parse_image_with_tag(image):
     return name, tag
 
 
+def run_command(cmd, errmsg):
+    print()
+    print("-"*80)
+    print(cmd)
+    print("-"*80)
+    p = Popen(cmd, shell=True, stdout=PIPE, stderr=STDOUT)
+
+    for line in p.stdout:
+        print(line.decode(), end="")
+
+    exit_code = p.wait()
+
+    if exit_code != 0:
+        print("ERROR: {}, exit_code={}".format(errmsg, exit_code), file=sys.stderr)
+        exit(1)
+
+
 def build(image):
     image, tag = parse_image_with_tag(image)
     args = []
@@ -162,31 +177,16 @@ def build(image):
 
     try:
         build_cmd = "docker build -f {} -t {} {} {}".format(get_dockerfile(build_dir, arch), build_tag + "__" + arch, " ".join(args), build_dir)
-        print(build_cmd)
-        exit_code = os.system(build_cmd)
-        if exit_code != 0:
-            print("ERROR: Failed to build {} image".format(arch), file=sys.stderr)
-            exit(1)
+        run_command(build_cmd, "Failed to build {} image".format(arch))
 
         if arch == "x86_64" and buildx_installed:
             build_cmd = "docker buildx build --platform linux/arm64 --progress plain --load -f {} -t {} {} {}".format(get_dockerfile(build_dir, "aarch64"), build_tag + "__aarch64", " ".join(args), build_dir)
-            print(build_cmd)
-            exit_code = os.system(build_cmd)
-            if exit_code != 0:
-                print("ERROR: Failed to build aarch64 image", file=sys.stderr)
-                exit(1)
+            run_command(build_cmd, "Failed to build aarch64 image")
     finally:
         print()
         for f in shared_files:
             print("Removing shared file: " + f)
             os.remove("{}/{}".format(build_dir, f))
-
-
-def run_command(cmd, errmsg):
-    exit_code = os.system(cmd)
-    if exit_code != 0:
-        print("ERROR: {}".format(errmsg), file=sys.stderr)
-        exit(1)
 
 
 def push(image):
@@ -220,7 +220,6 @@ def test(args):
 
 
 def get_modified_images(nodes):
-    os.system("git status")
     master = check_output(shlex.split("git ls-remote origin master")).decode().split()[0]
     print("master is {}".format(master))
     lines = check_output(shlex.split("git diff --name-only {}".format(master))).decode().splitlines()
