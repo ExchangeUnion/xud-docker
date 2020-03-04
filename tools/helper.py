@@ -55,9 +55,13 @@ images = list(filter(isdir, os.listdir(".")))
 ####################################################################
 
 
-def print_title(title):
+def print_title(title, badge):
     print("-" * 80)
-    print(":: %s ::" % title)
+    a = ":: %s ::" % title
+    gap = 10
+    if 80 - len(a) - len(badge) - gap < 0:
+        badge = badge[:80 - len(a) - gap - 3] + "..."
+    print("{}{}{}".format(a, " " * (80 - len(a) - len(badge)), badge))
     print("-" * 80)
 
 
@@ -146,7 +150,7 @@ def build(image):
     image, tag = parse_image_with_tag(image)
     args = []
 
-    print_title("Building {}:{}".format(image, tag))
+    print_title("Building {}".format(image), tag)
 
     labels = get_labels(image)
     build_args = get_build_args(args)
