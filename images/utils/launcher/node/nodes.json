@@ -1,19 +1,19 @@
 {
   "simnet": {
     "ltcd": {
-      "image": "exchangeunion/ltcd-simnet:0.20.1-beta-simnet"
+      "image": "exchangeunion/ltcd:0.20.1-beta-simnet"
     },
     "lndbtc": {
-      "image": "exchangeunion/lnd-simnet:0.8.2-beta-simnet"
+      "image": "exchangeunion/lnd:0.8.2-beta-simnet"
     },
     "lndltc": {
-      "image": "exchangeunion/lnd-simnet:0.8.2-beta-simnet"
+      "image": "exchangeunion/lnd:0.8.2-beta-simnet"
     },
     "raiden": {
-      "image": "exchangeunion/raiden-simnet:0.100.5a1.dev162-2217bcb"
+      "image": "exchangeunion/raiden:0.100.5a1.dev162-2217bcb-simnet"
     },
     "xud": {
-      "image": "exchangeunion/xud-simnet:1.0.0-beta.1-simnet"
+      "image": "exchangeunion/xud:1.0.0-beta.1-simnet"
     }
   },
   "testnet": {
