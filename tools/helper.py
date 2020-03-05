@@ -42,7 +42,7 @@ def get_master_commit_hash():
 
 
 def get_branch_history(master):
-    cmd = "git log --oneline --pretty=format:%h --abbrev=-1 master..".format(master[:7])
+    cmd = "git log --oneline --pretty=format:%h --abbrev=-1 {}..".format(master[:7])
     return check_output(shlex.split(cmd)).decode().splitlines()
 
 
