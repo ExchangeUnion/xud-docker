@@ -11,6 +11,8 @@ import shlex
 import re
 import platform
 from datetime import datetime
+from urllib.request import urlopen, Request
+from urllib.error import HTTPError
 
 projectdir = abspath(dirname(dirname(__file__)))
 projectgithub = "https://github.com/exchangeunion/xud-docker"
@@ -197,7 +199,43 @@ def build(image):
             os.remove("{}/{}".format(build_dir, f))
 
 
+def get_token(name):
+    r = urlopen(f"https://auth.docker.io/token?service=registry.docker.io&scope=repository:{name}:pull")
+    return json.load(r)["token"]
+
+
+def dockerhub_image_existed(image):
+    name, tag = parse_image_with_tag(image)
+    name = tagprefix + "/" + name
+    tag = get_branch_tag(tag) + "__" + arch
+    token = get_token(name)
+    request = Request(f"https://registry-1.docker.io/v2/{name}/manifests/{tag}")
+    request.add_header("Authorization", f"Bearer {token}")
+    request.add_header("Accept", "application/vnd.docker.distribution.manifest.list.v2+json")
+    try:
+        r = urlopen(request)
+        payload = json.load(r)
+        if payload["schemaVersion"] == 1:
+            r1: str = json.loads(payload["history"][0]["v1Compatibility"])["config"]["Labels"]["com.exchangeunion.image.revision"]
+            r2: str = revision
+            return r1 == r2 and not r1.endswith("-dirty")
+        else:
+            print("ERROR: Unexpected schemaVersion: " + payload["schemaVersion"], file=sys.stderr)
+            exit(1)
+    except HTTPError as e:
+        if e.code == 404:
+            return False
+        else:
+            raise e
+    except:
+        raise
+
+
 def push(image):
+    if dockerhub_image_existed(image):
+        print("{} existed in registry-1.docker.io".format(image))
+        return
+
     build(image)
 
     image, tag = parse_image_with_tag(image)
