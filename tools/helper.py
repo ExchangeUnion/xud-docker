@@ -65,7 +65,7 @@ def print_title(title, badge):
     print("-" * 80)
 
 
-def get_labels(image):
+def get_labels(image, tag):
     labels = [
         "--label {}.created={}".format(labelprefix, created),
     ]
@@ -75,8 +75,12 @@ def get_labels(image):
             "--label {}.revision={}".format(labelprefix, revision),
         ])
     if not revision.endswith("-dirty"):
-        source = "{}/blob/{}/images/{}/Dockerfile".format(
-            projectgithub, revision, image)
+        if image == "utils":
+            source = "{}/blob/{}/images/{}/Dockerfile".format(
+                projectgithub, revision, image)
+        else:
+            source = "{}/blob/{}/images/{}/{}/Dockerfile".format(
+                projectgithub, revision, image, tag)
         labels += [
             "--label {}.source={}".format(labelprefix, source)
         ]
@@ -152,7 +156,7 @@ def build(image):
 
     print_title("Building {}".format(image), tag)
 
-    labels = get_labels(image)
+    labels = get_labels(image, tag)
     build_args = get_build_args(args)
     build_tag = "{}/{}:{}".format(tagprefix, image, get_branch_tag(tag))
 
