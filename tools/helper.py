@@ -402,6 +402,18 @@ def test(args):
         os.system(cmd)
 
 
+def parse_image_with_tag(image):
+    if ":" in image:
+        parts = image.split(":")
+        return parts[0], parts[1]
+    else:
+        if image == "utils":
+            return "utils", utils_tag_date
+        else:
+            print("ERROR: Missing tag", file=sys.stderr)
+            exit(1)
+
+
 def main():
     parser = ArgumentParser()
     parser.add_argument("-d", "--debug", action="store_true")
@@ -435,7 +447,8 @@ def main():
                 image.build()
         else:
             for image in args.images:
-                image.build()
+                name, tag = parse_image_with_tag(image)
+                ImageBundle(group, name, tag, gitinfo).build()
     elif args.command == "push":
         if not args.push_dirty and gitinfo.revision.endswith("-dirty"):
             print("ERROR: Abort pushing because there are uncommitted changes in current working stage. You can use option \"--push-dirty\" to forcefully push dirty images to the registry.", file=sys.stderr)
@@ -448,7 +461,8 @@ def main():
                 image.push()
         else:
             for image in args.images:
-                image.push()
+                name, tag = parse_image_with_tag(image)
+                ImageBundle(group, name, tag, gitinfo).push()
     elif args.command == "test":
         test(args)
 
