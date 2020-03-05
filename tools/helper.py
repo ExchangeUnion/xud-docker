@@ -38,7 +38,8 @@ def get_master_commit_hash():
     try:
         return check_output(shlex.split("git rev-parse master")).decode().splitlines()[0]
     except CalledProcessError:
-        return check_output(shlex.split("git ls-remote origin master")).decode().splitlines()[0]
+        # <hash> refs/heads/master
+        return check_output(shlex.split("git ls-remote origin master")).decode().split()[0]
 
 
 def get_branch_history(master):
