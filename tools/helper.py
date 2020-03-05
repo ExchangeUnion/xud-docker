@@ -200,7 +200,7 @@ def build(image):
 
 
 def get_token(name):
-    r = urlopen(f"https://auth.docker.io/token?service=registry.docker.io&scope=repository:{name}:pull")
+    r = urlopen("https://auth.docker.io/token?service=registry.docker.io&scope=repository:{}:pull".format(name))
     return json.load(r)["token"]
 
 
@@ -209,8 +209,8 @@ def dockerhub_image_existed(image):
     name = tagprefix + "/" + name
     tag = get_branch_tag(tag) + "__" + arch
     token = get_token(name)
-    request = Request(f"https://registry-1.docker.io/v2/{name}/manifests/{tag}")
-    request.add_header("Authorization", f"Bearer {token}")
+    request = Request("https://registry-1.docker.io/v2/{}/manifests/{}".format(name, tag))
+    request.add_header("Authorization", "Bearer " + token)
     request.add_header("Accept", "application/vnd.docker.distribution.manifest.list.v2+json")
     try:
         r = urlopen(request)
