@@ -201,7 +201,7 @@ def build(image):
 
 def get_token(name):
     r = urlopen("https://auth.docker.io/token?service=registry.docker.io&scope=repository:{}:pull".format(name))
-    return json.load(r)["token"]
+    return json.loads(r.decode())["token"]
 
 
 def dockerhub_image_existed(image):
@@ -214,7 +214,7 @@ def dockerhub_image_existed(image):
     request.add_header("Accept", "application/vnd.docker.distribution.manifest.list.v2+json")
     try:
         r = urlopen(request)
-        payload = json.load(r)
+        payload = json.loads(r.decode())
         if payload["schemaVersion"] == 1:
             r1 = json.loads(payload["history"][0]["v1Compatibility"])["config"]["Labels"]["com.exchangeunion.image.revision"]
             r2 = revision
