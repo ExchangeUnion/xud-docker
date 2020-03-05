@@ -216,8 +216,8 @@ def dockerhub_image_existed(image):
         r = urlopen(request)
         payload = json.load(r)
         if payload["schemaVersion"] == 1:
-            r1: str = json.loads(payload["history"][0]["v1Compatibility"])["config"]["Labels"]["com.exchangeunion.image.revision"]
-            r2: str = revision
+            r1 = json.loads(payload["history"][0]["v1Compatibility"])["config"]["Labels"]["com.exchangeunion.image.revision"]
+            r2 = revision
             return r1 == r2 and not r1.endswith("-dirty")
         else:
             print("ERROR: Unexpected schemaVersion: " + payload["schemaVersion"], file=sys.stderr)
