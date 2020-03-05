@@ -137,11 +137,9 @@ class Image:
             payload = json.loads(r.read().decode())
             if payload["schemaVersion"] == 1:
                 r1 = json.loads(payload["history"][0]["v1Compatibility"])["config"]["Labels"]["com.exchangeunion.image.revision"]
-                print(r1)
                 if r1.endswith("-dirty"):
                     return False
                 else:
-                    print(self.unmodified_history)
                     if r1 in self.unmodified_history:
                         return True
                     else:
@@ -214,7 +212,7 @@ class Image:
         build_tag = self.get_build_tag()
 
         if self.existed_in_registry_and_up_to_date(docker_registry):
-            print("The image {} existed in registry and is up-to-date. Skip building.")
+            print("The image {} existed in registry and is up-to-date. Skip building.".format(build_tag))
             return False
 
         build_labels = self.get_labels()
