@@ -13,6 +13,8 @@ from shutil import copyfile
 from subprocess import check_output, Popen, PIPE, STDOUT, CalledProcessError
 from urllib.error import HTTPError
 from urllib.request import urlopen, Request
+import http.client
+import time
 
 projectdir = abspath(dirname(dirname(__file__)))
 projectgithub = "https://github.com/exchangeunion/xud-docker"
@@ -133,8 +135,14 @@ class Image:
         request.add_header("Authorization", "Bearer " + token)
         request.add_header("Accept", "application/vnd.docker.distribution.manifest.list.v2+json")
         try:
-            r = urlopen(request)
-            payload = json.loads(r.read().decode())
+            while True:
+                try:
+                    r = urlopen(request)
+                    payload = json.loads(r.read().decode())
+                    break
+                except http.client.IncompleteRead:
+                    time.sleep(1)
+
             if payload["schemaVersion"] == 1:
                 r1 = json.loads(payload["history"][0]["v1Compatibility"])["config"]["Labels"]["com.exchangeunion.image.revision"]
                 if r1.endswith("-dirty"):
@@ -212,7 +220,7 @@ class Image:
         build_tag = self.get_build_tag()
 
         if self.existed_in_registry_and_up_to_date(docker_registry):
-            print("The image {} existed in registry and is up-to-date. Skip building.".format(build_tag))
+            print("The image {} is up-to-date. Skip building.".format(build_tag))
             return False
 
         build_labels = self.get_labels()
