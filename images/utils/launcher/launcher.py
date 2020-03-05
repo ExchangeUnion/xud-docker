@@ -830,14 +830,12 @@ your issue.""")
 
         self._config.restore_dir = restore_dir
 
+    def is_pristine(self):
+        return not os.path.exists(f"/root/.xud-docker/{self.network}/data/xud/nodekey.dat")
+
     def check_wallets(self):
-        lndbtc = self._containers.get("lndbtc")
-        lndltc = self._containers.get("lndltc")
-        xud = self._containers.get("xud")
-
-        if self.no_lnd_wallet(lndbtc) or self.no_lnd_wallet(lndltc):
-            self.wait_xud(xud)
-
+        if self.is_pristine():
+            xud = self._containers.get("xud")
             while True:
                 print("Do you want to create a new xud environment or restore an existing one?")
                 print("1) Create New")
