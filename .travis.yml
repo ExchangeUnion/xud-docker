@@ -2,6 +2,8 @@ language: generic
 arch:
   - amd64
   - arm64
+git:
+  depth: false
 services:
   - docker
 before_script:
