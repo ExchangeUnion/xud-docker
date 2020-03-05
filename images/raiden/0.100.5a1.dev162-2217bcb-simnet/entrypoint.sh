@@ -16,6 +16,8 @@ else
     addr=`cat addr.txt`
 fi
 
+source /opt/venv/bin/activate
+
 START_DELAY=15
 sleep $START_DELAY
 exec python -m raiden \
