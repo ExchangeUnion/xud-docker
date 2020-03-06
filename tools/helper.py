@@ -16,16 +16,23 @@ from urllib.request import urlopen, Request
 import http.client
 import time
 
+
+def check_buildx():
+    return os.system("docker buildx version 2>/dev/null | grep -q github.com/docker/buildx") == 0
+
+
 projectdir = abspath(dirname(dirname(__file__)))
 projectgithub = "https://github.com/exchangeunion/xud-docker"
 imagesdir = join(projectdir, "images")
 supportsdir = join(projectdir, "supports")
 labelprefix = "com.exchangeunion.image"
 group = "exchangeunion"
-travis = "TRAVIS_BRANCH" in os.environ
-buildx_installed = os.system("docker buildx version 2>/dev/null | grep -q github.com/docker/buildx") == 0
-arch = platform.machine()
 docker_registry = "registry-1.docker.io"
+dry_run = False
+arch = platform.machine()
+
+travis = "TRAVIS_BRANCH" in os.environ
+buildx_installed = check_buildx()
 
 
 class GitInfo:
@@ -47,6 +54,11 @@ def get_master_commit_hash():
 def get_branch_history(master):
     cmd = "git log --oneline --pretty=format:%h --abbrev=-1 {}..".format(master[:7])
     return check_output(shlex.split(cmd)).decode().splitlines()
+
+
+def get_commit_message(commit):
+    cmd = "git show -s --format=%B {}".format(commit)
+    return check_output(shlex.split(cmd)).decode().splitlines()[0]
 
 
 def create_git_info():
@@ -81,7 +93,13 @@ os.chdir(imagesdir)
 
 
 def run_command(cmd, errmsg):
+    global dry_run
+
     print("$ " + cmd)
+
+    if dry_run:
+        return
+
     p = Popen(cmd, shell=True, stdout=PIPE, stderr=STDOUT)
 
     for line in p.stdout:
@@ -351,31 +369,45 @@ class ImageBundle:
 
 ################################################################################
 
-
-def get_modified_images_at_commit(nodes, commit):
-    lines = check_output(shlex.split("git diff --name-only {}".format(commit))).decode().splitlines()
-
-    def f(x):
-        if x.startswith("images/utils"):
-            return ImageBundle(group, "utils", utils_tag_date, gitinfo)
-        else:
-            p = re.compile(r"^images/([^/]*)/([^/]*)/.*$")
-            m = p.match(x)
-            if m:
-                if m.group(2) == "shared":
-                    all_tags = []
-                    for tag in os.listdir(m.group(1)):
-                        if tag != "shared":
-                            all_tags.append(ImageBundle(group, m.group(1), tag, gitinfo))
-                    return all_tags
-                else:
-                    return ImageBundle(group, m.group(1), m.group(2), gitinfo)
+def get_modified_image(x):
+    if x.startswith("images/utils"):
+        return ImageBundle(group, "utils", utils_tag_date, gitinfo)
+    else:
+        p = re.compile(r"^images/([^/]*)/([^/]*)/.*$")
+        m = p.match(x)
+        if m:
+            if m.group(2) == "shared":
+                all_tags = []
+                for tag in os.listdir(m.group(1)):
+                    if tag != "shared":
+                        all_tags.append(ImageBundle(group, m.group(1), tag, gitinfo))
+                return all_tags
             else:
-                return None
+                return ImageBundle(group, m.group(1), m.group(2), gitinfo)
+        else:
+            return None
+
+
+def get_modified_images_since_commit(nodes, commit):
+    lines = check_output(shlex.split("git diff --name-only {}".format(commit))).decode().splitlines()
 
     modified = set()
     for x in lines:
-        r = f(x)
+        r = get_modified_image(x)
+        if x.startswith("images") and r:
+            if isinstance(r, list):
+                modified.update(r)
+            else:
+                modified.add(r)
+    return sorted(modified)
+
+
+def get_modified_images_at_commit(nodes, commit):
+    lines = check_output(shlex.split(" git diff-tree --no-commit-id --name-only -r {}".format(commit))).decode().splitlines()
+
+    modified = set()
+    for x in lines:
+        r = get_modified_image(x)
         if x.startswith("images") and r:
             if isinstance(r, list):
                 modified.update(r)
@@ -394,10 +426,14 @@ def get_unmodified_history(img, history, history_modified):
 
 
 def get_modified_images(nodes):
-    modified = get_modified_images_at_commit(nodes, gitinfo.master)
+    modified = get_modified_images_since_commit(nodes, gitinfo.master)
     history_modified = []
     for commit in gitinfo.history:
-        history_modified.append(get_modified_images_at_commit(nodes, commit))
+        images = get_modified_images_at_commit(nodes, commit)
+        print("- {}: {}".format(commit, get_commit_message(commit)))
+        for image in images:
+            print("  * {}".format(image))
+        history_modified.append(images)
     for img in modified:
         img.set_unmodified_history(get_unmodified_history(img, gitinfo.history, history_modified))
     return modified
@@ -435,7 +471,7 @@ def parse_image_with_tag(image):
 
 
 def main():
-    global branch
+    global branch, dry_run
 
     parser = ArgumentParser()
     parser.add_argument("-d", "--debug", action="store_true")
@@ -443,11 +479,13 @@ def main():
 
     build_parser = subparsers.add_parser("build")
     build_parser.add_argument("-b", "--branch", type=str)
+    build_parser.add_argument("--dry-run", action="store_true")
     build_parser.add_argument("images", type=str, nargs="*")
 
     push_parser = subparsers.add_parser("push")
     push_parser.add_argument("-b", "--branch", type=str)
     push_parser.add_argument("--push-dirty", action="store_true")
+    push_parser.add_argument("--dry-run", action="store_true")
     push_parser.add_argument("images", type=str, nargs="*")
 
     test_parser = subparsers.add_parser("test")
@@ -462,6 +500,8 @@ def main():
         test_parser.add_argument("--test-script", type=str, default="test-branch.sh local")
 
     args = parser.parse_args()
+    if args.dry_run:
+        dry_run = True
 
     nodes = json.load(open("utils/launcher/node/nodes.json"))
 
