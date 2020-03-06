@@ -23,7 +23,7 @@ supportsdir = join(projectdir, "supports")
 labelprefix = "com.exchangeunion.image"
 group = "exchangeunion"
 travis = "TRAVIS_BRANCH" in os.environ
-buildx_installed = os.system("docker buildx version | grep -q github.com/docker/buildx") == 0
+buildx_installed = os.system("docker buildx version 2>/dev/null | grep -q github.com/docker/buildx") == 0
 arch = platform.machine()
 docker_registry = "registry-1.docker.io"
 
@@ -50,6 +50,7 @@ def get_branch_history(master):
 
 
 def create_git_info():
+    global branch
     if os.path.exists(".git"):
         b = os.popen("git rev-parse --abbrev-ref HEAD").read().strip()
         if b == "HEAD":
@@ -65,6 +66,7 @@ def create_git_info():
             r = r + "-dirty"
         master = get_master_commit_hash()
         history = get_branch_history(master)
+        branch = b
         return GitInfo(b, r, master, history)
     return None
 
@@ -74,6 +76,7 @@ now = datetime.utcnow()
 created = now.strftime('%Y-%m-%dT%H:%M:%SZ')
 utils_tag_date = now.strftime('%y.%m.%d')
 gitinfo = create_git_info()
+branch = "local"
 os.chdir(imagesdir)
 
 
@@ -102,16 +105,25 @@ class Image:
         self.unmodified_history = []
 
     def get_build_tag(self):
-        if self.git.branch == "master":
+        global branch
+        if branch == "master":
             return "{}/{}:{}__{}".format(self.group, self.name, self.tag, self.arch)
         else:
-            return "{}/{}:{}__{}__{}".format(self.group, self.name, self.tag, self.git.branch.replace("/", "-"), self.arch)
+            return "{}/{}:{}__{}__{}".format(self.group, self.name, self.tag, branch.replace("/", "-"), self.arch)
+
+    def get_build_tag_without_arch(self):
+        global branch
+        if branch == "master":
+            return "{}/{}:{}".format(self.group, self.name, self.tag)
+        else:
+            return "{}/{}:{}__{}".format(self.group, self.name, self.tag, branch.replace("/", "-"))
 
     def get_tag(self):
-        if self.git.branch == "master":
+        global branch
+        if branch == "master":
             return "{}__{}".format(self.tag, self.arch)
         else:
-            return "{}__{}__{}".format(self.tag, self.git.branch.replace("/", "-"), self.arch)
+            return "{}__{}__{}".format(self.tag, branch.replace("/", "-"), self.arch)
 
     def get_build_dir(self):
         if self.name == "utils":
@@ -167,21 +179,21 @@ class Image:
         labels = [
             "--label {}.created={}".format(labelprefix, created),
         ]
-        if self.git.branch:
+        if self.git:
             labels.extend([
                 "--label {}.branch={}".format(labelprefix, self.git.branch),
                 "--label {}.revision={}".format(labelprefix, self.git.revision),
             ])
-        if not self.git.revision.endswith("-dirty"):
-            if self.name == "utils":
-                source = "{}/blob/{}/images/utils/Dockerfile".format(
-                    projectgithub, self.git.revision)
-            else:
-                source = "{}/blob/{}/images/{}/{}/Dockerfile".format(
-                    projectgithub, self.git.revision, self.name, self.tag)
-            labels += [
-                "--label {}.source={}".format(labelprefix, source)
-            ]
+            if not self.git.revision.endswith("-dirty"):
+                if self.name == "utils":
+                    source = "{}/blob/{}/images/utils/Dockerfile".format(
+                        projectgithub, self.git.revision)
+                else:
+                    source = "{}/blob/{}/images/{}/{}/Dockerfile".format(
+                        projectgithub, self.git.revision, self.name, self.tag)
+                labels += [
+                    "--label {}.source={}".format(labelprefix, source)
+                ]
         return labels
 
     def get_build_args(self, args):
@@ -249,8 +261,10 @@ class Image:
 
         try:
             if self.arch == arch:
-                build_cmd = "docker build -f {} -t {} {} {}".format(dockerfile, build_tag, " ".join(args), build_dir)
-                run_command(build_cmd, "Failed to build {}".format(build_tag))
+                cmd = "docker build -f {} -t {} {} {}".format(dockerfile, build_tag, " ".join(args), build_dir)
+                run_command(cmd, "Failed to build {}".format(build_tag))
+                build_tag_without_arch = self.get_build_tag_without_arch()
+                run_command("docker tag {} {}".format(build_tag, build_tag_without_arch), "Failed to tag {}".format(build_tag_without_arch))
                 return True
             else:
                 if buildx_installed:
@@ -260,9 +274,9 @@ class Image:
                     if not platform:
                         print("Error: The CPU architecture ({}) is not supported currently".format(self.arch), file=sys.stderr)
                         exit(1)
-                    build_cmd = "docker buildx build --platform {} --progress plain --load -f {} -t {} {} {}".format(
+                    cmd = "docker buildx build --platform {} --progress plain --load -f {} -t {} {} {}".format(
                         buildx_platform, dockerfile, build_tag, " ".join(args), build_dir)
-                    run_command(build_cmd, "Failed to build {}".format(build_tag))
+                    run_command(cmd, "Failed to build {}".format(build_tag))
                     return True
                 else:
                     print("The docker plugin \"buildx\" is not installed. Skip building.")
@@ -421,14 +435,18 @@ def parse_image_with_tag(image):
 
 
 def main():
+    global branch
+
     parser = ArgumentParser()
     parser.add_argument("-d", "--debug", action="store_true")
     subparsers = parser.add_subparsers(dest="command")
 
     build_parser = subparsers.add_parser("build")
+    build_parser.add_argument("-b", "--branch", type=str)
     build_parser.add_argument("images", type=str, nargs="*")
 
     push_parser = subparsers.add_parser("push")
+    push_parser.add_argument("-b", "--branch", type=str)
     push_parser.add_argument("--push-dirty", action="store_true")
     push_parser.add_argument("images", type=str, nargs="*")
 
@@ -438,13 +456,22 @@ def main():
     test_parser.add_argument("--gcloud-machine-type", type=str, default="n1-standard-1")
     test_parser.add_argument("--gcloud-disk-size", type=str, default="10GB")
     test_parser.add_argument("--gcloud-name-suffix", type=str, default="")
-    test_parser.add_argument("--test-script", type=str, default="test-branch.sh " + gitinfo.branch)
+    if gitinfo:
+        test_parser.add_argument("--test-script", type=str, default="test-branch.sh " + gitinfo.branch)
+    else:
+        test_parser.add_argument("--test-script", type=str, default="test-branch.sh local")
 
     args = parser.parse_args()
 
     nodes = json.load(open("utils/launcher/node/nodes.json"))
 
     if args.command == "build":
+        if not gitinfo:
+            if not args.branch:
+                print("ERROR: No Git repository detected. Please use \"--branch\" to specify a branch manually.", file=sys.stderr)
+                exit(1)
+            else:
+                branch = args.branch
         if len(args.images) == 0:
             # Auto-detect modified images
             modified = get_modified_images(nodes)
@@ -456,6 +483,12 @@ def main():
                 name, tag = parse_image_with_tag(image)
                 ImageBundle(group, name, tag, gitinfo).build()
     elif args.command == "push":
+        if not gitinfo:
+            if not args.branch:
+                print("ERROR: No Git repository detected. Please use \"--branch\" to specify a branch manually.", file=sys.stderr)
+                exit(1)
+            else:
+                branch = args.branch
         if not args.push_dirty and gitinfo.revision.endswith("-dirty"):
             print("ERROR: Abort pushing because there are uncommitted changes in current working stage. You can use option \"--push-dirty\" to forcefully push dirty images to the registry.", file=sys.stderr)
             exit(1)

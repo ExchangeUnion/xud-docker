@@ -4,6 +4,9 @@ set -euo pipefail
 
 BRANCH=master
 DEV=false
+DOCKER_REGISTRY="https://registry-1.docker.io"
+UTILS_TAG="20.03.06"
+
 
 function parse_branch() {
     local OPTION VALUE
@@ -58,8 +61,6 @@ function choose_network() {
     shopt -u nocasematch
 }
 
-DOCKER_REGISTRY="https://registry-1.docker.io"
-
 function get_token() {
     curl -sf "https://auth.docker.io/token?service=registry.docker.io&scope=repository:$1:pull" | sed -E 's/^.*"token":"([^,]*)",.*$/\1/g'
 }
@@ -106,6 +107,14 @@ function get_pull_image() {
     fi
 }
 
+function get_branch_image() {
+    if [[ $BRANCH == "master" ]]; then
+        echo "$1"
+    else
+        echo "${1}__${BRANCH//\//-}"
+    fi
+}
+
 function get_image_status() {
     # possible return values: up-to-date, outdated, newer, missing
     local LOCAL CLOUD
@@ -116,11 +125,7 @@ function get_image_status() {
     local P_IMG # pulling image
     local U_IMG # use image
 
-    if [[ $BRANCH == "master" ]]; then
-        B_IMG="$1"
-    else
-        B_IMG="${1}__${BRANCH//\//-}"
-    fi
+    B_IMG=$(get_branch_image "$1")
 
     P_IMG=$B_IMG
 
@@ -189,14 +194,14 @@ function ensure_utils_image() {
     local I_IMG # initial image
 
     if [[ $DEV == "true" ]]; then
-        UTILS_IMG="exchangeunion/utils:latest"
+        UTILS_IMG=$(get_branch_image "exchangeunion/utils:$UTILS_TAG")
         return
     fi
 
     if [[ $NETWORK == "mainnet" ]]; then
-        I_IMG="exchangeunion/utils:20.03.05"
+        I_IMG="exchangeunion/utils:$UTILS_TAG"
     else
-        I_IMG="exchangeunion/utils:20.03.05"
+        I_IMG="exchangeunion/utils:$UTILS_TAG"
     fi
 
     read -r STATUS B_IMG U_IMG P_IMG <<<"$(get_image_status "$I_IMG")"
@@ -298,6 +303,7 @@ parse_branch "$@"
 choose_network
 
 ensure_utils_image
+echo "Use $UTILS_IMG"
 
 docker run --rm \
 -e PROG="$0" \
