@@ -75,8 +75,8 @@ os.chdir(projectdir)
 now = datetime.utcnow()
 created = now.strftime('%Y-%m-%dT%H:%M:%SZ')
 utils_tag_date = now.strftime('%y.%m.%d')
-gitinfo = create_git_info()
 branch = "local"
+gitinfo = create_git_info()
 os.chdir(imagesdir)
 
 
