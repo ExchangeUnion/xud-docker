@@ -4,7 +4,6 @@ import json
 import os
 import platform
 import re
-import shlex
 import sys
 from argparse import ArgumentParser
 from datetime import datetime
@@ -21,6 +20,7 @@ def check_buildx():
     return os.system("docker buildx version 2>/dev/null | grep -q github.com/docker/buildx") == 0
 
 
+arch = platform.machine()
 projectdir = abspath(dirname(dirname(__file__)))
 projectgithub = "https://github.com/exchangeunion/xud-docker"
 imagesdir = join(projectdir, "images")
@@ -29,10 +29,10 @@ labelprefix = "com.exchangeunion.image"
 group = "exchangeunion"
 docker_registry = "registry-1.docker.io"
 dry_run = False
-arch = platform.machine()
 
 travis = "TRAVIS_BRANCH" in os.environ
 buildx_installed = check_buildx()
+cross_build = buildx_installed
 
 
 class GitInfo:
@@ -45,20 +45,20 @@ class GitInfo:
 
 def get_master_commit_hash():
     try:
-        return check_output(shlex.split("git rev-parse master")).decode().splitlines()[0]
+        return check_output("git rev-parse master", shell=True, stderr=PIPE).decode().splitlines()[0]
     except CalledProcessError:
         # <hash> refs/heads/master
-        return check_output(shlex.split("git ls-remote origin master")).decode().split()[0]
+        return check_output("git ls-remote origin master", shell=True, stderr=PIPE).decode().split()[0]
 
 
 def get_branch_history(master):
     cmd = "git log --oneline --pretty=format:%h --abbrev=-1 {}..".format(master[:7])
-    return check_output(shlex.split(cmd)).decode().splitlines()
+    return check_output(cmd, shell=True, stderr=PIPE).decode().splitlines()
 
 
 def get_commit_message(commit):
     cmd = "git show -s --format=%B {}".format(commit)
-    return check_output(shlex.split(cmd)).decode().splitlines()[0]
+    return check_output(cmd, shell=True, stderr=PIPE).decode().splitlines()[0]
 
 
 def create_git_info():
@@ -104,7 +104,7 @@ def run_command(cmd, errmsg):
 
     for line in p.stdout:
         print(line.decode(), end="")
-    print()
+    sys.stdout.flush()
 
     exit_code = p.wait()
 
@@ -250,7 +250,6 @@ class Image:
         build_tag = self.get_build_tag()
 
         if self.existed_in_registry_and_up_to_date(docker_registry):
-            print("The image {} is up-to-date. Skip building.".format(build_tag))
             return False
 
         build_labels = self.get_labels()
@@ -266,8 +265,6 @@ class Image:
             " ".join(build_labels),
         ]
 
-        self.print_title("Building {}".format(self.name), "{} ({})".format(self.tag, self.arch))
-
         shared_dir = self.get_shared_dir()
         shared_files = []
         if os.path.exists(shared_dir):
@@ -279,13 +276,15 @@ class Image:
 
         try:
             if self.arch == arch:
+                self.print_title("Building {}".format(self.name), "{} ({})".format(self.tag, self.arch))
                 cmd = "docker build -f {} -t {} {} {}".format(dockerfile, build_tag, " ".join(args), build_dir)
                 run_command(cmd, "Failed to build {}".format(build_tag))
                 build_tag_without_arch = self.get_build_tag_without_arch()
                 run_command("docker tag {} {}".format(build_tag, build_tag_without_arch), "Failed to tag {}".format(build_tag_without_arch))
                 return True
             else:
-                if buildx_installed:
+                if cross_build:
+                    self.print_title("Building {}".format(self.name), "{} ({})".format(self.tag, self.arch))
                     buildx_platform = None
                     if self.arch == "aarch64":
                         buildx_platform = "linux/arm64"
@@ -296,8 +295,6 @@ class Image:
                         buildx_platform, dockerfile, build_tag, " ".join(args), build_dir)
                     run_command(cmd, "Failed to build {}".format(build_tag))
                     return True
-                else:
-                    print("The docker plugin \"buildx\" is not installed. Skip building.")
         finally:
             for f in shared_files:
                 os.remove("{}/{}".format(build_dir, f))
@@ -314,6 +311,11 @@ class Image:
 
     def __repr__(self):
         return self.get_build_tag()
+
+
+class ManifestMissing(Exception):
+    def __init__(self, tag):
+        super().__init__(tag)
 
 
 class ImageBundle:
@@ -342,12 +344,73 @@ class ImageBundle:
         else:
             return "{}/{}:{}__{}".format(self.group, self.name, self.tag, self.git.branch.replace("/", "-"))
 
+    def inspect_single_manifest(self, tag):
+        try:
+            output = check_output("docker manifest inspect {}".format(tag), shell=True, stderr=PIPE)
+            config = json.loads(output.decode())["config"]
+            digest = config["digest"]
+            return digest
+        except CalledProcessError as e:
+            if e.stderr.decode().startswith("no such manifest"):
+                raise ManifestMissing(tag)
+            else:
+                raise e
+
+    def inspect_manifest_list(self, tag):
+        try:
+            output = check_output("docker manifest inspect {}".format(tag), shell=True, stderr=PIPE)
+            payload = json.loads(output.decode())
+            if "manifests" not in payload:
+                print("{} is not a manifest list".format(tag), file=sys.stderr)
+                exit(1)
+            manifests = payload["manifests"]
+            result = {}
+            for m in manifests:
+                p = m["platform"]
+                architecture = p["architecture"]
+                digest = m["digest"]
+                parts = tag.split(":")
+                digest_tag = parts[0] + "@" + digest
+                digest = self.inspect_single_manifest(digest_tag)
+                if architecture == "arm64":
+                    result["aarch64"] = digest
+                elif architecture == "amd64":
+                    result["x86_64"] = digest
+            return result
+        except CalledProcessError as e:
+            if e.stderr.decode().startswith("no such manifest"):
+                return None
+            else:
+                raise e
+
     def create_and_push_manifest_list(self):
-        if buildx_installed:
-            t = self.get_manifest_tag()
-            t1 = self.images["x86_64"].get_build_tag()
-            t2 = self.images["aarch64"].get_build_tag()
-            run_command("docker manifest create {} --amend {} --amend {}".format(t, t1, t2), "Failed to create manifest list {}".format(t))
+        t = self.get_manifest_tag()
+
+        digests = {}
+        tags = {}
+
+        for key, value in self.images.items():
+            tag = value.get_build_tag()
+            tags[key] = tag
+            try:
+                digest = self.inspect_single_manifest(tag)
+                digests[key] = digest
+            except ManifestMissing:
+                print("The manifest {} is missing. Abort manifest list {} creation.".format(tag, t))
+                return
+
+        manifests = self.inspect_manifest_list(t)
+        outdated = False
+        if manifests:
+            for key in self.images.keys():
+                if manifests[key] != digests[key]:
+                    outdated = True
+                    break
+        else:
+            outdated = True
+
+        if outdated:
+            run_command("docker manifest create {} {}".format(t, " ".join(["--amend " + t for t in tags.values()])), "Failed to create manifest list {}".format(t))
             run_command("docker manifest push -p {}".format(t), "Failed to push manifest list {}".format(t))
 
     def set_unmodified_history(self, history):
@@ -371,7 +434,7 @@ class ImageBundle:
 
 def get_modified_image(x):
     if x.startswith("images/utils"):
-        return ImageBundle(group, "utils", utils_tag_date, gitinfo)
+        return ImageBundle(group, "utils", "latest", gitinfo)
     else:
         p = re.compile(r"^images/([^/]*)/([^/]*)/.*$")
         m = p.match(x)
@@ -389,7 +452,7 @@ def get_modified_image(x):
 
 
 def get_modified_images_since_commit(nodes, commit):
-    lines = check_output(shlex.split("git diff --name-only {}".format(commit))).decode().splitlines()
+    lines = check_output("git diff --name-only {}".format(commit), shell=True, stderr=PIPE).decode().splitlines()
 
     modified = set()
     for x in lines:
@@ -403,7 +466,7 @@ def get_modified_images_since_commit(nodes, commit):
 
 
 def get_modified_images_at_commit(nodes, commit):
-    lines = check_output(shlex.split(" git diff-tree --no-commit-id --name-only -r {}".format(commit))).decode().splitlines()
+    lines = check_output("git diff-tree --no-commit-id --name-only -r {}".format(commit), shell=True, stderr=PIPE).decode().splitlines()
 
     modified = set()
     for x in lines:
@@ -430,9 +493,6 @@ def get_modified_images(nodes):
     history_modified = []
     for commit in gitinfo.history:
         images = get_modified_images_at_commit(nodes, commit)
-        print("- {}: {}".format(commit, get_commit_message(commit)))
-        for image in images:
-            print("  * {}".format(image))
         history_modified.append(images)
     for img in modified:
         img.set_unmodified_history(get_unmodified_history(img, gitinfo.history, history_modified))
@@ -464,14 +524,14 @@ def parse_image_with_tag(image):
         return parts[0], parts[1]
     else:
         if image == "utils":
-            return "utils", utils_tag_date
+            return "utils", "latest"
         else:
             print("ERROR: Missing tag", file=sys.stderr)
             exit(1)
 
 
 def main():
-    global branch, dry_run
+    global branch, dry_run, cross_build
 
     parser = ArgumentParser()
     parser.add_argument("-d", "--debug", action="store_true")
@@ -480,12 +540,14 @@ def main():
     build_parser = subparsers.add_parser("build")
     build_parser.add_argument("-b", "--branch", type=str)
     build_parser.add_argument("--dry-run", action="store_true")
+    build_parser.add_argument("--no-cross-build", action="store_true")
     build_parser.add_argument("images", type=str, nargs="*")
 
     push_parser = subparsers.add_parser("push")
     push_parser.add_argument("-b", "--branch", type=str)
     push_parser.add_argument("--push-dirty", action="store_true")
     push_parser.add_argument("--dry-run", action="store_true")
+    push_parser.add_argument("--no-cross-build", action="store_true")
     push_parser.add_argument("images", type=str, nargs="*")
 
     test_parser = subparsers.add_parser("test")
@@ -506,6 +568,8 @@ def main():
     nodes = json.load(open("utils/launcher/node/nodes.json"))
 
     if args.command == "build":
+        if args.no_cross_build:
+            cross_build = False
         if not gitinfo:
             if not args.branch:
                 print("ERROR: No Git repository detected. Please use \"--branch\" to specify a branch manually.", file=sys.stderr)
@@ -515,7 +579,6 @@ def main():
         if len(args.images) == 0:
             # Auto-detect modified images
             modified = get_modified_images(nodes)
-            print_detected_modified_images(modified)
             for image in modified:
                 image.build()
         else:
@@ -523,6 +586,8 @@ def main():
                 name, tag = parse_image_with_tag(image)
                 ImageBundle(group, name, tag, gitinfo).build()
     elif args.command == "push":
+        if args.no_cross_build:
+            cross_build = False
         if not gitinfo:
             if not args.branch:
                 print("ERROR: No Git repository detected. Please use \"--branch\" to specify a branch manually.", file=sys.stderr)
@@ -535,7 +600,6 @@ def main():
         if len(args.images) == 0:
             # Auto-detect modified images
             modified = get_modified_images(nodes)
-            print_detected_modified_images(modified)
             for image in modified:
                 image.push()
         else:

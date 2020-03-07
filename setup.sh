@@ -198,10 +198,10 @@ function ensure_utils_image() {
         return
     fi
 
-    if [[ $NETWORK == "mainnet" ]]; then
+    if [[ $NETWORK == "mainnet" && $BRANCH == "master" ]]; then
         I_IMG="exchangeunion/utils:$UTILS_TAG"
     else
-        I_IMG="exchangeunion/utils:$UTILS_TAG"
+        I_IMG="exchangeunion/utils:latest"
     fi
 
     read -r STATUS B_IMG U_IMG P_IMG <<<"$(get_image_status "$I_IMG")"

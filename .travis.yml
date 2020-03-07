@@ -2,6 +2,8 @@ language: generic
 arch:
   - amd64
   - arm64
+env:
+  - DOCKER_CLI_EXPERIMENTAL=enabled
 git:
   depth: false
 services:
