@@ -2,13 +2,14 @@ language: generic
 arch:
   - amd64
   - arm64
-env:
-  - DOCKER_CLI_EXPERIMENTAL=enabled
 git:
   depth: false
 services:
   - docker
 before_script:
   - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
-script:
-  - tools/push
+script: tools/push --no-cross-build --no-manifest-list
+jobs:
+  include:
+    - stage: Create and push manifest lists
+      script: tools/push --manifest-list

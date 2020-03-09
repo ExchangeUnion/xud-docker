@@ -33,7 +33,8 @@ dry_run = False
 travis = "TRAVIS_BRANCH" in os.environ
 buildx_installed = check_buildx()
 cross_build = buildx_installed
-
+push_without_manifest_list = False
+push_manifest_list_only = False
 
 class GitInfo:
     def __init__(self, branch, revision, master, history):
@@ -334,9 +335,11 @@ class ImageBundle:
             img.build([])
 
     def push(self):
-        for img in self.images.values():
-            img.push()
-        self.create_and_push_manifest_list()
+        if not push_manifest_list_only:
+            for img in self.images.values():
+                img.push()
+        if not push_without_manifest_list:
+            self.create_and_push_manifest_list()
 
     def get_manifest_tag(self):
         if self.git.branch == "master":
@@ -383,11 +386,32 @@ class ImageBundle:
             else:
                 raise e
 
+    def get_token(self):
+        name = "{}/{}".format(self.group, self.name)
+        r = urlopen("https://auth.docker.io/token?service=registry.docker.io&scope=repository:{}:pull".format(name))
+        return json.loads(r.read().decode())["token"]
+
+    def get_blob(self, token, name, digest):
+        request = Request("https://registry-1.docker.io/v2/{}/blobs/{}".format(name, digest))
+        request.add_header("Authorization", "Bearer {}".format(token))
+        r = urlopen(request)
+        payload = json.loads(r.read().decode())
+        return payload
+
+    def get_revision(self, token, digest):
+        name = "{}/{}".format(self.group, self.name)
+        blob = self.get_blob(token, name, digest)
+        return blob["config"]["Labels"]["com.exchangeunion.image.revision"]
+
     def create_and_push_manifest_list(self):
+        os.environ["DOCKER_CLI_EXPERIMENTAL"] = "enabled"
+
         t = self.get_manifest_tag()
 
         digests = {}
         tags = {}
+
+        token = self.get_token()
 
         for key, value in self.images.items():
             tag = value.get_build_tag()
@@ -531,7 +555,7 @@ def parse_image_with_tag(image):
 
 
 def main():
-    global branch, dry_run, cross_build
+    global branch, dry_run, cross_build, push_manifest_list_only, push_without_manifest_list
 
     parser = ArgumentParser()
     parser.add_argument("-d", "--debug", action="store_true")
@@ -548,6 +572,8 @@ def main():
     push_parser.add_argument("--push-dirty", action="store_true")
     push_parser.add_argument("--dry-run", action="store_true")
     push_parser.add_argument("--no-cross-build", action="store_true")
+    push_parser.add_argument("--manifest-list", action="store_true")
+    push_parser.add_argument("--no-manifest-list", action="store_true")
     push_parser.add_argument("images", type=str, nargs="*")
 
     test_parser = subparsers.add_parser("test")
@@ -588,6 +614,10 @@ def main():
     elif args.command == "push":
         if args.no_cross_build:
             cross_build = False
+        if args.manifest_list:
+            push_manifest_list_only = True
+        if args.no_manifest_list:
+            push_without_manifest_list = True
         if not gitinfo:
             if not args.branch:
                 print("ERROR: No Git repository detected. Please use \"--branch\" to specify a branch manually.", file=sys.stderr)
