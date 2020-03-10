@@ -67,7 +67,7 @@ class Bitcoind(Node):
         if self.litecoin:
             command = []
 
-        data_dir = config.containers[name]["dir"]
+        data_dir = config.containers[name]["dir"].replace("/mnt/hostfs", "")
         if self.litecoin:
             volumes = {
                 data_dir: {

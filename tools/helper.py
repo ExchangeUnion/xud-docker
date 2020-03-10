@@ -32,7 +32,7 @@ dry_run = False
 
 travis = "TRAVIS_BRANCH" in os.environ
 buildx_installed = check_buildx()
-cross_build = buildx_installed
+cross_build = False
 push_without_manifest_list = False
 push_manifest_list_only = False
 
@@ -564,14 +564,14 @@ def main():
     build_parser = subparsers.add_parser("build")
     build_parser.add_argument("-b", "--branch", type=str)
     build_parser.add_argument("--dry-run", action="store_true")
-    build_parser.add_argument("--no-cross-build", action="store_true")
+    build_parser.add_argument("--cross-build", action="store_true")
     build_parser.add_argument("images", type=str, nargs="*")
 
     push_parser = subparsers.add_parser("push")
     push_parser.add_argument("-b", "--branch", type=str)
     push_parser.add_argument("--push-dirty", action="store_true")
     push_parser.add_argument("--dry-run", action="store_true")
-    push_parser.add_argument("--no-cross-build", action="store_true")
+    push_parser.add_argument("--cross-build", action="store_true")
     push_parser.add_argument("--manifest-list", action="store_true")
     push_parser.add_argument("--no-manifest-list", action="store_true")
     push_parser.add_argument("images", type=str, nargs="*")
@@ -591,11 +591,11 @@ def main():
     if args.dry_run:
         dry_run = True
 
-    nodes = json.load(open("utils/launcher/node/nodes.json"))
+    nodes = json.load(open("../nodes.json"))
 
     if args.command == "build":
-        if args.no_cross_build:
-            cross_build = False
+        if args.cross_build:
+            cross_build = buildx_installed
         if not gitinfo:
             if not args.branch:
                 print("ERROR: No Git repository detected. Please use \"--branch\" to specify a branch manually.", file=sys.stderr)
@@ -612,8 +612,8 @@ def main():
                 name, tag = parse_image_with_tag(image)
                 ImageBundle(group, name, tag, gitinfo).build()
     elif args.command == "push":
-        if args.no_cross_build:
-            cross_build = False
+        if args.cross_build:
+            cross_build = True
         if args.manifest_list:
             push_manifest_list_only = True
         if args.no_manifest_list:

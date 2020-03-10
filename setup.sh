@@ -130,13 +130,11 @@ function get_image_status() {
     P_IMG=$B_IMG
 
     CLOUD=$(get_cloud_image "$B_IMG")
-    echo -e "get_cloud_image $B_IMG\n$CLOUD" >> "$LOGFILE"
 
     if [[ -z $CLOUD ]]; then
         if [[ $B_IMG =~ __ ]]; then
             M_IMG=$(get_image_without_branch "$B_IMG")
             CLOUD=$(get_cloud_image "$M_IMG")
-            echo -e "get_cloud_image $M_IMG\n$CLOUD" >> "$LOGFILE"
             if [[ -z $CLOUD ]]; then
                 echo >&2 "❌ Image not found in $DOCKER_REGISTRY: $B_IMG, $M_IMG"
                 exit 1
@@ -158,8 +156,6 @@ function get_image_status() {
         echo "missing $B_IMG $U_IMG $P_IMG"
         return
     fi
-
-    echo -e "get_local_image $B_IMG\n$LOCAL" >> "$LOGFILE"
 
     L_SHA256=$(echo "$LOCAL" | sed -n '1p')
 
@@ -208,10 +204,6 @@ function ensure_utils_image() {
     if [[ -z $U_IMG ]]; then
         exit 1
     fi
-    echo "STATUS=$STATUS" >> "$LOGFILE"
-    echo "B_IMG=$B_IMG" >> "$LOGFILE"
-    echo "U_IMG=$U_IMG" >> "$LOGFILE"
-    echo "P_IMG=$P_IMG" >> "$LOGFILE"
 
     case $STATUS in
         missing|outdated)
@@ -223,7 +215,7 @@ function ensure_utils_image() {
             fi
             ;;
         newer)
-            echo "Warning: Use local $B_IMG (newer than $P_IMG)"
+            echo "Warning: Use local $B_IMG (newer than cloud $P_IMG)"
             ;;
     esac
 
@@ -267,87 +259,23 @@ function ensure_directory() {
 # MAIN
 ################################################################################
 
-HOME_DIR="$HOME/.xud-docker"
-
-if [[ ! -e $HOME_DIR ]]; then
-    mkdir "$HOME_DIR"
-fi
-
-ensure_directory "$HOME_DIR"
-
 LOG_TIMESTAMP="$(date +%F-%H-%M-%S)"
-LOGFILE="$HOME_DIR/xud-docker-$LOG_TIMESTAMP.log"
-touch "$LOGFILE"
-
-echo "--------------------------------------------------------------------------------" >> "$LOGFILE"
-echo ":: XUD-DOCKER ::" >> "$LOGFILE"
-echo "--------------------------------------------------------------------------------" >> "$LOGFILE"
-
-date >> "$LOGFILE"
-echo "" >> "$LOGFILE"
-
-uname -a >> "$LOGFILE"
-echo "" >> "$LOGFILE"
-
-bash --version >> "$LOGFILE"
-echo "" >> "$LOGFILE"
-
-docker version >> "$LOGFILE"
-echo "" >> "$LOGFILE"
-
-echo "$*" >> "$LOGFILE"
-echo "" >> "$LOGFILE"
 
 parse_branch "$@"
 
 choose_network
 
 ensure_utils_image
-echo "Use $UTILS_IMG"
-
-docker run --rm \
--e PROG="$0" \
---entrypoint args_parser \
-"$UTILS_IMG" "$@"
 
 echo "🚀 Launching $NETWORK environment"
 
-HOME_DIR=$HOME/.xud-docker
-
-if [[ ! -e $HOME_DIR ]]; then
-    mkdir "$HOME_DIR"
-fi
-
-# NETWORK_DIR will be evaluated after running the command below
-VARS=$(docker run --rm \
--v /var/run/docker.sock:/var/run/docker.sock \
--v "$HOME_DIR":/root/.xud-docker \
--v /:/mnt/hostfs \
--e HOME_DIR="$HOME_DIR" \
--e NETWORK="$NETWORK" \
---entrypoint config_parser \
-"$UTILS_IMG" "$@")
-
-eval "$VARS"
-
-NETWORK_DIR=$(realpath "$NETWORK_DIR")
-
-ensure_directory "$NETWORK_DIR"
-
-# TODO properly handle network logfile permission problem
-# cat "$LOGFILE" > "$NETWORK_DIR/${NETWORK}.log"
-
 docker run --rm -it \
---name "${NETWORK}_utils_${LOG_TIMESTAMP//-/_}" \
+--name "${NETWORK}_utils" \
 -v /var/run/docker.sock:/var/run/docker.sock \
--v "$HOME_DIR":/root/.xud-docker \
--v "$NETWORK_DIR":/root/.xud-docker/$NETWORK \
 -v /:/mnt/hostfs \
 -e HOST_PWD="$PWD" \
 -e HOST_HOME="$HOME" \
--e HOME_DIR="$HOME_DIR" \
 -e NETWORK="$NETWORK" \
--e NETWORK_DIR="$NETWORK_DIR" \
 -e LOG_TIMESTAMP="$LOG_TIMESTAMP" \
 --entrypoint python \
 "$UTILS_IMG" \

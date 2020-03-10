@@ -49,7 +49,6 @@ class History:
             self._logger.debug("No next history")
 
     def commit(self, cmd: Command):
-        self._logger.debug("Committing command: %r", cmd)
         cmd_str = str(cmd)
         self.history.append(cmd_str)
         try:

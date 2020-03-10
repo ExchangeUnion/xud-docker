@@ -3,6 +3,11 @@ import argparse
 import toml
 import os
 from shutil import copyfile
+import json
+from urllib.request import urlopen
+from urllib.error import HTTPError
+
+from ..utils import normalize_path
 
 
 TESTNET = {
@@ -134,25 +139,77 @@ class ArgumentParser(argparse.ArgumentParser):
         raise ArgumentError(message, self.format_usage())
 
 
+class InvalidHomeDir(Exception):
+    def __init__(self, reason):
+        super().__init__(reason)
+
+
+class InvalidNetworkDir(Exception):
+    def __init__(self, reason):
+        super().__init__(reason)
+
+
+class NodesJsonMissing(Exception):
+    pass
+
+
 class Config:
     def __init__(self):
-        self._logger = logging.getLogger("launcher.Config")
+        self.logger = logging.getLogger("launcher.Config")
         self.branch = "master"
         self.disable_update = False
         self.external_ip = None
-        self.home_dir = os.environ["HOME_DIR"]
         self.network = os.environ["NETWORK"]
-        self.network_dir = os.environ["NETWORK_DIR"]
+        self.home_dir = self.ensure_home_dir()
+        self.network_dir = None
         self.backup_dir = None
         self.restore_dir = None
 
         self.containers = Containers(self.network, self._expand)
+        self.nodes = None
 
     def parse(self):
-        self._parse_config_file()
-        self._parse_command_line_arguments()
+        self.parse_command_line_arguments()
+        self.network_dir = "{}/{}".format(self.home_dir, self.network)
+        self.parse_config_file()
+        self.apply_general_command_line_arguments()
+        self.network_dir = self.ensure_network_dir()
+        self.parse_network_config_file()
+        self.apply_network_command_line_arguments()
 
-    def _parse_command_line_arguments(self):
+    def ensure_home_dir(self):
+        home = os.environ["HOST_HOME"]
+        home_dir = "/mnt/hostfs" + home + "/.xud-docker"
+        if os.path.exists(home_dir):
+            if not os.path.isdir(home_dir):
+                raise InvalidHomeDir("{} is not a directory".format(home_dir))
+            else:
+                if not os.access(home_dir, os.R_OK):
+                    raise InvalidHomeDir("{} is not readable".format(home_dir))
+                if not os.access(home_dir, os.W_OK):
+                    raise InvalidHomeDir("{} is not writable".format(home_dir))
+        else:
+            os.mkdir(home_dir)
+        return home_dir
+
+    def ensure_network_dir(self):
+        network_dir = normalize_path(self.network_dir)
+        if os.path.exists(network_dir):
+            if not os.path.isdir(network_dir):
+                raise InvalidNetworkDir("{} is not a directory".format(network_dir))
+            else:
+                if not os.access(network_dir, os.R_OK):
+                    raise InvalidNetworkDir("{} is not readable".format(network_dir))
+                if not os.access(network_dir, os.W_OK):
+                    raise InvalidNetworkDir("{} is not writable".format(network_dir))
+        else:
+            os.makedirs(network_dir)
+
+        if not os.path.exists(network_dir + "/logs"):
+            os.mkdir(network_dir + "/logs")
+        return network_dir
+
+    def parse_command_line_arguments(self):
         parser = ArgumentParser(argument_default=argparse.SUPPRESS, prog="launcher")
         parser.add_argument("--branch", "-b")
         parser.add_argument("--disable-update", action="store_true")
@@ -163,31 +220,52 @@ class Config:
         parser.add_argument("--backup-dir")
         parser.add_argument("--dev", action="store_true")
         parser.add_argument("--bitcoin-neutrino", type=bool)
+        parser.add_argument("--nodes-json")
 
-        self._args = parser.parse_args()
-        self._logger.debug("Parsed command-line arguments: %r", self._args)
+        self.args = parser.parse_args()
+        self.logger.info("[Config] Parsed command-line arguments: %r", self.args)
 
-        if hasattr(self._args, "branch"):
-            self.branch = self._args.branch
+    def apply_general_command_line_arguments(self):
+        if hasattr(self.args, "branch"):
+            self.branch = self.args.branch
 
-        if hasattr(self._args, "disable_update"):
+        if hasattr(self.args, "disable_update"):
             self.disable_update = True
 
-        if hasattr(self._args, "external_ip"):
-            self.external_ip = self._args.external_ip
+        if hasattr(self.args, "external_ip"):
+            self.external_ip = self.args.external_ip
 
-        if hasattr(self._args, "bitcoin_neutrino"):
-            self.containers["bitcoind"]["neutrino"] = self._args.bitcoin_neutrino
+        if hasattr(self.args, f"{self.network}_dir"):
+            self.network_dir = getattr(self.args, f"{self.network}_dir")
 
-    def _parse_config_file(self):
+    def apply_network_command_line_arguments(self):
+        if hasattr(self.args, "bitcoin_neutrino"):
+            self.containers["bitcoind"]["neutrino"] = self.args.bitcoin_neutrino
+
+    def parse_config_file(self):
         network = self.network
-        config_file = f"/root/.xud-docker/{network}/{network}.conf"
-        sample_config_file = f"/root/.xud-docker/{network}/sample-{network}.conf"
+        config_file = f"{self.home_dir}/xud-docker.conf"
+        sample_config_file = f"{self.home_dir}/sample-xud-docker.conf"
+        try:
+            copyfile(os.path.dirname(__file__) + "/xud-docker.conf", sample_config_file)
+            with open(config_file) as f:
+                parsed = toml.load(f)
+                self.logger.info("[Config] Parsed TOML file %s: %r", config_file, parsed)
+                key = f"{network}-dir"
+                if key in parsed:
+                    self.network_dir = parsed[key]
+        except FileNotFoundError:
+            copyfile(os.path.dirname(__file__) + f"/xud-docker.conf", config_file)
+
+    def parse_network_config_file(self):
+        network = self.network
+        config_file = f"{self.network_dir}/{network}.conf"
+        sample_config_file = f"{self.network_dir}/sample-{network}.conf"
         try:
             copyfile(os.path.dirname(__file__) + f'/{network}.conf', sample_config_file)
             with open(config_file) as f:
                 parsed = toml.load(f)
-                self._logger.debug("Parsed %s.conf file: %r", network, parsed)
+                self.logger.info("[Config] Parsed TOML file %s: %r", config_file, parsed)
 
                 if "backup-dir" in parsed and len(parsed["backup-dir"].strip()) > 0:
                     self.backup_dir = parsed["backup-dir"]
@@ -200,13 +278,11 @@ class Config:
 
                 if "geth" in parsed:
                     merge_geth(self.containers["geth"], parsed["geth"])
-
         except FileNotFoundError:
-            copyfile(os.path.dirname(__file__) + f'/{network}.conf', config_file)
-            self._logger.debug(f"Copied sample {network}.conf file")
+            copyfile(os.path.dirname(__file__) + f"/{network}.conf", config_file)
 
         # Backward compatible with lnd.env
-        lndenv = f"/root/.xud-docker/{network}/lnd.env"
+        lndenv = f"{self.home_dir}/{network}/lnd.env"
         try:
             with open(lndenv) as f:
                 for line in f.readlines():
@@ -225,3 +301,24 @@ class Config:
             if f"${self.network}_dir" in value:
                 value = value.replace(f"${self.network}_dir", self.network_dir)
         return value
+
+    @property
+    def logfile(self):
+        if self.network_dir:
+            network = self.network
+            suffix = os.environ["LOG_TIMESTAMP"]
+            return f"{self.network_dir}/logs/{network}-{suffix}.log"
+        return None
+
+    def get_nodes(self):
+        if not self.nodes:
+            try:
+                r = urlopen(f"https://raw.githubusercontent.com/ExchangeUnion/xud-docker/{self.branch}/nodes.json")
+                self.nodes = json.load(r)[self.network]
+            except:
+                if hasattr(self.args, "nodes_json"):
+                    f = "/mnt/hostfs" + normalize_path(self.args.nodes_json)
+                    self.nodes = json.load(open(f))[self.network]
+                else:
+                    raise NodesJsonMissing()
+        return self.nodes

@@ -60,9 +60,7 @@ class Node:
         self._cli = None
 
     def _get_image(self):
-        with open(os.path.dirname(__file__) + '/nodes.json') as f:
-            j = json.load(f)
-            return j[self.network][self.name]["image"]
+        return self._config.get_nodes()[self.name]["image"]
 
     @property
     def container_name(self):
@@ -78,7 +76,7 @@ class Node:
 
     @property
     def network_dir(self):
-        return self._config.network_dir
+        return self._config.network_dir.replace("/mnt/hostfs", "")
 
     def _get_ports(self, spec_ports: Dict):
         ports = []
@@ -121,7 +119,6 @@ class Node:
         )
         id = resp['Id']
         container = self._client.containers.get(id)
-        self._logger.debug(f"Created container: %s (%s)", self.container_name, id)
         return container
 
     def get_container(self, create=False):
@@ -138,17 +135,14 @@ class Node:
             self._container = self.get_container(create=True)
         assert self._container is not None
         self._container.start()
-        self._logger.debug(f"Started container: %s (%s)", self.container_name, self._container.id)
 
     def stop(self):
         if self._container is not None:
             self._container.stop(timeout=180)
-            self._logger.debug(f"Stopped container: %s (%s)", self.container_name, self._container.id)
 
     def remove(self):
         if self._container is not None:
             self._container.remove()
-            self._logger.debug(f"Removed container: %s (%s)", self.container_name, self._container.id)
 
     def status(self):
         self._container = self.get_container()
@@ -273,7 +267,6 @@ class Node:
         return None
 
     def check_updates(self, images_check_result):
-        self._logger.debug("Checking container: %s", self.container_name)
         config = self._config.containers[self.name]
         assert config is not None
         try:
@@ -315,17 +308,17 @@ class Node:
     def update(self, check_result):
         status, details = check_result
         if status == "missing":
-            print("Creating %s" % self.container_name)
+            print("Creating %s..." % self.container_name)
             self._container = self.create_container()
         elif status == "outdated":
-            print("Recreating %s" % self.container_name)
+            print("Recreating %s..." % self.container_name)
             container = self.get_container()
             assert container is not None
             container.stop()
             container.remove()
             self._container = self.create_container()
         elif status == "external_with_container":
-            print("Removing %s" % self.container_name)
+            print("Removing %s..." % self.container_name)
             container = self.get_container()
             assert container is not None
             container.stop()

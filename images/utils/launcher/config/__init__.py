@@ -1,1 +1,1 @@
-from .config import Config, ArgumentParser, ArgumentError
+from .config import Config, ArgumentParser, ArgumentError, InvalidHomeDir, InvalidNetworkDir

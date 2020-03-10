@@ -8,8 +8,7 @@ setup(
     install_requires=["toml", "docker", "demjson"],
     include_package_data=True,
     package_data={
-        "launcher.config": ["*.conf"],
-        "launcher.node": ["nodes.json"],
+        "launcher.config": ["*.conf", "nodes.json"],
         "launcher.shell": ["banner.txt"],
     }
 )

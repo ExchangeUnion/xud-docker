@@ -8,7 +8,7 @@ services:
   - docker
 before_script:
   - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
-script: tools/push --no-cross-build --no-manifest-list
+script: tools/push --no-manifest-list
 jobs:
   include:
     - stage: Create and push manifest lists

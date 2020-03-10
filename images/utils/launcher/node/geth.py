@@ -31,8 +31,8 @@ class Geth(Node):
                 "infura_project_secret": c["infura_project_secret"],
             }
 
-        data_dir = config.containers[name]["dir"]
-        ancient_chaindata_dir = config.containers[name]["ancient_chaindata_dir"]
+        data_dir = config.containers[name]["dir"].replace("/mnt/hostfs", "")
+        ancient_chaindata_dir = config.containers[name]["ancient_chaindata_dir"].replace("/mnt/hostfs", "")
         volumes = {
             data_dir: {
                 'bind': '/root/.ethereum',
