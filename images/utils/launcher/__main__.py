@@ -1,3 +1,3 @@
-from .launcher import Launcher
+from . import Launcher
 
 Launcher().launch()

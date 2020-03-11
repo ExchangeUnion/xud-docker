@@ -15,14 +15,6 @@ The following instructions are geared towards developers, intending to contribut
 git clone https://github.com/ExchangeUnion/xud-docker.git $PROJECT_DIR
 ```
 
-Init and fetch git submodules
-
-```bash
-cd $PROJECT_DIR
-git submodule init
-git submodule update --recursive --remote
-```
-
 ### Developing a feature
 
 Create a feature branch
@@ -37,19 +29,39 @@ Make your desired changes to the images located at:
 Build the updated image(s)
 
 ```bash
-$PROJECT_DIR/tools/build <image_name>
+# Auto-detect changed images and build them
+tools/build
+# Build a specific image 
+tools/build <image>:<tag>
+# Build multiple images
+tools/build <image1>:<tag> <image2>:<tag>
+tools/build <image>:<tag1> <image>:<tag2>
 ```
 
 Test locally
 
 ```bash
-$PROJECT_DIR/xud.sh -b your-feature-branch
+./xud.sh -b your-feature-branch
 ```
+
+In case you modified utils image, you could test locally like
+
+```bash
+./xud.sh -b your-feature-branch --dev
+```
+
+The option `--dev` means using local built utils image.
 
 To let others test without building the images by themselves push the images of your-feature-branch.
 
 ```bash
-$PROJECT_DIR/tools/push <image_name>
+# Auto-detect changed images and push them
+tools/push
+# Push a specific image
+tools/push <image>:<tag>
+# Push multiple images
+tools/push <image1>:<tag> <image2>:<tag>
+tools/push <image>:<tag1> <image>:<tag2>
 ```
 
 Then push your local changes to remote branch
@@ -63,17 +75,3 @@ Ask other people to run your-feature-branch on their machine
 ```bash
 ./xud.sh -b your-feature-branch
 ```
-
-### Test on cloud
-
-Running simnet, testnet and mainnet simultaneously is resource heavy. We provide a convenient `tools/test` script to test your-feature-branch in the cloud. Currently, only Google Cloud is supported.
-
-1. Download `google-cloud-sdk` on your machine.
-2. Run `gcloud init` to login to your Google account and choose the project and region
-
-```
-$PROJECT_DIR/tools/test --on-cloud <network>
-```
-
-The value of `<network>` should be simnet, testnet and mainnet
-

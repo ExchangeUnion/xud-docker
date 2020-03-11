@@ -10,3 +10,6 @@ venv/
 
 # Config of PyCharm
 .idea/
+
+# tools logs
+tools/logs

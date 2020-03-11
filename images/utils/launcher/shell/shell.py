@@ -296,9 +296,9 @@ class InputHandler(threading.Thread):
         with self._lock:
             self.__answer = value
 
-    def set_network(self, network):
+    def set_network_dir(self, network_dir):
         with self._lock:
-            self._history = History(self._cmd, f"/root/.xud-docker/{network}/history")
+            self._history = History(self._cmd, f"{network_dir}/history")
 
     def _history_reset(self):
         if self._history is None or not self.enable_history:
@@ -412,7 +412,6 @@ class InputHandler(threading.Thread):
         try:
             while True:
                 ch = self.queue.get()
-                self._logger.debug(f"{ch=}, {self._cmd=}")
                 if not self._handle_input(ch):
                     break
         except:
@@ -514,8 +513,8 @@ class Shell:
         self._logger.debug("stop")
         self.loop.interrupt()
 
-    def set_network(self, network):
-        self.handler.set_network(network)
+    def set_network_dir(self, network_dir):
+        self.handler.set_network_dir(network_dir)
 
     def print(self, text):
         print(text, end="")
