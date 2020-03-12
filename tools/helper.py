@@ -371,7 +371,7 @@ class ImageBundle:
             payload = json.loads(output.decode())
             if "manifests" not in payload:
                 print("{} is not a manifest list".format(tag), file=sys.stderr)
-                exit(1)
+                return None
             manifests = payload["manifests"]
             result = {}
             for m in manifests:
