@@ -25,6 +25,7 @@ class NodeNotFound(Exception):
     def __init__(self, name):
         super(name)
 
+
 class ImagesNotAvailable(Exception):
     def __init__(self, images):
         super().__init__()
@@ -286,16 +287,16 @@ class NodeManager:
                 container.update(result)
 
     def logs(self, *args):
-        self.cmd_logs.execute(" ".join(args))
+        self.cmd_logs.execute(args)
 
     def start(self, *args):
-        self.cmd_start.execute(" ".join(args))
+        self.cmd_start.execute(args)
 
     def stop(self, *args):
-        self.cmd_stop.execute(" ".join(args))
+        self.cmd_stop.execute(args)
 
     def restart(self, *args):
-        self.cmd_restart.execute(" ".join(args))
+        self.cmd_restart.execute(args)
 
     def cli(self, name, *args):
         self.get_node(name).cli(" ".join(args), self.shell)

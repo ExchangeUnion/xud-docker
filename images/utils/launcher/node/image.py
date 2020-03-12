@@ -3,6 +3,7 @@ from typing import Dict, Optional
 import platform
 from datetime import datetime
 from urllib.request import urlopen, Request
+from urllib.error import HTTPError
 import json
 import http.client
 import re
@@ -100,7 +101,13 @@ class Image:
         request.add_header("Authorization", f"Bearer {token}")
         request.add_header("Accept", "application/vnd.docker.distribution.manifest.list.v2+json")
 
-        payload = self.safe_urlopen(request)
+        try:
+            payload = self.safe_urlopen(request)
+        except HTTPError as e:
+            if e.code == 404:
+                return None
+            else:
+                raise e
 
         if payload["schemaVersion"] == 2:
             arch = platform.machine()
@@ -122,7 +129,6 @@ class Image:
             config = json.loads(payload["history"][0]["v1Compatibility"])["config"]
             digest = config["Image"]
             labels = config["Labels"]
-            print(json.loads(payload["history"][0]["v1Compatibility"])["config"]["Labels"])
             created = datetime.strptime(labels["com.exchangeunion.image.created"], "%Y-%m-%dT%H:%M:%SZ")
             size = 0
             branch = labels["com.exchangeunion.image.branch"]
