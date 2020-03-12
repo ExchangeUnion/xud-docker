@@ -29,12 +29,14 @@ labelprefix = "com.exchangeunion.image"
 group = "exchangeunion"
 docker_registry = "registry-1.docker.io"
 dry_run = False
+commit_before_travis = "205bbf4d430d906875a30e4a47872145ee9d06ee"
 
 travis = "TRAVIS_BRANCH" in os.environ
 buildx_installed = check_buildx()
 cross_build = False
 push_without_manifest_list = False
 push_manifest_list_only = False
+
 
 class GitInfo:
     def __init__(self, branch, revision, master, history):
@@ -78,8 +80,11 @@ def create_git_info():
         if os.system("git diff --quiet") != 0:
             r = r + "-dirty"
         master = get_master_commit_hash()
-        history = get_branch_history(master)
         branch = b
+        if branch == "master":
+            history = get_branch_history(commit_before_travis)
+        else:
+            history = get_branch_history(master)
         return GitInfo(b, r, master, history)
     return None
 
@@ -96,10 +101,11 @@ os.chdir(imagesdir)
 def run_command(cmd, errmsg):
     global dry_run
 
-    print("$ " + cmd)
-
     if dry_run:
+        print("[dry-run] $ " + cmd)
         return
+    else:
+        print("$ " + cmd)
 
     p = Popen(cmd, shell=True, stdout=PIPE, stderr=STDOUT)
 
@@ -513,7 +519,10 @@ def get_unmodified_history(img, history, history_modified):
 
 
 def get_modified_images(nodes):
-    modified = get_modified_images_since_commit(nodes, gitinfo.master)
+    if branch == "master":
+        modified = get_modified_images_since_commit(nodes, commit_before_travis)
+    else:
+        modified = get_modified_images_since_commit(nodes, gitinfo.master)
     history_modified = []
     for commit in gitinfo.history:
         images = get_modified_images_at_commit(nodes, commit)
