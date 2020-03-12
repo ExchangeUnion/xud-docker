@@ -1,0 +1,11 @@
+--- a/fundingmanager.go
++++ b/fundingmanager.go
+@@ -61,7 +61,7 @@ const (
+ 	// Protocol. This limit is defined in BOLT-0002, and serves as an
+ 	// initial precautionary limit while implementations are battle tested
+ 	// in the real world.
+-	MaxBtcFundingAmount = ltcutil.Amount(1<<24) - 1
++	MaxBtcFundingAmount = ltcutil.Amount(1<<32) - 1
+ 
+ 	// maxLtcFundingAmount is a soft-limit of the maximum channel size
+ 	// currently accepted on the Litecoin chain within the Lightning

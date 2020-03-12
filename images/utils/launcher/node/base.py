@@ -66,10 +66,10 @@ class Node:
             name=self.container_name,
             image=self.image,
             hostname=self.name,
-            environment=[f"NETWORK={self.network}"],
+            environment=self.generate_environment(),
             command=[],
-            volumes=self.generate_volumes(self.node_config),
-            ports=self.generate_ports(self.node_config),
+            volumes=self.generate_volumes(),
+            ports=self.generate_ports(),
         )
         self._container = None
 
@@ -81,18 +81,26 @@ class Node:
 
         self._cli = None
 
-    def generate_volumes(self, node_config):
+    def generate_environment(self):
+        environment = [f"NETWORK={self.network}"]
+        if self.node_config["preserve_config"]:
+            environment.append("PRESERVE_CONFIG=true")
+        else:
+            environment.append("PRESERVE_CONFIG=false")
+        return environment
+
+    def generate_volumes(self):
         volumes = {}
-        for v in node_config["volumes"]:
+        for v in self.node_config["volumes"]:
             volumes[v["host"]] = {
                 "bind": v["container"],
                 "mode": "rw"
             }
         return volumes
 
-    def generate_ports(self, node_config):
+    def generate_ports(self):
         ports = {}
-        for p in node_config["ports"]:
+        for p in self.node_config["ports"]:
             if not isinstance(p, PortPublish):
                 raise RuntimeError("node_config ports must contain PortPublish instances")
             if p.host:

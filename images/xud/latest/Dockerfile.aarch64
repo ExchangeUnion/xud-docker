@@ -1,0 +1,31 @@
+FROM node:12-alpine3.10 AS builder
+ARG REPO=ExchangeUnion/xud
+ARG BRANCH=v1.0.0-beta.1
+# Use pure JS implemented secp256k1 bindings
+RUN apk add --no-cache git python3 rsync go musl-dev xz
+RUN apk add --no-cache make g++
+# sqlite3 /bin/sh: python: not found
+RUN apk add --no-cache python
+# This is a "hack" to automatically invalidate the cache in case there are new commits
+#ADD https://api.github.com/repos/$REPO/commits/$BRANCH /dev/null
+RUN git clone --depth=2 -b $BRANCH https://github.com/$REPO
+WORKDIR /xud
+RUN cp package.json /tmp/package.json
+RUN sed -Ei 's/"grpc-tools": "1.8.0",//g' package.json
+RUN npm install
+RUN cp /tmp/package.json package.json
+RUN npm run compile
+RUN npm run compile:seedutil
+RUN rm -rf seedutil/go
+RUN npm prune --production
+RUN strip seedutil/seedutil
+RUN tar -cJf /app.tar.xz .
+RUN ls -l /app.tar.xz
+
+FROM node:12-alpine3.10
+RUN apk add --no-cache xz bash tor
+COPY --from=builder /app.tar.xz /
+COPY entrypoint.sh /
+ENTRYPOINT ["/entrypoint.sh"]
+VOLUME [ "/root/.xud" ]
+EXPOSE 8885 18885 8887
