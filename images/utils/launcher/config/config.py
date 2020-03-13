@@ -5,7 +5,6 @@ import os
 from shutil import copyfile
 import json
 from urllib.request import urlopen
-from urllib.error import HTTPError
 
 from ..utils import normalize_path
 
@@ -170,7 +169,7 @@ class Config:
 
     def parse(self):
         self.parse_command_line_arguments()
-        self.network_dir = "{}/{}".format(self.home_dir, self.network)
+        self.network_dir = "{}/{}".format(self.home_dir.replace("/mnt/hostfs", ""), self.network)
         self.parse_config_file()
         self.apply_general_command_line_arguments()
         self.network_dir = self.ensure_network_dir()
@@ -193,7 +192,7 @@ class Config:
         return home_dir
 
     def ensure_network_dir(self):
-        network_dir = normalize_path(self.network_dir)
+        network_dir = "/mnt/hostfs" + normalize_path(self.network_dir)
         if os.path.exists(network_dir):
             if not os.path.isdir(network_dir):
                 raise InvalidNetworkDir("{} is not a directory".format(network_dir))

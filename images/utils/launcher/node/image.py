@@ -58,7 +58,7 @@ class Image:
 
     def fetch_local_image_metadata(self):
         try:
-            image = self.client.images.get(self.qualified_tag)
+            image = self.client.images.get(self.get_master_tag())
             digest = image.id
             created = datetime.strptime(image.labels["com.exchangeunion.image.created"], "%Y-%m-%dT%H:%M:%SZ")
             branch = image.labels["com.exchangeunion.image.branch"]
@@ -168,16 +168,13 @@ class Image:
                 return "outdated"
 
     def check_for_updates(self):
-        self.logger.debug("%s: fetch_metadata", self.qualified_tag)
         self.fetch_metadata()
-        self.logger.debug("%s: get_status", self.qualified_tag)
         self.status = self.get_status()
         if self.status in ["missing", "up-to-date", "newer", "outdated"]:
             self.pull_image = self.metadata["remote"].tag
-        self.logger.debug("%s: status is %s", self.qualified_tag, self.status)
 
     def __repr__(self):
-        return self.get_qualified_tag()
+        return self.get_master_tag()
 
     def __hash__(self):
         return hash(self.__repr__())
