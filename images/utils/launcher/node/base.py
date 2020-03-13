@@ -8,7 +8,6 @@ import sys
 import functools
 import datetime
 import itertools
-import json
 
 
 class InvalidNetwork(Exception):
@@ -287,8 +286,6 @@ class Node:
                 "volumes": self._compare_volumes(attr["Mounts"], spec.volumes),
                 "ports": self._compare_ports(attr["NetworkSettings"]["Ports"], spec.ports),
             }
-
-            self._logger.debug("Container comparing result: %r\nattr: %r\nspec: %r", details, attr, spec)
 
             if details["environment"] is not None and len(details["environment"][1]) == 0:
                 details["environment"] = None
