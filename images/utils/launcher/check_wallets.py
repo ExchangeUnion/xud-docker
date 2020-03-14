@@ -228,7 +228,7 @@ class Action:
                         break
                     except:
                         pass
-                else:
+                elif reply == "2":
                     self.setup_restore_dir()
                     if self.config.restore_dir:
                         if self.config.restore_dir != "/tmp/fake-backup":
