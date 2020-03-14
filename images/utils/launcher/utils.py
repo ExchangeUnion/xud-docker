@@ -74,3 +74,7 @@ def normalize_path(path: str) -> str:
         parts.remove("..")
 
     return "/".join(parts)
+
+
+def get_hostfs_file(file):
+    return "/mnt/hostfs" + file

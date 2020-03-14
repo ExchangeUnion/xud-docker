@@ -1,19 +1,17 @@
 import logging
 import sys
 import os
+from subprocess import check_output
+import toml
 
 from .node import NodeManager
 from .node.xud import PasswordNotMatch, InvalidPassword, MnemonicNot24Words
-from .utils import normalize_path
+from .utils import normalize_path, get_hostfs_file
+from .errors import NetworkConfigFileSyntaxError
 
 
 class BackupDirNotAvailable(Exception):
     pass
-
-
-class NetworkConfigFileSyntaxError(Exception):
-    def __init__(self, hint):
-        super().__init__(hint)
 
 
 class Action:
@@ -66,7 +64,7 @@ class Action:
             raise Exception("Failed to restore wallets")
 
     def check_backup_dir(self, backup_dir):
-        hostfs_dir = "/mnt/hostfs" + backup_dir
+        hostfs_dir = get_hostfs_file(backup_dir)
 
         if not os.path.exists(hostfs_dir):
             return False, "not existed"
@@ -86,7 +84,7 @@ class Action:
         return self.check_backup_dir(restore_dir)
 
     def check_restore_dir_files(self, restore_dir):
-        files = os.listdir("/mnt/hostfs" + restore_dir)
+        files = os.listdir(get_hostfs_file(restore_dir))
         contents = []
         if "xud" in files:
             contents.append("xud")
@@ -100,19 +98,29 @@ class Action:
 
     def persist_backup_dir(self, backup_dir):
         network = self.config.network
-        config_file = f"{self.config.network_dir}/{network}.conf"
+        config_file = get_hostfs_file(f"{self.config.network_dir}/{network}.conf")
 
         exit_code = os.system(f"grep -q backup-dir {config_file} >/dev/null 2>&1")
 
         if exit_code == 0:
-            if not self.config.backup_dir:
-                raise NetworkConfigFileSyntaxError(f"The \"backup-dir\" option is in a wrong section of {network}.conf. Please check your configuration file.")
-            os.system(f"sed -Ei 's/^.*backup-dir = .*$/backup-dir = {backup_dir}' {config_file}")
+            os.system(f"sed -Ei 's|backup-dir = .*$|backup-dir = \"{backup_dir}\"|' {config_file}")
+            line = check_output(f"grep backup-dir {config_file}", shell=True).decode().splitlines()[0].strip()
+            if line.startswith("#"):
+                # uncomment backup-dir line
+                os.system(f"sed -Ei 's/^.*#.*backup-dir/backup-dir/' {config_file}")
+            try:
+                parsed = toml.load(open(config_file))
+            except:
+                raise RuntimeError(f"Failed to update backup-dir value in {config_file}")
+            if "backup-dir" not in parsed:
+                raise NetworkConfigFileSyntaxError(f"The field \"backup-dir\" is in a wrong section of {network}.conf.")
+            if parsed["backup-dir"] != backup_dir:
+                raise RuntimeError(f"Failed to update backup-dir value in {config_file}")
         else:
             with open(config_file, 'r') as f:
                 contents = f.readlines()
             with open(config_file, 'w') as f:
-                f.write("# The path to the directory to store your backup in. This should be located on an external drive, which usually is mounted in /mnt or /media.\n")
+                f.write("# The path to the directory to store your backup in. This should be located on \n# an external drive, which usually is mounted in /mnt or /media.\n")
                 f.write(f"backup-dir = \"{backup_dir}\"\n")
                 f.write("\n")
                 f.write("".join(contents))
@@ -260,7 +268,7 @@ class Action:
                 self.config.backup_dir = None
                 self.setup_backup_dir()
 
-        cmd = f"/update-backup-dir.sh '/mnt/hostfs{self.config.backup_dir}'"
+        cmd = f"/update-backup-dir.sh '{get_hostfs_file(self.config.backup_dir)}'"
         exit_code, output = xud.exec(cmd)
         lines = output.decode().splitlines()
         if len(lines) > 0:

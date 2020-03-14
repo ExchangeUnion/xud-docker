@@ -42,47 +42,6 @@ class Xud(Node):
     def __init__(self, client: DockerClient, config: Config, name: str):
         super().__init__(client, config, name)
 
-        if self.network == "simnet":
-            ports = {
-                '28885/tcp': 28885
-            }
-        elif self.network == "testnet":
-            ports = {
-                '18885/tcp': 18885
-            }
-        elif self.network == "mainnet":
-            ports = {
-                '8885/tcp': 8885
-            }
-        else:
-            raise InvalidNetwork(self.network)
-
-        volumes = {
-            f"{self.network_dir}/data/xud": {
-                'bind': '/root/.xud',
-                'mode': 'rw'
-            },
-            f"{self.network_dir}/data/lndbtc": {
-                'bind': '/root/.lndbtc',
-                'mode': 'rw'
-            },
-            f"{self.network_dir}/data/lndltc": {
-                'bind': '/root/.lndltc',
-                'mode': 'rw'
-            },
-            f"{self.network_dir}/data/raiden": {
-                'bind': '/root/.raiden',
-                'mode': 'rw'
-            },
-            f"/": {
-                'bind': '/mnt/hostfs',
-                'mode': 'rw'
-            }
-        }
-
-        self.container_spec.volumes.update(volumes)
-        self.container_spec.ports.update(ports)
-
         self._cli = "xucli"
         self.api = XudApi(CliBackend(client, self.container_name, self._logger, self._cli))
 

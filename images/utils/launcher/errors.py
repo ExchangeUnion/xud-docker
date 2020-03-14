@@ -20,3 +20,18 @@ class ContainerNotFound(Exception):
     def __init__(self, container):
         super().__init__(container)
         self.container = container
+
+
+class NetworkConfigFileSyntaxError(SyntaxError):
+    def __init__(self, hint):
+        super().__init__(hint)
+
+
+class NetworkConfigFileValueError(ValueError):
+    def __init__(self, hint):
+        super().__init__(hint)
+
+
+class CommandLineArgumentValueError(ValueError):
+    def __init__(self, hint):
+        super().__init__(hint)
