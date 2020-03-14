@@ -1,13 +1,15 @@
 from docker import DockerClient
-from docker.errors import NotFound, ImageNotFound
+from docker.errors import NotFound
 import logging
 from typing import List, Dict
-from ..config import Config
 import os
 import sys
 import functools
 import datetime
 import itertools
+import re
+
+from ..config import Config
 
 
 class InvalidNetwork(Exception):
@@ -37,16 +39,14 @@ class Node:
         self.name = name
         self.api = None
 
-        self.image = self._get_image()
-
         self.container_spec = ContainerSpec(
             name=self.container_name,
             image=self.image,
             hostname=self.name,
             environment=[f"NETWORK={self.network}"],
             command=[],
-            volumes={},
-            ports={}
+            volumes=self.generate_volumes(self.node_config),
+            ports=self.generate_ports(self.node_config),
         )
         self._container = None
 
@@ -58,12 +58,20 @@ class Node:
 
         self._cli = None
 
-    def _get_image(self):
-        return self._config.get_nodes()[self.name]["image"]
+    def generate_volumes(self, node_config):
+        volumes = {}
+        for v in node_config["volumes"]:
+            volumes[v["host"]] = {
+                "bind": v["container"],
+                "mode": "rw"
+            }
+        return volumes
 
-    @property
-    def container_name(self):
-        return f"{self.network}_{self.name}_1"
+    def generate_ports(self, node_config):
+        ports = {}
+        for p in node_config["ports"]:
+            ports[f"{p}/tcp"] = p
+        return ports
 
     @property
     def network(self):
@@ -74,8 +82,20 @@ class Node:
         return self.network + "_default"
 
     @property
-    def network_dir(self):
-        return self._config.network_dir.replace("/mnt/hostfs", "")
+    def node_config(self):
+        return self._config.nodes[self.name]
+
+    @property
+    def image(self):
+        return self.node_config["image"]
+
+    @property
+    def mode(self):
+        return self.node_config["mode"]
+
+    @property
+    def container_name(self):
+        return f"{self.network}_{self.name}_1"
 
     def _get_ports(self, spec_ports: Dict):
         ports = []
@@ -130,16 +150,22 @@ class Node:
                 return None
 
     def start(self):
+        if self.mode != "native":
+            return
         if self._container is None:
             self._container = self.get_container(create=True)
         assert self._container is not None
         self._container.start()
 
     def stop(self):
+        if self.mode != "native":
+            return
         if self._container is not None:
             self._container.stop(timeout=180)
 
     def remove(self):
+        if self.mode != "native":
+            return
         if self._container is not None:
             self._container.remove()
 
@@ -258,21 +284,30 @@ class Node:
         return None
 
     def _compare_ports(self, x, y):
-        # FIXME better normalize ports
         x = [key + "-" + ",".join([p["HostIp"] + ":" + p["HostPort"] for p in value]) for key, value in x.items() if value is not None]
-        y = [key + "-" + (value if isinstance(value, str) else "0.0.0.0:" + str(value)) for key, value in y.items()]
+
+        def normalize(value):
+            p = re.compile(r"\d+")
+            if p.match(value):
+                return "0.0.0.0:" + value
+            else:
+                return value
+
+        y = [key + "-" + normalize(value) for key, value in y.items()]
+
         if set(x) != set(y):
             return set(x) - set(y), set(y) - set(x)
+
         return None
 
     def check_updates(self, images_check_result):
-        config = self._config.containers[self.name]
+        config = self._config.nodes[self.name]
         assert config is not None
         try:
             container = self._client.containers.get(self.container_name)
 
             # TODO make sure config __getitem__ return None if item not exists
-            if config["external"]:
+            if config["mode"] != "native":
                 return "external_with_container", None
 
             attr = container.attrs
@@ -298,7 +333,7 @@ class Node:
                 return "outdated", details
 
         except NotFound:
-            if config["external"]:
+            if config["mode"] != "native":
                 return "external", None
             return "missing", None
 

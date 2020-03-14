@@ -138,15 +138,18 @@ class Image:
 
     def fetch_metadata(self):
         local = self.fetch_local_image_metadata()
-        if self.branch == "master":
-            name = "{}/{}".format(self.group, self.name)
-            remote = self.fetch_registry_image_metadata(name, self.tag)
-        else:
-            name = "{}/{}".format(self.group, self.name)
-            tag = self.tag + "__" + self.branch.replace("/", "-")
-            remote = self.fetch_registry_image_metadata(name, tag)
-            if not remote:
+        try:
+            if self.branch == "master":
+                name = "{}/{}".format(self.group, self.name)
                 remote = self.fetch_registry_image_metadata(name, self.tag)
+            else:
+                name = "{}/{}".format(self.group, self.name)
+                tag = self.tag + "__" + self.branch.replace("/", "-")
+                remote = self.fetch_registry_image_metadata(name, tag)
+                if not remote:
+                    remote = self.fetch_registry_image_metadata(name, self.tag)
+        except:
+            raise RuntimeError("Failed to fetch cloud image metadata")
         self.metadata["local"] = local
         self.metadata["remote"] = remote
 

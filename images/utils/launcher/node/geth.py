@@ -21,30 +21,18 @@ class GethApi:
 class Geth(Node):
     def __init__(self, client: DockerClient, config: Config, name):
         super().__init__(client, config, name)
-        self.external = config.containers[name]["external"]
-        if self.external:
-            c = config.containers[name]
+
+        if self.mode == "external":
             self.external_config = {
-                "rpc_host": c["rpc_host"],
-                "rpc_port": c["rpc_port"],
-                "infura_project_id": c["infura_project_id"],
-                "infura_project_secret": c["infura_project_secret"],
+                "rpc_host": self.node_config["external_rpc_host"],
+                "rpc_port": self.node_config["external_rpc_port"],
             }
 
-        data_dir = config.containers[name]["dir"].replace("/mnt/hostfs", "")
-        ancient_chaindata_dir = config.containers[name]["ancient_chaindata_dir"].replace("/mnt/hostfs", "")
-        volumes = {
-            data_dir: {
-                'bind': '/root/.ethereum',
-                'mode': 'rw'
-            },
-            ancient_chaindata_dir: {
-                'bind': '/root/.ethereum/chaindata',
-                'mode': 'rw'
-            },
-        }
-
-        self.container_spec.volumes.update(volumes)
+        if self.mode == "infura":
+            self.infura_config = {
+                "project_id": self.node_config["infura_project_id"],
+                "project_secret": self.node_config["infura_project_secret"],
+            }
 
         if self.network == "testnet":
             self._cli = "geth --testnet"
@@ -53,30 +41,10 @@ class Geth(Node):
 
         self.api = GethApi(CliBackend(client, self.container_name, self._logger, self._cli))
 
-    def start(self):
-        if self.external:
-            return
-        super().start()
-
-    def stop(self):
-        if self.external:
-            return
-        super().stop()
-
-    def remove(self):
-        if self.external:
-            return
-        super().remove()
-
     def get_external_status(self):
         s = socket.socket()
-        infura_project_id = self.external_config["infura_project_id"]
-        if infura_project_id:
-            rpc_host = f"{self.network}.infura.io"
-            rpc_port = 443
-        else:
-            rpc_host = self.external_config["rpc_host"]
-            rpc_port = self.external_config["rpc_port"]
+        rpc_host = self.external_config["rpc_host"]
+        rpc_port = self.external_config["rpc_port"]
         try:
             s.connect((rpc_host, rpc_port))
             return "Ready (Connected to external)"
@@ -86,9 +54,26 @@ class Geth(Node):
         finally:
             s.close()
 
+    def get_infura_status(self):
+        s = socket.socket()
+        rpc_host = f"{self.network}.infura.io"
+        rpc_port = 443
+        try:
+            s.connect((rpc_host, rpc_port))
+            return "Ready (Connected to Infura)"
+        except:
+            self._logger.exception(f"Failed to connect to Infura node {rpc_host}:{rpc_port}")
+            return "Unavailable (Connection to Infura failed)"
+        finally:
+            s.close()
+
     def status(self):
-        if self.external:
+        if self.mode == "external":
             return self.get_external_status()
+
+        if self.mode == "infura":
+            return self.get_infura_status()
+
         status = super().status()
         if status == "exited":
             # TODO analyze exit reason

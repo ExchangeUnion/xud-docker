@@ -30,18 +30,14 @@ class Bitcoind(Node):
         self.litecoin = litecoin
         super().__init__(client, config, name)
 
-        self.external = config.containers[name]["external"]
-        self.neutrino = config.containers[name]["neutrino"]
-
-        if self.external:
-            c = config.containers[name]
+        if self.mode == "external":
             self.external_config = {
-                "rpc_host": c["rpc_host"],
-                "rpc_port": c["rpc_port"],
-                "rpc_user": c["rpc_user"],
-                "rpc_password": c["rpc_password"],
-                "zmqpubrawblock": c["zmqpubrawblock"],
-                "zmqpubrawtx": c["zmqpubrawtx"],
+                "rpc_host": self.node_config["external_rpc_host"],
+                "rpc_port": self.node_config["external_rpc_port"],
+                "rpc_user": self.node_config["external_rpc_user"],
+                "rpc_password": self.node_config["external_rpc_password"],
+                "zmqpubrawblock": self.node_config["external_zmqpubrawblock"],
+                "zmqpubrawtx": self.node_config["external_zmqpubrawtx"],
             }
 
         command = [
@@ -67,24 +63,7 @@ class Bitcoind(Node):
         if self.litecoin:
             command = []
 
-        data_dir = config.containers[name]["dir"].replace("/mnt/hostfs", "")
-        if self.litecoin:
-            volumes = {
-                data_dir: {
-                    'bind': '/root/.litecoin',
-                    'mode': 'rw'
-                }
-            }
-        else:
-            volumes = {
-                data_dir: {
-                    'bind': '/root/.bitcoin',
-                    'mode': 'rw'
-                }
-            }
-
         self.container_spec.command.extend(command)
-        self.container_spec.volumes.update(volumes)
 
         if self.litecoin:
             self._cli = "litecoin-cli -rpcuser=xu -rpcpassword=xu"
@@ -94,21 +73,6 @@ class Bitcoind(Node):
             self._cli += " -testnet"
 
         self.api = BitcoindApi(CliBackend(client, self.container_name, self._logger, self._cli))
-
-    def start(self):
-        if self.external or self.neutrino:
-            return
-        super().start()
-
-    def stop(self):
-        if self.external or self.neutrino:
-            return
-        super().stop()
-
-    def remove(self):
-        if self.external or self.neutrino:
-            return
-        super().remove()
 
     def get_external_status(self):
         s = socket.socket()
@@ -124,10 +88,10 @@ class Bitcoind(Node):
             s.close()
 
     def status(self):
-        if self.external:
+        if self.mode == "external":
             return self.get_external_status()
 
-        if self.neutrino:
+        if self.mode == "neutrino":
             return "Ready (Connected to Neutrino)"
 
         status = super().status()

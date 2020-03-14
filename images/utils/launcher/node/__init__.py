@@ -17,7 +17,7 @@ from .raiden import Raiden
 from .xud import Xud
 from .image import Image, ImageManager
 
-from ..utils import parallel_execute, get_useful_error_message
+from ..utils import parallel_execute, get_useful_error_message, get_hostfs_file
 from ..config import Config, ArgumentParser, ArgumentError
 
 
@@ -104,7 +104,7 @@ class NodeManager:
         self.branch = config.branch
         self.network = config.network
         self.image_manager = ImageManager(self.branch, self.client, shell)
-        self.nodes = {node: globals()[node.capitalize()](self.client, config, node) for node in config.get_nodes()}
+        self.nodes = {node: globals()[node.capitalize()](self.client, config, node) for node in config.nodes}
         self.docker_network = self.create_docker_network()
 
         self.cmd_logs = LogsCommand(self.get_node, self.shell)
@@ -397,4 +397,4 @@ class NodeManager:
 
     @property
     def newly_installed(self):
-        return not os.path.exists(f"{self.config.network_dir}/data/xud/nodekey.dat")
+        return not os.path.exists(f"{get_hostfs_file(self.config.network_dir)}/data/xud/nodekey.dat")

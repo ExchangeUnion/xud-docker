@@ -9,21 +9,6 @@ class Btcd(Node):
         self.litecoin = litecoin
         super().__init__(client, config, name)
 
-        if self.litecoin:
-            volumes = {
-                f"{self.network_dir}/data/ltcd": {
-                    'bind': '/root/.ltcd',
-                    'mode': 'rw'
-                }
-            }
-        else:
-            volumes = {
-                f"{self.network_dir}/data/btcd": {
-                    'bind': '/root/.btcd',
-                    'mode': 'rw'
-                }
-            }
-
         command = [
             "--simnet",
             "--txindex",
@@ -35,7 +20,6 @@ class Btcd(Node):
         ]
 
         self.container_spec.command.extend(command)
-        self.container_spec.volumes.update(volumes)
 
         if self.litecoin:
             self._cli = "ltcctl --rpcuser=xu --rpcpass=xu"

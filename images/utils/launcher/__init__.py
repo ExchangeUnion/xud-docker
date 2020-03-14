@@ -7,8 +7,9 @@ import traceback
 
 from .config import Config, ArgumentError, InvalidHomeDir, InvalidNetworkDir
 from .node import NodeManager, NodeNotFound, ImagesNotAvailable
-from .check_wallets import Action as CheckWalletsAction, BackupDirNotAvailable, NetworkConfigFileSyntaxError
-from .utils import ParallelExecutionError
+from .check_wallets import Action as CheckWalletsAction, BackupDirNotAvailable
+from .utils import ParallelExecutionError, get_hostfs_file
+from .errors import NetworkConfigFileSyntaxError, NetworkConfigFileValueError, CommandLineArgumentValueError
 
 
 def init_logging():
@@ -145,7 +146,7 @@ class Launcher:
                 images_list = ", ".join(e.images)
                 print(f"❌ No such images: {images_list}")
             exit_code = 5
-        except NetworkConfigFileSyntaxError as e:
+        except (NetworkConfigFileSyntaxError, NetworkConfigFileValueError, CommandLineArgumentValueError) as e:
             print(f"❌ {e}")
             exit_code = 6
         except ArgumentError as e:
@@ -157,9 +158,8 @@ class Launcher:
         except:
             self.logger.exception("Failed to launch")
             if cfg and cfg.logfile:
-                copyfile("/var/log/launcher.log", cfg.logfile)
-                logfile = cfg.logfile.replace("/mnt/hostfs", "")
-                print(f"❌ Failed to launch {cfg.network} environment. For more details, see {logfile}")
+                copyfile("/var/log/launcher.log", get_hostfs_file(cfg.logfile))
+                print(f"❌ Failed to launch {cfg.network} environment. For more details, see {cfg.logfile}")
                 traceback.print_exc()
             else:
                 traceback.print_exc()
