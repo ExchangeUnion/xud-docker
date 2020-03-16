@@ -256,6 +256,13 @@ function ensure_directory() {
     fi
 }
 
+function get_utils_name() {
+    local N
+    N=$(docker ps -a --filter name="${NETWORK}_utils_" --format '{{.Names}}' | sed 's/mainnet_utils_//' | sort -nr | head -n1)
+    ((N++))
+    echo "${NETWORK}_utils_${N}"
+}
+
 ################################################################################
 # MAIN
 ################################################################################
@@ -271,7 +278,7 @@ ensure_utils_image
 echo "🚀 Launching $NETWORK environment"
 
 docker run --rm -it \
---name "${NETWORK}_utils" \
+--name "$(get_utils_name)" \
 -v /var/run/docker.sock:/var/run/docker.sock \
 -v /:/mnt/hostfs \
 -e HOST_PWD="$PWD" \
