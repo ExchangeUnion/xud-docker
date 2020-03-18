@@ -1,15 +1,17 @@
-from docker import DockerClient
-from docker.errors import NotFound
-import logging
-from typing import List, Dict
-import os
-import sys
-import functools
 import datetime
 import itertools
+import logging
+import os
 import re
+import sys
+from typing import List, Dict, Any
 
-from ..config import Config, PortPublish
+from docker import DockerClient
+from docker.errors import NotFound
+from docker.models.containers import Container
+
+from .image import Image
+from ..config import PortPublish
 
 
 class InvalidNetwork(Exception):
@@ -19,7 +21,7 @@ class InvalidNetwork(Exception):
 
 
 class ContainerSpec:
-    def __init__(self, name: str, image: str, hostname: str, environment: List[str], command: List[str], volumes: Dict, ports: Dict):
+    def __init__(self, name: str, image: Image, hostname: str, environment: List[str], command: List[str], volumes: Dict, ports: Dict):
         self.name = name
         self.image = image
         self.hostname = hostname
@@ -29,15 +31,36 @@ class ContainerSpec:
         self.ports = ports
 
     def __repr__(self):
-        return f"ContainerSpec<{self.name=} {self.image=} {self.hostname=} {self.environment=} {self.command} {self.volumes} {self.ports}>"
+        return f"<ContainerSpec {self.name=} {self.image=} {self.hostname=} {self.environment=} {self.command=} {self.volumes=} {self.ports=}>"
+
+
+class CompareEntity:
+    def __init__(self, obj: Any, diff: Any = None):
+        self.obj = obj
+        self.diff = diff
+
+    def __repr__(self):
+        return f"<CompareEntity {self.obj=} {self.diff=}>"
+
+
+class CompareResult:
+    def __init__(self, same: bool, message: str, old: CompareEntity, new: CompareEntity):
+        self.same = same
+        self.message = message
+        self.old = old
+        self.new = new
+
+    def __repr__(self):
+        return f"<CompareDetails {self.same=} {self.message=} {self.old=} {self.new=}>"
 
 
 class Node:
-    def __init__(self, client: DockerClient, config: Config, name):
-        self._client = client
-        self._config = config
+    def __init__(self, name: str, ctx):
+        self.client = ctx.client
+        self.config = ctx.config
+        self.image_manager = ctx.image_manager
+
         self.name = name
-        self.api = None
 
         self.container_spec = ContainerSpec(
             name=self.container_name,
@@ -79,27 +102,27 @@ class Node:
         return ports
 
     @property
-    def network(self):
-        return self._config.network
+    def network(self) -> str:
+        return self.config.network
 
     @property
-    def network_name(self):
+    def network_name(self) -> str:
         return self.network + "_default"
 
     @property
-    def node_config(self):
-        return self._config.nodes[self.name]
+    def node_config(self) -> Dict:
+        return self.config.nodes[self.name]
 
     @property
-    def image(self):
-        return self.node_config["image"]
+    def image(self) -> Image:
+        return self.image_manager.get_image(self.node_config["image"])
 
     @property
-    def mode(self):
+    def mode(self) -> str:
         return self.node_config["mode"]
 
     @property
-    def container_name(self):
+    def container_name(self) -> str:
         return f"{self.network}_{self.name}_1"
 
     def _get_ports(self, spec_ports: Dict):
@@ -120,9 +143,9 @@ class Node:
 
     def create_container(self):
         spec = self.container_spec
-        api = self._client.api
+        api = self.client.api
         resp = api.create_container(
-            image=spec.image,
+            image=spec.image.use_image,
             command=spec.command,
             hostname=spec.hostname,
             detach=True,
@@ -133,7 +156,7 @@ class Node:
             host_config=api.create_host_config(
                 port_bindings=spec.ports,
                 binds=spec.volumes,
-                #cpu_quota=10000,
+                # cpu_quota=10000,
             ),
             networking_config=api.create_networking_config({
                 self.network_name: api.create_endpoint_config(
@@ -142,12 +165,12 @@ class Node:
             }),
         )
         id = resp['Id']
-        container = self._client.containers.get(id)
+        container = self.client.containers.get(id)
         return container
 
     def get_container(self, create=False):
         try:
-            return self._client.containers.get(self.container_name)
+            return self.client.containers.get(self.container_name)
         except NotFound:
             if create:
                 return self.create_container()
@@ -185,7 +208,8 @@ class Node:
             return self._container.exec_run(cmd)
 
     def cli(self, cmd, shell):
-        # TODO external cli
+        if self.mode != "native":
+            return
         self._logger.debug("cli: %s", cmd)
         full_cmd = "%s %s" % (self._cli, cmd)
         _, socket = self._container.exec_run(full_cmd, stdin=True, tty=True, socket=True)
@@ -248,48 +272,112 @@ class Node:
         result = self._container.logs(since=t, tail=tail)
         return itertools.chain(result.decode().splitlines())
 
-    def _compare_image(self, x, y, images_check_result, attr):
-        if x != y:
-            return x, y
-        # Compare sha256
-        status, pull_image = images_check_result[x]
-        if status in ["missing", "outdated"]:
-            return x, "%s(%s, %s)" % (y, status, pull_image)
-        container_image_sha256 = attr["Image"]
-        local_image_sha256 = self._client.images.get(x).id
-        if container_image_sha256 != local_image_sha256:
-            return "%s(%s)" % (x, local_image_sha256), "%s(%s, %s)" % (y, status, container_image_sha256)
-        return None
+    def compare_image(self, container: Container) -> CompareResult:
+        attrs = container.attrs
 
-    def _compare_hostname(self, x, y):
-        if x != y:
-            return x, y
-        return None
+        old_name = attrs["Config"]["Image"]
+        new_name = self.image.use_image
 
-    def _compare_environment(self, x, y):
-        if x is None:
-            x = []
-        if set(x) != set(y):
-            return set(x) - set(y), set(y) - set(x)
-        return None
+        old = CompareEntity(old_name)
+        new = CompareEntity(new_name)
 
-    def _compare_command(self, x, y):
-        if x is None:
-            x = []
-        if set(x) != set(y):
-            return set(x) - set(y), set(y) - set(x)
-        return None
+        if old_name != new_name:
+            return CompareResult(False, "Image names are different", old, new)
 
-    def _compare_volumes(self, x, y):
-        # FIXME better normalize volumes
-        x = [p["Source"] + ":" + p["Destination"] + ":" + p["Mode"] for p in x]
-        y = [key + ":" + value["bind"] + ":" + value["mode"] for key, value in y.items()]
-        if set(x) != set(y):
-            return set(x) - set(y), set(y) - set(x)
-        return None
+        if self.image.pull_image:
+            # the names are same but a new image needs to be pulled
+            if self.image.status == "LOCAL_MISSING":
+                msg = "Local image is missing"
+            elif self.image.status == "LOCAL_OUTDATED":
+                msg = "Local image is outdated"
+            else:
+                raise RuntimeError("The pull_image should be None with status {}".format(self.image.status))
+            return CompareResult(False, msg, old, new)
 
-    def _compare_ports(self, x, y):
-        x = [key + "-" + ",".join([p["HostIp"] + ":" + p["HostPort"] for p in value]) for key, value in x.items() if value is not None]
+        old_digest = attrs["Image"]
+        new_digest = self.image.digest
+
+        if old_digest != new_digest:
+            # the names are same and no image needs to be pulled but image
+            # digests are different
+            old.diff = old_digest
+            new.diff = new_digest
+            return CompareResult(False, "Image digests are different", old, new)
+        return CompareResult(True, "Images are same", old, new)
+
+    def compare_hostname(self, container: Container) -> CompareResult:
+        attrs = container.attrs
+        old_hostname = attrs["Config"]["Hostname"]
+        new_hostname = self.container_spec.hostname
+        old = CompareEntity(old_hostname)
+        new = CompareEntity(new_hostname)
+        if old_hostname != new_hostname:
+            return CompareResult(False, "Hostnames are different", old, new)
+        return CompareResult(True, "", old, new)
+
+    def compare_environment(self, container: Container) -> CompareResult:
+        attrs = container.attrs
+        old_environment = attrs["Config"]["Env"]
+        new_environment = self.container_spec.environment
+
+        if not old_environment:
+            old_environment = []
+
+        old = CompareEntity(old_environment)
+        new = CompareEntity(new_environment)
+
+        old_set = set(old_environment)
+        new_set = set(new_environment)
+
+        if old_set != new_set:
+            old.diff = old_set - new_set
+            new.diff = new_set - old_set
+            if len(new.diff) == 0:
+                return CompareResult(True, "", old, new)
+            else:
+                return CompareResult(False, "Environments are different", old, new)
+
+        return CompareResult(True, "", old, new)
+
+    def compare_command(self, container: Container) -> CompareResult:
+        attrs = container.attrs
+        old_command = attrs["Config"]["Cmd"]
+        new_command = self.container_spec.command
+
+        if not old_command:
+            old_command = []
+
+        old = CompareEntity(old_command)
+        new = CompareEntity(new_command)
+
+        old_set = set(old_command)
+        new_set = set(new_command)
+
+        if old_set != new_set:
+            old.diff = old_set - new_set
+            new.diff = new_set - old_set
+            return CompareResult(False, "Commands are different", old, new)
+
+        return CompareResult(True, "", old, new)
+
+    def compare_volumes(self, container: Container) -> CompareResult:
+        attrs = container.attrs
+        old_volumes = ["{}:{}:{}".format(m["Source"], m["Destination"], m["Mode"]) for m in attrs["Mounts"]]
+        new_volumes = ["{}:{}:{}".format(key, value["bind"], value["mode"]) for key, value in self.container_spec.volumes.items()]
+        old = CompareEntity(old_volumes)
+        new = CompareEntity(new_volumes)
+        old_set = set(old_volumes)
+        new_set = set(new_volumes)
+        if old_set != new_set:
+            old.diff = old_set - new_set
+            new.diff = new_set - old_set
+            return CompareResult(False, "Volumes are different", old, new)
+        return CompareResult(True, "", old, new)
+
+    def compare_ports(self, container: Container) -> CompareResult:
+        attrs = container.attrs
+        ports = attrs["NetworkSettings"]["Ports"]
+        old_ports = [key + "-" + ",".join([p["HostIp"] + ":" + p["HostPort"] for p in value]) for key, value in ports.items() if value is not None]
 
         def normalize(value):
             if isinstance(value, int):
@@ -301,39 +389,49 @@ class Node:
             else:
                 raise RuntimeError("Unexpected container_spec ports value: {}".format(value))
 
-        y = [key + "-" + normalize(value) for key, value in y.items()]
+        new_ports = [key + "-" + normalize(value) for key, value in self.container_spec.ports.items()]
 
-        if set(x) != set(y):
-            return set(x) - set(y), set(y) - set(x)
+        old = CompareEntity(old_ports)
+        new = CompareEntity(new_ports)
 
-        return None
+        old_set = set(old_ports)
+        new_set = set(old_ports)
 
-    def check_updates(self, images_check_result):
-        config = self._config.nodes[self.name]
+        if old_set != new_set:
+            old.diff = old_set - new_set
+            new.diff = new_set - old_set
+            return CompareResult(False, "Ports are different", old, new)
+        return CompareResult(True, "", old, new)
+
+    def compare(self, container):
+
+        details = {
+            "image": self.compare_image(container),
+            "hostname": self.compare_hostname(container),
+            "environment": self.compare_environment(container),
+            "command": self.compare_command(container),
+            "volumes": self.compare_volumes(container),
+            "ports": self.compare_ports(container),
+        }
+
+        same = True
+        for d in details.values():
+            if not d.same:
+                same = False
+                break
+
+        return same, details
+
+    def check_for_updates(self):
+        config = self.config.nodes[self.name]
         assert config is not None
         try:
-            container = self._client.containers.get(self.container_name)
+            container = self.client.containers.get(self.container_name)
 
-            # TODO make sure config __getitem__ return None if item not exists
             if config["mode"] != "native":
                 return "external_with_container", None
 
-            attr = container.attrs
-            spec = self.container_spec
-
-            details = {
-                "image": self._compare_image(attr["Config"]["Image"], spec.image, images_check_result, attr),
-                "hostname": self._compare_hostname(attr["Config"]["Hostname"], spec.hostname),
-                "environment": self._compare_environment(attr["Config"]["Env"], spec.environment),
-                "command": self._compare_command(attr["Config"]["Cmd"], spec.command),
-                "volumes": self._compare_volumes(attr["Mounts"], spec.volumes),
-                "ports": self._compare_ports(attr["NetworkSettings"]["Ports"], spec.ports),
-            }
-
-            if details["environment"] is not None and len(details["environment"][1]) == 0:
-                details["environment"] = None
-
-            same = functools.reduce(lambda x, y: x and details[y] is None, details, True)
+            same, details = self.compare(container)
 
             if same:
                 return "up-to-date", None
@@ -366,7 +464,10 @@ class Node:
             self._container = None
 
     def __repr__(self):
-        return f"<{self.__class__.__name__}>"
+        name = self.name
+        mode = self.mode
+        container = self.container_name
+        return f"<Node {name=} {mode=} {container=}>"
 
 
 class CliError(Exception):
@@ -378,13 +479,13 @@ class CliError(Exception):
 
 class CliBackend:
     def __init__(self, client: DockerClient, container_name, logger, cli):
-        self._client = client
-        self._container_name = container_name
-        self._logger = logger
-        self._cli = cli
+        self.client = client
+        self.container_name = container_name
+        self.logger = logger
+        self.cli = cli
 
     def get_container(self):
-        return self._client.containers.get(self._container_name)
+        return self.client.containers.get(self.container_name)
 
     def __getitem__(self, item):  # Not implementing __getaddr__ because `eth.sycning` cannot be invoked as a function name
         def f(*args):
@@ -392,10 +493,10 @@ class CliBackend:
                 cmd = "%s %s" % (item, " ".join(args))
             else:
                 cmd = item
-            full_cmd = "%s %s" % (self._cli, cmd)
+            full_cmd = "%s %s" % (self.cli, cmd)
             exit_code, output = self.get_container().exec_run(full_cmd)
             text: str = output.decode()
-            self._logger.debug("%s (exit_code=%d)\n%s", full_cmd, exit_code, text.rstrip())
+            self.logger.debug("%s (exit_code=%d)\n%s", full_cmd, exit_code, text.rstrip())
             if exit_code != 0:
                 raise CliError(exit_code, text)
             return text

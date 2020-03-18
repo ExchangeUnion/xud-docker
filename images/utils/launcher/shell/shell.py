@@ -500,7 +500,6 @@ class Shell:
 
     def confirm(self, prompt: str) -> bool:
         answer = self.input(prompt)
-        self._logger.debug(f"confirm {answer=}")
         return len(answer) == 0
 
     def redirect_stdin(self, socket):

@@ -40,11 +40,12 @@ def parallel_execute(tasks, execute, timeout, print_failed, try_again, handle_re
 
 
 def get_useful_error_message(error):
-    if isinstance(error, str):
-        return error
     msg = str(error).strip()
     if len(msg) == 0:
-        return "%s" % type(error)
+        if isinstance(error, TimeoutError):
+            return "timeout"
+        else:
+            return "%s" % type(error)
     return msg
 
 

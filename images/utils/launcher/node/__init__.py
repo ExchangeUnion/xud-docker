@@ -3,8 +3,9 @@ import os
 import sys
 import functools
 import threading
-
 import docker
+from dataclasses import dataclass
+
 from docker.errors import NotFound
 from docker.types import IPAMConfig, IPAMPool
 
@@ -18,7 +19,8 @@ from .xud import Xud
 from .image import Image, ImageManager
 
 from ..utils import parallel_execute, get_useful_error_message, get_hostfs_file
-from ..config import Config, ArgumentParser, ArgumentError
+from ..config import Config, ArgumentParser
+from ..shell import Shell
 
 
 class NodeNotFound(Exception):
@@ -95,16 +97,29 @@ class RestartCommand:
         container.start()
 
 
+@dataclass
+class Context:
+    config: Config
+    shell: Shell
+    client: docker.DockerClient
+    image_manager: ImageManager
+
+
 class NodeManager:
     def __init__(self, config, shell):
         self.logger = logging.getLogger("launcher.node.NodeManager")
+
         self.config = config
         self.shell = shell
         self.client = docker.from_env()
-        self.branch = config.branch
-        self.network = config.network
-        self.image_manager = ImageManager(self.branch, self.client, shell)
-        self.nodes = {node: globals()[node.capitalize()](self.client, config, node) for node in config.nodes}
+        self.image_manager = ImageManager(self.config, self.shell, self.client)
+
+        self.branch = self.config.branch
+        self.network = self.config.network
+
+        ctx = Context(self.config, self.shell, self.client, self.image_manager)
+
+        self.nodes = {name: globals()[name.capitalize()](name, ctx) for name in self.config.nodes}
         self.docker_network = self.create_docker_network()
 
         self.cmd_logs = LogsCommand(self.get_node, self.shell)
@@ -150,7 +165,6 @@ class NodeManager:
         pass
 
     def up(self):
-        #print(f"Creating network {self.network_name}")
         self.docker_network = self.create_docker_network()
 
         nodes = self.nodes.values()
@@ -181,16 +195,16 @@ class NodeManager:
         print(f"Removing network {self.network_name}")
         self.docker_network.remove()
 
-    def pretty_image_check_result(self, image_check_result):
+    def pretty_image_check_result(self, images):
         result = []
-        for key, value in image_check_result.items():
-            result.append("- {}\n  * Status: {}\n  * Pull: {}".format(key, value[0], value[1]))
+        for image in images:
+            result.append("- {}\n  Status: {}\n  Pull: {}".format(image, image.status, image.pull_image))
         return "\n".join(result)
 
     def pretty_container_check_result(self, container_check_result):
         result = []
         for key, value in container_check_result.items():
-            result.append("- {}\n  * Status: {}\n  * Details: {}".format(key, value[0], value[1]))
+            result.append("- {}\n  Status: {}\n  Details: {}".format(key, value[0], value[1]))
         return "\n".join(result)
 
     def _display_container_status_text(self, status):
@@ -209,21 +223,19 @@ class NodeManager:
 
         # Step 1. check all images
         print("🌍 Checking for updates...")
-        for c in self.nodes.values():
-            self.image_manager.add_image(c.image)
-        image_check_result = self.image_manager.check_for_updates()
+        images = self.image_manager.check_for_updates()
 
-        self.logger.info("[Update] Image checking result:\n{}".format(self.pretty_image_check_result(image_check_result)))
+        self.logger.info("[Update] Image checking result:\n{}".format(self.pretty_image_check_result(images)))
 
         # TODO handle image local status. Print a warning or give users a choice
-        for image, result in image_check_result.items():
-            status, pull_image = result
-            if status in ["missing", "outdated"]:
-                print("- Image %s: %s" % (image, status))
+        for image in images:
+            status = image.status
+            if status in ["LOCAL_MISSING", "LOCAL_OUTDATED"]:
+                print("- Image %s: %s" % (image.name, image.status_message))
                 outdated = True
-            elif status == "not_found":
-                not_found_images = [img for img, status in image_check_result.items() if status[0] == "not_found"]
-                raise ImagesNotAvailable(not_found_images)
+            elif status == "UNAVAILABLE":
+                all_unavailable_images = [x for x in images if x.status == "NOT_FOUND"]
+                raise ImagesNotAvailable(all_unavailable_images)
 
         # Step 2. check all containers
         containers = self.nodes.values()
@@ -241,7 +253,7 @@ class NodeManager:
         def handle_result(container, result):
             container_check_result[container] = result
 
-        parallel_execute(containers, lambda c: c.check_updates(image_check_result), 60, print_failed, try_again, handle_result)
+        parallel_execute(containers, lambda c: c.check_for_updates(), 60, print_failed, try_again, handle_result)
 
         self.logger.info("[Update] Container checking result:\n{}".format(self.pretty_container_check_result(container_check_result)))
 
@@ -266,17 +278,7 @@ class NodeManager:
 
         if answer == "yes":
             # Step 1. update images
-            for image, result in image_check_result.items():
-                status, image_name = result
-                if status in ["missing", "outdated"]:
-                    print("Pulling %s..." % image_name)
-                    img = self.client.images.pull(image_name)
-                    if "__" in image_name:
-                        # image_name like exchangeunion/lnd:0.7.1-beta__feat-full-node
-                        parts = image_name.split("__")
-                        tag = parts[0]
-                        print("Retagging %s to %s..." % (image_name, tag))
-                        img.tag(tag)
+            self.image_manager.update_images()
 
             # Step 2. update containers
             # 2.1) stop all running containers

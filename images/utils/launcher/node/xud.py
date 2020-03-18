@@ -1,7 +1,5 @@
-from docker import DockerClient
 import json
-from .base import Node, InvalidNetwork, CliBackend, CliError
-from ..config import Config
+from .base import Node, CliBackend, CliError
 import re
 
 
@@ -39,11 +37,11 @@ class NoWalletsInitialized(Exception):
 
 
 class Xud(Node):
-    def __init__(self, client: DockerClient, config: Config, name: str):
-        super().__init__(client, config, name)
+    def __init__(self, name, ctx):
+        super().__init__(name, ctx)
 
         self._cli = "xucli"
-        self.api = XudApi(CliBackend(client, self.container_name, self._logger, self._cli))
+        self.api = XudApi(CliBackend(self.client, self.container_name, self._logger, self._cli))
 
     def status(self):
         status = super().status()

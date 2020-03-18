@@ -1,7 +1,5 @@
-from docker import DockerClient
 import demjson
 from .base import Node, CliBackend
-from ..config import Config
 import socket
 
 
@@ -19,8 +17,8 @@ class GethApi:
 
 
 class Geth(Node):
-    def __init__(self, client: DockerClient, config: Config, name):
-        super().__init__(client, config, name)
+    def __init__(self, name, ctx):
+        super().__init__(name, ctx)
 
         if self.mode == "external":
             self.external_config = {
@@ -39,7 +37,7 @@ class Geth(Node):
         elif self.network == "mainnet":
             self._cli = "geth"
 
-        self.api = GethApi(CliBackend(client, self.container_name, self._logger, self._cli))
+        self.api = GethApi(CliBackend(self.client, self.container_name, self._logger, self._cli))
 
     def get_external_status(self):
         s = socket.socket()

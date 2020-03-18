@@ -35,3 +35,8 @@ class NetworkConfigFileValueError(ValueError):
 class CommandLineArgumentValueError(ValueError):
     def __init__(self, hint):
         super().__init__(hint)
+
+
+class InvalidImageName(Exception):
+    def __init__(self, name):
+        super().__init__(name)

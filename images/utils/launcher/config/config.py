@@ -415,6 +415,8 @@ class Config:
 
         self.args = None
 
+        self.parse()
+
     def parse(self):
         self.parse_command_line_arguments()
         self.network_dir = "{}/{}".format(self.home_dir, self.network)

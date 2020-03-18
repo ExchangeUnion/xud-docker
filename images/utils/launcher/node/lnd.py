@@ -1,7 +1,5 @@
-from docker import DockerClient
 from .base import Node, CliBackend, CliError
 import json
-from ..config import Config
 
 
 class InvalidChain(Exception):
@@ -25,11 +23,11 @@ class LndApi:
 
 
 class Lnd(Node):
-    def __init__(self, client: DockerClient, config: Config, name: str, chain: str):
-        super().__init__(client, config, name)
+    def __init__(self, name, ctx, chain: str):
+        super().__init__(name, ctx)
         self.chain = chain
 
-        external_ip = config.external_ip
+        external_ip = self.config.external_ip
 
         environment = [f"CHAIN={self.chain}"]
 
@@ -38,9 +36,9 @@ class Lnd(Node):
 
         if self.network in ["testnet", "mainnet"]:
             if name == "lndbtc":
-                layer1_node = config.nodes["bitcoind"]
+                layer1_node = self.config.nodes["bitcoind"]
             else:
-                layer1_node = config.nodes["litecoind"]
+                layer1_node = self.config.nodes["litecoind"]
 
             if layer1_node["mode"] == "neutrino":
                 environment.extend([
@@ -58,7 +56,7 @@ class Lnd(Node):
         self.container_spec.environment.extend(environment)
 
         self._cli = f"lncli -n {self.network} -c {self.chain}"
-        self.api = LndApi(CliBackend(client, self.container_name, self._logger, self._cli))
+        self.api = LndApi(CliBackend(self.client, self.container_name, self._logger, self._cli))
 
     def status(self):
         status = super().status()

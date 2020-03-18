@@ -1,6 +1,4 @@
-from docker import DockerClient
 from .base import Node, InvalidNetwork, CliBackend, CliError
-from ..config import Config
 import json
 import socket
 
@@ -26,9 +24,9 @@ class BitcoindApi:
 
 
 class Bitcoind(Node):
-    def __init__(self, client: DockerClient, config: Config, name, litecoin: bool = False):
+    def __init__(self, name, ctx, litecoin: bool = False):
         self.litecoin = litecoin
-        super().__init__(client, config, name)
+        super().__init__(name, ctx)
 
         if self.mode == "external":
             self.external_config = {
@@ -72,7 +70,7 @@ class Bitcoind(Node):
         if self.network == "testnet":
             self._cli += " -testnet"
 
-        self.api = BitcoindApi(CliBackend(client, self.container_name, self._logger, self._cli))
+        self.api = BitcoindApi(CliBackend(self.client, self.container_name, self._logger, self._cli))
 
     def get_external_status(self):
         s = socket.socket()
@@ -122,11 +120,6 @@ class Bitcoind(Node):
                 return "Container running"
         else:
             return status
-
-    def cli(self, cmd, shell):
-        if self.external:
-            return
-        return super().cli(cmd, shell)
 
 
 class Litecoind(Bitcoind):
