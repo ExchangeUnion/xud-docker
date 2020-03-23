@@ -11,6 +11,60 @@ import toml
 from ..utils import normalize_path, get_hostfs_file
 from ..errors import NetworkConfigFileValueError, CommandLineArgumentValueError
 
+
+class PortPublish:
+    def __init__(self, value):
+        p1 = re.compile(r"^(\d+)$")  # 8080
+        p2 = re.compile(r"^(\d+):(\d+)$")  # 80:8080
+        p3 = re.compile(r"^(\d+):(\d+):(\d+)$")  # 127.0.0.1:80:8080
+
+        protocol = "tcp"
+        if "/" in value:
+            parts = value.split("/")
+            p = parts[0]
+            protocol = parts[1]
+            if protocol not in ["tcp", "udp", "sctp"]:
+                raise NetworkConfigFileValueError("Invalid protocol: {} ({})".format(protocol, p))
+
+        host = None
+        host_port = None
+        port = None
+
+        m = p1.match(value)
+        if m:
+            port = int(m.group(1))
+            host_port = port
+        else:
+            m = p2.match(value)
+            if m:
+                host_port = int(m.group(1))
+                port = int(m.group(2))
+            else:
+                m = p3.match(value)
+                if m:
+                    host = m.group(1)
+                    host_port = int(m.group(2))
+                    port = int(m.group(3))
+
+        self.protocol = protocol
+        self.host = host
+        self.host_port = host_port
+        self.port = port
+
+    def __eq__(self, other):
+        if not isinstance(other, PortPublish):
+            return False
+        if self.host != other.host:
+            return False
+        if self.host_port != other.host_port:
+            return False
+        if self.port != other.port:
+            return False
+        if self.protocol != other.protocol:
+            return False
+        return True
+
+
 networks = {
     "simnet": {
         "ltcd": {
@@ -85,7 +139,7 @@ networks = {
                     "container": "/mnt/hostfs",
                 },
             ],
-            "ports": ["28885"],
+            "ports": [PortPublish("28885")],
             "mode": "native",
         }
     },
@@ -196,7 +250,7 @@ networks = {
                     "container": "/mnt/hostfs",
                 },
             ],
-            "ports": ["18885"],
+            "ports": [PortPublish("18885")],
             "mode": "native",
         }
     },
@@ -307,7 +361,7 @@ networks = {
                     "container": "/mnt/hostfs",
                 },
             ],
-            "ports": ["8885"],
+            "ports": [PortPublish("8885")],
             "mode": "native",
         }
     }
@@ -461,6 +515,7 @@ class Config:
                     port = m.group(2)
                     if name in self.nodes:
                         ports = self.nodes[name]["ports"]
+                        port = PortPublish(port)
                         if port not in ports:
                             ports.append(port)
                     else:
@@ -498,7 +553,7 @@ class Config:
         if "expose-ports" in parsed:
             value = parsed["expose-ports"]
             for p in value:
-                p = str(p)
+                p = PortPublish(str(p))
                 if p not in node["ports"]:
                     node["ports"].append(p)
 

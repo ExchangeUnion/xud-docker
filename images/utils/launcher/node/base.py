@@ -9,7 +9,7 @@ import datetime
 import itertools
 import re
 
-from ..config import Config
+from ..config import Config, PortPublish
 
 
 class InvalidNetwork(Exception):
@@ -70,7 +70,12 @@ class Node:
     def generate_ports(self, node_config):
         ports = {}
         for p in node_config["ports"]:
-            ports[f"{p}/tcp"] = p
+            if not isinstance(p, PortPublish):
+                raise RuntimeError("node_config ports must contain PortPublish instances")
+            if p.host:
+                ports[f"{p.port}/{p.protocol}"] = (p.host, p.host_port)
+            else:
+                ports[f"{p.port}/{p.protocol}"] = p.host_port
         return ports
 
     @property
@@ -287,11 +292,14 @@ class Node:
         x = [key + "-" + ",".join([p["HostIp"] + ":" + p["HostPort"] for p in value]) for key, value in x.items() if value is not None]
 
         def normalize(value):
-            p = re.compile(r"\d+")
-            if p.match(value):
-                return "0.0.0.0:" + value
+            if isinstance(value, int):
+                return "0.0.0.0:{}".format(value)
+            elif isinstance(value, tuple):
+                if len(value) != 2:
+                    raise RuntimeError("container_spec ports value tuple should contain 2 elements: {}".format(value))
+                return "{}:{}".format(value[0], value[1])
             else:
-                return value
+                raise RuntimeError("Unexpected container_spec ports value: {}".format(value))
 
         y = [key + "-" + normalize(value) for key, value in y.items()]
 
