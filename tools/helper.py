@@ -447,6 +447,13 @@ class ImageBundle:
         for img in self.images.values():
             img.unmodified_history = history
 
+    @property
+    def image_dir(self):
+        if self.name == "utils":
+            return "utils"
+        else:
+            return "{}/{}".format(self.name, self.tag)
+
     def __repr__(self):
         return self.get_manifest_tag()
 
@@ -532,12 +539,6 @@ def get_modified_images(nodes):
     return modified
 
 
-def print_detected_modified_images(modified):
-    print("Detected modified images:")
-    for img in modified:
-        print("- {}".format(img))
-
-
 def test(args):
     if args.on_cloud:
         os.chdir(projectdir + "/tools/gcloud")
@@ -561,6 +562,24 @@ def parse_image_with_tag(image):
         else:
             print("ERROR: Missing tag", file=sys.stderr)
             exit(1)
+
+
+def filter_deleted_images(images):
+    result = []
+    for img in images:
+        if os.path.exists(img.image_dir):
+            result.append(img)
+    return result
+
+
+def print_modified_images(images):
+    if len(images) == 0:
+        print("No modified images")
+        return
+    print("Detected modified images:")
+    for img in images:
+        print("- {}".format(img.image_dir))
+    sys.stdout.flush()
 
 
 def main():
@@ -613,7 +632,8 @@ def main():
                 branch = args.branch
         if len(args.images) == 0:
             # Auto-detect modified images
-            modified = get_modified_images(nodes)
+            modified = filter_deleted_images(get_modified_images(nodes))
+            print_modified_images(modified)
             for image in modified:
                 image.build()
         else:
@@ -638,7 +658,8 @@ def main():
             exit(1)
         if len(args.images) == 0:
             # Auto-detect modified images
-            modified = get_modified_images(nodes)
+            modified = filter_deleted_images(get_modified_images(nodes))
+            print_modified_images(modified)
             for image in modified:
                 image.push()
         else:
