@@ -226,6 +226,8 @@ class Image:
                 "--label {}.revision=".format(labelprefix),
                 "--label {}.source=".format(labelprefix),
             ])
+        if "TRAVIS_BUILD_WEB_URL" in os.environ:
+            labels.append("--label {}.travis={}".format(labelprefix, os.environ["TRAVIS_BUILD_WEB_URL"]))
         return labels
 
     def get_build_args(self, args):
