@@ -1,5 +1,5 @@
 FROM alpine:3.10 as builder
-ARG VERSION=0.19.0.1
+ARG VERSION=0.19.1
 RUN apk --no-cache add musl-dev g++ make autoconf automake libtool pkgconfig boost-dev libressl-dev libevent-dev zeromq-dev
 WORKDIR /tmp
 RUN wget https://bitcoin.org/bin/bitcoin-core-$VERSION/bitcoin-$VERSION.tar.gz
