@@ -38,7 +38,7 @@ class LogsCommand:
         self._shell = shell
 
         parser = ArgumentParser(prog="logs", description="fetch the logs of a container")
-        parser.add_argument("--tail", metavar='N', type=int, help="number of lines to show from the end of the logs")
+        parser.add_argument("--tail", metavar='N', type=int, help="number of lines to show from the end of the logs", default=100)
         parser.add_argument("container")
         self._parser = parser
 
