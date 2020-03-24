@@ -30,6 +30,7 @@ group = "exchangeunion"
 docker_registry = "registry-1.docker.io"
 dry_run = False
 commit_before_travis = "205bbf4d430d906875a30e4a47872145ee9d06ee"
+no_cache = False
 
 travis = "TRAVIS_BRANCH" in os.environ
 buildx_installed = check_buildx()
@@ -204,11 +205,10 @@ class Image:
         labels = [
             "--label {}.created={}".format(labelprefix, created),
         ]
+        if branch:
+            labels.append("--label {}.branch={}".format(labelprefix, branch))
         if self.git:
-            labels.extend([
-                "--label {}.branch={}".format(labelprefix, self.git.branch),
-                "--label {}.revision={}".format(labelprefix, self.git.revision),
-            ])
+            labels.append("--label {}.revision={}".format(labelprefix, self.git.revision))
             if not self.git.revision.endswith("-dirty"):
                 if self.name == "utils":
                     source = "{}/blob/{}/images/utils/Dockerfile".format(
@@ -219,6 +219,11 @@ class Image:
                 labels += [
                     "--label {}.source={}".format(labelprefix, source)
                 ]
+        else:
+            labels.extend([
+                "--label {}.revision=".format(labelprefix),
+                "--label {}.source=".format(labelprefix),
+            ])
         return labels
 
     def get_build_args(self, args):
@@ -267,10 +272,12 @@ class Image:
             print("ERROR: Missing build directory: " + build_dir, file=sys.stderr)
             exit(1)
 
-        args = [
-            " ".join(build_args),
-            " ".join(build_labels),
-        ]
+        args = []
+        if no_cache:
+            args.append("--no-cache")
+
+        args.extend(build_args)
+        args.extend(build_labels)
 
         shared_dir = self.get_shared_dir()
         shared_files = []
@@ -583,7 +590,7 @@ def print_modified_images(images):
 
 
 def main():
-    global branch, dry_run, cross_build, push_manifest_list_only, push_without_manifest_list
+    global branch, dry_run, cross_build, push_manifest_list_only, push_without_manifest_list, no_cache
 
     parser = ArgumentParser()
     parser.add_argument("-d", "--debug", action="store_true")
@@ -593,6 +600,7 @@ def main():
     build_parser.add_argument("-b", "--branch", type=str)
     build_parser.add_argument("--dry-run", action="store_true")
     build_parser.add_argument("--cross-build", action="store_true")
+    build_parser.add_argument("--no-cache", action="store_true")
     build_parser.add_argument("images", type=str, nargs="*")
 
     push_parser = subparsers.add_parser("push")
@@ -602,6 +610,7 @@ def main():
     push_parser.add_argument("--cross-build", action="store_true")
     push_parser.add_argument("--manifest-list", action="store_true")
     push_parser.add_argument("--no-manifest-list", action="store_true")
+    push_parser.add_argument("--no-cache", action="store_true")
     push_parser.add_argument("images", type=str, nargs="*")
 
     test_parser = subparsers.add_parser("test")
@@ -622,6 +631,8 @@ def main():
     nodes = json.load(open("../nodes.json"))
 
     if args.command == "build":
+        if args.no_cache:
+            no_cache = True
         if args.cross_build:
             cross_build = buildx_installed
         if not gitinfo:
@@ -641,6 +652,8 @@ def main():
                 name, tag = parse_image_with_tag(image)
                 ImageBundle(group, name, tag, gitinfo).build()
     elif args.command == "push":
+        if args.no_cache:
+            no_cache = True
         if args.cross_build:
             cross_build = True
         if args.manifest_list:
