@@ -1,4 +1,4 @@
-FROM python:3.7-alpine3.10 as builder
+FROM python:3.7-alpine3.11 as builder
 RUN apk add --no-cache bash git make gcc musl-dev libffi-dev
 ARG REPO=ExchangeUnion/raiden
 ARG BRANCH=0.100.5a1.dev162-2217bcb
@@ -10,7 +10,7 @@ ENV PATH="/opt/venv/bin:$PATH"
 WORKDIR /app/raiden
 RUN make install
 
-FROM python:3.7-alpine3.10
+FROM python:3.7-alpine3.11
 RUN apk add --no-cache bash curl supervisor
 COPY --from=builder /opt/venv /opt/venv
 COPY supervisord.conf /etc/supervisor/conf.d/
