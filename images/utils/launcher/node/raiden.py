@@ -47,35 +47,26 @@ class Raiden(Node):
             environment = []
 
         if self.network in ["testnet", "mainnet"]:
-            geth = config.containers["geth"]
-            if geth["external"]:
-                infura_project_id = geth["infura_project_id"]
-                infura_project_secret = geth["infura_project_secret"]
-                rpc_host = geth["rpc_host"]
-                rpc_port = geth["rpc_port"]
-                if infura_project_id is not None:
-                    if self.network == "mainnet":
-                        environment.extend([
-                            f'RPC_ENDPOINT=https://mainnet.infura.io/v3/{infura_project_id}'
-                        ])
-                    elif self.network == "testnet":
-                        environment.extend([
-                            f'RPC_ENDPOINT=https://ropsten.infura.io/v3/{infura_project_id}'
-                        ])
-                else:
+            geth = config.nodes["geth"]
+            if geth["mode"] == "external":
+                rpc_host = geth["external_rpc_host"]
+                rpc_port = geth["external_rpc_port"]
+                environment.extend([
+                    f'RPC_ENDPOINT=http://{rpc_host}:{rpc_port}'
+                ])
+            elif geth["mode"] == "infura":
+                project_id = geth["infura_project_id"]
+                project_secret = geth["infura_project_secret"]
+                if self.network == "mainnet":
                     environment.extend([
-                        f'RPC_ENDPOINT=http://{rpc_host}:{rpc_port}'
+                        f'RPC_ENDPOINT=https://mainnet.infura.io/v3/{project_id}'
+                    ])
+                elif self.network == "testnet":
+                    environment.extend([
+                        f'RPC_ENDPOINT=https://ropsten.infura.io/v3/{project_id}'
                     ])
 
-        volumes = {
-            f"{self.network_dir}/data/raiden": {
-                'bind': '/root/.raiden',
-                'mode': 'rw'
-            },
-        }
-
         self.container_spec.environment.extend(environment)
-        self.container_spec.volumes.update(volumes)
 
         self._cli = "curl -s"
         self.api = RaidenApi(CliBackend(client, self.container_name, self._logger, self._cli))
