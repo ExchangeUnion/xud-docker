@@ -10,13 +10,7 @@ LND_DIR="/root/.lnd"
 mkdir -p $LND_DIR
 
 if [[ ! -e $LND_DIR/lnd.conf ]]; then
-  if [ "$CHAIN" = "bitcoin" ]; then
-    echo "[DEBUG] Using configuration for bitcoin"
-    cp /root/lnd-btc.conf $LND_DIR/lnd.conf
-  else
-    echo "[DEBUG] Using configuration for litecoin"
-    cp /root/lnd-ltc.conf $LND_DIR/lnd.conf
-  fi
+  cp /root/lnd.conf $LND_DIR/lnd.conf
 fi
 
 NEUTRINO=${NEUTRINO:-}
@@ -24,17 +18,38 @@ NEUTRINO=${NEUTRINO:-}
 if [ ! -z ${NEUTRINO} ]; then
   PEERS="[neutrino]\n"
 
-  case $NETWORK in
-    testnet)
-      PEERS="${PEERS}neutrino.addpeer=159.203.125.125:18333\nneutrino.addpeer=64.79.152.132:18333"
+  case $CHAIN in
+    bitcoin)
+      case $NETWORK in
+        testnet)
+          PEERS="${PEERS}neutrino.connect=159.203.125.125:18333\nneutrino.connect=64.79.152.132:18333\nneutrino.connect=167.71.109.195:18333\nneutrino.connect=178.128.0.29:18333"
+          ;;
+        mainnet)
+          PEERS="${PEERS}neutrino.connect=69.143.97.89:8333\nneutrino.connect=73.31.42.95:8333\nneutrino.connect=96.9.244.139:8333\nneutrino.connect=138.68.244.82:8333"
+          ;;
+        esac
       ;;
-    mainnet)
-      PEERS="${PEERS}neutrino.addpeer=78.46.126.167:8333\nneutrino.addpeer=144.76.68.78:8333"
+    litecoin)
+          case $NETWORK in
+        testnet)
+          PEERS="${PEERS}neutrino.connect=ltcd.michael1011.at:19335\nneutrino.connect=ltcd.servebeer.com:54795"
+          ;;
+        mainnet)
+          PEERS="${PEERS}neutrino.connect=ltcd.michael1011.at:9333\nneutrino.connect=ltcd.servebeer.com:9333"
+          ;;
+        esac
       ;;
   esac
 
   echo "[DEBUG] Enabling neutrino"
-  sed -i "s/bitcoin.node=bitcoind/bitcoin.node=neutrino\n\n${PEERS}/g" $LND_DIR/lnd.conf
+  case $CHAIN in
+    bitcoin)
+      sed -i "s/bitcoin.node=bitcoind/bitcoin.node=neutrino\n\n${PEERS}/g" $LND_DIR/lnd.conf
+      ;;
+    litecoin)
+      sed -i "s/litecoin.node=litecoind/litecoin.node=neutrino\n\n${PEERS}/g" $LND_DIR/lnd.conf
+      ;;
+  esac
 fi
 
 set +e

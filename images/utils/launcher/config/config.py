@@ -479,6 +479,7 @@ class Config:
         parser.add_argument("--external-ip")
         parser.add_argument("--backup-dir")
         parser.add_argument("--bitcoin-neutrino", type=bool)
+        parser.add_argument("--litecoin-neutrino", type=bool)
         parser.add_argument("--nodes-json")
         parser.add_argument("--expose-ports")
 
@@ -502,6 +503,10 @@ class Config:
         if hasattr(self.args, "bitcoin_neutrino"):
             if "bitcoind" in self.nodes:
                 self.nodes["bitcoind"]["mode"] = "neutrino"
+
+        if hasattr(self.args, "litecoin_neutrino"):
+            if "litecoind" in self.nodes:
+                self.nodes["litecoind"]["mode"] = "neutrino"
 
         if hasattr(self.args, "expose_ports"):
             value = self.args.expose_ports
