@@ -49,7 +49,7 @@ To let others test without building the images by themselves push your feature b
 git push origin your-feature-branch
 ```
 
-After corresponding Travis build turned green ask other people to run your feature branch on their machine.
+After the corresponding Travis build succeeded, other people can easily run your feature branch on their machine like this.
 
 ```bash
 ./xud.sh -b your-feature-branch
