@@ -17,60 +17,39 @@ git clone https://github.com/ExchangeUnion/xud-docker.git $PROJECT_DIR
 
 ### Developing a feature
 
-Create a feature branch
+Create a feature branch.
 
 ```
 git checkout -b your-feature-branch
 ```
 
-Make your desired changes to the images located at:
-`~/xud-docker/images`
+Make your desired changes to the images located at: `$PROJECT_DIR/images`.
 
-Build the updated image(s)
+Build your modified images. Optionally modify the `nodes.json` in the project root if necessary.
 
 ```bash
-# Auto-detect changed images and build them
 tools/build
-# Build a specific image 
-tools/build <image>:<tag>
-# Build multiple images
-tools/build <image1>:<tag> <image2>:<tag>
-tools/build <image>:<tag1> <image>:<tag2>
 ```
 
-Test locally
+Test it locally.
 
 ```bash
 ./xud.sh -b your-feature-branch
 ```
 
-In case you modified utils image, you could test locally like
+or
 
 ```bash
-./xud.sh -b your-feature-branch --dev
+./xud.sh -b your-feature-branch --nodes-json ./nodes.json
 ```
 
-The option `--dev` means using local built utils image.
-
-To let others test without building the images by themselves push the images of your-feature-branch.
-
-```bash
-# Auto-detect changed images and push them
-tools/push
-# Push a specific image
-tools/push <image>:<tag>
-# Push multiple images
-tools/push <image1>:<tag> <image2>:<tag>
-tools/push <image>:<tag1> <image>:<tag2>
-```
-
-Then push your local changes to remote branch
+To let others test without building the images by themselves push your feature branch to remote repository. Travis will build & push images for you.
 
 ```bash
 git push origin your-feature-branch
 ```
 
-Ask other people to run your-feature-branch on their machine
+After the corresponding Travis build succeeded, other people can easily run your feature branch on their machine like this.
 
 ```bash
 ./xud.sh -b your-feature-branch
