@@ -658,6 +658,12 @@ class Config:
                 print("Warning: Please use field \"mode\" to specify Infura usage.")
                 node["mode"] = "infura"
 
+        if "mode" in parsed:
+            value = parsed["mode"]
+            if value not in ["native", "external", "infura"]:
+                raise NetworkConfigFileValueError("Invalid value of field \"mode\": " + value)
+            node["mode"] = parsed["mode"]
+
         if node["mode"] == "external":
             if "rpc-host" in parsed:
                 value = parsed["rpc-host"]
