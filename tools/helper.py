@@ -541,8 +541,11 @@ def get_modified_images(nodes):
     for commit in gitinfo.history:
         images = get_modified_images_at_commit(nodes, commit)
         history_modified.append(images)
+    print("Unmodified history:")
     for img in modified:
-        img.set_unmodified_history(get_unmodified_history(img, gitinfo.history, history_modified))
+        unmodified_history = get_unmodified_history(img, gitinfo.history, history_modified)
+        print("- {}: {}".format(img, unmodified_history))
+        img.set_unmodified_history(unmodified_history)
     return modified
 
 
