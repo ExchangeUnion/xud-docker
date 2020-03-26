@@ -20,11 +20,11 @@ def cleanup():
     cleanup_containers("testnet")
     cleanup_containers("mainnet")
     print("[CLEANUP] Removing ~/.xud-docker")
-    os.system("rm -rf ~/.xud-docker")
+    os.system("sudo rm -rf ~/.xud-docker")
     print("[CLEANUP] Removing /tmp/xud-testnet")
-    os.system("rm -rf /tmp/xud-testnet")
+    os.system("sudo rm -rf /tmp/xud-testnet")
     print("[CLEANUP] Removing /tmp/xud-testnet-backup")
-    os.system("rm -rf /tmp/xud-testnet-backup")
+    os.system("sudo rm -rf /tmp/xud-testnet-backup")
 
 
 def expect_multilines(child, content):
