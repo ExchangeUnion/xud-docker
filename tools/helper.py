@@ -547,16 +547,18 @@ def get_modified_images(nodes):
 
 
 def test(args):
-    if args.on_cloud:
-        os.chdir(projectdir + "/tools/gcloud")
-        cmd = "NETWORK={} MACHINE_TYPE={} DISK_SIZE={} NAME_SUFFIX={} ./test.sh {}".format(
-            args.network, args.gcloud_machine_type, args.gcloud_disk_size, args.gcloud_name_suffix,
-            args.test_script)
-        os.system(cmd)
-    else:
-        os.chdir(projectdir)
-        cmd = "./xud.sh -b {}".format(gitinfo.branch)
-        os.system(cmd)
+    # if args.on_cloud:
+    #     os.chdir(projectdir + "/tools/gcloud")
+    #     cmd = "NETWORK={} MACHINE_TYPE={} DISK_SIZE={} NAME_SUFFIX={} ./test.sh {}".format(
+    #         args.network, args.gcloud_machine_type, args.gcloud_disk_size, args.gcloud_name_suffix,
+    #         args.test_script)
+    #     os.system(cmd)
+    # else:
+    #     os.chdir(projectdir)
+    #     cmd = "./xud.sh -b {}".format(gitinfo.branch)
+    #     os.system(cmd)
+    os.chdir(projectdir)
+    os.system("python3 -m tests")
 
 
 def parse_image_with_tag(image):
@@ -614,18 +616,18 @@ def main():
     push_parser.add_argument("images", type=str, nargs="*")
 
     test_parser = subparsers.add_parser("test")
-    test_parser.add_argument("network", type=str, choices=["simnet", "testnet", "mainnet"])
-    test_parser.add_argument("--on-cloud", action="store_true")
-    test_parser.add_argument("--gcloud-machine-type", type=str, default="n1-standard-1")
-    test_parser.add_argument("--gcloud-disk-size", type=str, default="10GB")
-    test_parser.add_argument("--gcloud-name-suffix", type=str, default="")
-    if gitinfo:
-        test_parser.add_argument("--test-script", type=str, default="test-branch.sh " + gitinfo.branch)
-    else:
-        test_parser.add_argument("--test-script", type=str, default="test-branch.sh local")
+    # test_parser.add_argument("network", type=str, choices=["simnet", "testnet", "mainnet"])
+    # test_parser.add_argument("--on-cloud", action="store_true")
+    # test_parser.add_argument("--gcloud-machine-type", type=str, default="n1-standard-1")
+    # test_parser.add_argument("--gcloud-disk-size", type=str, default="10GB")
+    # test_parser.add_argument("--gcloud-name-suffix", type=str, default="")
+    # if gitinfo:
+    #     test_parser.add_argument("--test-script", type=str, default="test-branch.sh " + gitinfo.branch)
+    # else:
+    #     test_parser.add_argument("--test-script", type=str, default="test-branch.sh local")
 
     args = parser.parse_args()
-    if args.dry_run:
+    if hasattr(args, "dry_run") and args.dry_run:
         dry_run = True
 
     nodes = json.load(open("../nodes.json"))

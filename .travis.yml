@@ -1,4 +1,6 @@
-language: generic
+language: python
+python:
+  - "3.8"
 arch:
   - amd64
   - arm64
@@ -8,8 +10,11 @@ services:
   - docker
 before_script:
   - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
+  - pip install pexpect
 script: tools/push --no-manifest-list
 jobs:
   include:
     - stage: Create and push manifest lists
       script: tools/push --manifest-list
+    - stage: Test common cases
+      script: tools/test
