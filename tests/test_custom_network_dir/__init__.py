@@ -2,7 +2,7 @@ import os
 from shutil import copyfile
 import pexpect
 import time
-from subprocess import check_output, CalledProcessError
+from subprocess import check_output, CalledProcessError, PIPE
 
 
 def cleanup_images(network):
@@ -13,7 +13,7 @@ def cleanup_containers(network):
     print("[CLEANUP] {} containers".format(network))
     containers = []
     try:
-        containers = check_output("docker ps --filter name={} -q -a".format(network)).decode().splitlines()
+        containers = check_output("docker ps --filter name={} -q -a".format(network), shell=True, stderr=PIPE).decode().splitlines()
     except CalledProcessError:
         pass
 
@@ -21,14 +21,14 @@ def cleanup_containers(network):
         try:
             cmd = "docker stop {}".format(" ".join(containers))
             print(cmd)
-            check_output(cmd).decode().splitlines()
+            check_output(cmd, shell=True, stderr=PIPE).decode().splitlines()
         except CalledProcessError:
             pass
 
         try:
             cmd = "docker rm {}".format(" ".join(containers))
             print(cmd)
-            check_output(cmd).decode().splitlines()
+            check_output(cmd, shell=True, stderr=PIPE).decode().splitlines()
         except CalledProcessError:
             pass
 
