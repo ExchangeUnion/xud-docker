@@ -1,6 +1,6 @@
 import docker
 from docker.models.containers import Container
-from docker.errors import NotFound
+from docker.errors import APIError
 from typing import List
 from subprocess import check_output
 
@@ -32,5 +32,9 @@ class Action:
                 print(f"Removing {c.name}...")
                 try:
                     c.remove()
-                except NotFound:
-                    pass
+                except APIError as e:
+                    if e.status_code == 409:
+                        # docker.errors.APIError: 409 Client Error: Conflict ("removal of container xxx is already in progress")
+                        pass
+                    else:
+                        raise e
