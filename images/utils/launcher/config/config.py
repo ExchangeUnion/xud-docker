@@ -478,10 +478,12 @@ class Config:
         parser.add_argument("--mainnet-dir")
         parser.add_argument("--external-ip")
         parser.add_argument("--backup-dir")
-        parser.add_argument("--bitcoin-neutrino", type=bool)
-        parser.add_argument("--litecoin-neutrino", type=bool)
         parser.add_argument("--nodes-json")
         parser.add_argument("--expose-ports")
+
+        parser.add_argument("--bitcoind.mode")
+        parser.add_argument("--litecoind.mode")
+        parser.add_argument("--geth.mode")
 
         self.args = parser.parse_args()
         self.logger.info("[Config] Parsed command-line arguments: %r", self.args)
@@ -562,22 +564,33 @@ class Config:
                 if p not in node["ports"]:
                     node["ports"].append(p)
 
-    def update_bitcoind_kind(self, node, parsed):
+    def update_bitcoind_kind(self, node, parsed, litecoin=False):
         if "external" in parsed:
-            print("Warning: Using deprecated field \"external\". Please use \"mode\" instead.")
+            print("Warning: Using deprecated option \"external\". Please use \"mode\" instead.")
             if parsed["external"]:
                 node["mode"] = "external"
 
         if "neutrino" in parsed:
-            print("Warning: Using deprecated field \"neutrino\". Please use \"mode\" instead.")
+            print("Warning: Using deprecated option \"neutrino\". Please use \"mode\" instead.")
             if parsed["neutrino"]:
                 node["mode"] = "neutrino"
 
         if "mode" in parsed:
             value = parsed["mode"]
             if value not in ["native", "external", "neutrino"]:
-                raise NetworkConfigFileValueError("Invalid value of field \"mode\": " + value)
-            node["mode"] = parsed["mode"]
+                raise NetworkConfigFileValueError("Invalid value of option \"mode\": {}".format(value))
+            node["mode"] = value
+
+        if litecoin:
+            opt_mode = "litecoind.mode"
+        else:
+            opt_mode = "bitcoind.mode"
+
+        if hasattr(self.args, opt_mode):
+            value = getattr(self.args, opt_mode)
+            if value not in ["native", "external", "neutrino"]:
+                raise CommandLineArgumentValueError("Invalid value of option \"--{}\": {}".format(opt_mode, value))
+            node["mode"] = value
 
         if node["mode"] == "external":
             if "rpc-host" in parsed:
@@ -588,7 +601,7 @@ class Config:
                 try:
                     node["external_rpc_port"] = int(value)
                 except ValueError:
-                    raise NetworkConfigFileValueError("Invalid value of field \"rpc-port\": " + value)
+                    raise NetworkConfigFileValueError("Invalid value of option \"rpc-port\": " + value)
             if "rpc-user" in parsed:
                 value = parsed["rpc-user"]
                 node["external_rpc_user"] = value
@@ -626,7 +639,7 @@ class Config:
 
         self.update_ports(node, parsed)
 
-        self.update_bitcoind_kind(node, parsed)
+        self.update_bitcoind_kind(node, parsed, litecoin=True)
 
     def update_geth(self, parsed):
         """Update geth related configurations from parsed TOML geth section
@@ -649,20 +662,26 @@ class Config:
         self.update_ports(node, parsed)
 
         if "external" in parsed:
-            print("Warning: Using deprecated field \"external\". Please use \"mode\" instead.")
+            print("Warning: Using deprecated option \"external\". Please use \"mode\" instead.")
             if parsed["external"]:
                 node["mode"] = "external"
 
         if "infura-project-id" in parsed:
             if "mode" not in parsed:
-                print("Warning: Please use field \"mode\" to specify Infura usage.")
+                print("Warning: Please use option \"mode\" to specify Infura usage.")
                 node["mode"] = "infura"
 
         if "mode" in parsed:
             value = parsed["mode"]
             if value not in ["native", "external", "infura"]:
-                raise NetworkConfigFileValueError("Invalid value of field \"mode\": " + value)
-            node["mode"] = parsed["mode"]
+                raise NetworkConfigFileValueError("Invalid value of option \"mode\": {}" + value)
+            node["mode"] = value
+
+        if hasattr(self.args, "geth.mode"):
+            value = getattr(self.args, "geth.mode")
+            if value not in ["native", "external", "infura"]:
+                raise CommandLineArgumentValueError("Invalid value of option \"--geth.mode\": {}".format(value))
+            node["mode"] = value
 
         if node["mode"] == "external":
             if "rpc-host" in parsed:
@@ -673,7 +692,7 @@ class Config:
                 try:
                     node["external_rpc_port"] = int(value)
                 except ValueError:
-                    raise NetworkConfigFileValueError("Invalid value of field \"rpc-port\": " + value)
+                    raise NetworkConfigFileValueError("Invalid value of option \"rpc-port\": " + value)
         elif node["mode"] == "infura":
             if "infura-project-id" in parsed:
                 value = parsed["infura-project-id"]
