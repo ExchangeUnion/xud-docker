@@ -299,6 +299,8 @@ class Image:
         try:
             if self.arch == arch:
                 cmd = "docker build -f {} -t {} {} {}".format(dockerfile, build_tag, " ".join(args), build_dir)
+                if travis:
+                    cmd = "travis_wait 30 " + cmd
                 run_command(cmd, "Failed to build {}".format(build_tag))
                 build_tag_without_arch = self.get_build_tag_without_arch()
                 run_command("docker tag {} {}".format(build_tag, build_tag_without_arch), "Failed to tag {}".format(build_tag_without_arch))
