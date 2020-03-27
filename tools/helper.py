@@ -561,7 +561,7 @@ def test(args):
     #     cmd = "./xud.sh -b {}".format(gitinfo.branch)
     #     os.system(cmd)
     os.chdir(projectdir)
-    os.system("python3 -m tests")
+    os.system("python3 -m tests --branch={}".format(branch))
 
 
 def parse_image_with_tag(image):

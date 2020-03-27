@@ -1,11 +1,10 @@
-from .test_custom_network_dir import test, cleanup
+from argparse import ArgumentParser
 
-exit_code = 0
-try:
-    test()
-except:
-    exit_code = 1
-finally:
-    cleanup()
+from .test_custom_network_dir import test
 
-exit(exit_code)
+parser = ArgumentParser()
+parser.add_argument("-b", "--branch")
+
+args = parser.parse_args()
+
+test(args.branch)
