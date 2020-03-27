@@ -183,6 +183,8 @@ class Image:
 
             if payload["schemaVersion"] == 1:
                 r1 = json.loads(payload["history"][0]["v1Compatibility"])["config"]["Labels"]["com.exchangeunion.image.revision"]
+                print("- Registry image revision: {}".format(r1))
+                print("- Unmodified history: {}".format(self.unmodified_history))
                 if r1.endswith("-dirty"):
                     return False
                 else:
@@ -259,9 +261,15 @@ class Image:
                 return self.get_existed_dockerfile(f)
 
     def build(self, args):
+        if self.arch != arch and not cross_build:
+            return False
+
+        self.print_title("Building {}".format(self.name), "{} ({})".format(self.tag, self.arch))
+
         build_tag = self.get_build_tag()
 
         if self.existed_in_registry_and_up_to_date(docker_registry):
+            print("Image is up-to-date. Skip building.")
             return False
 
         build_labels = self.get_labels()
@@ -290,30 +298,25 @@ class Image:
 
         try:
             if self.arch == arch:
-                self.print_title("Building {}".format(self.name), "{} ({})".format(self.tag, self.arch))
                 cmd = "docker build -f {} -t {} {} {}".format(dockerfile, build_tag, " ".join(args), build_dir)
                 run_command(cmd, "Failed to build {}".format(build_tag))
                 build_tag_without_arch = self.get_build_tag_without_arch()
                 run_command("docker tag {} {}".format(build_tag, build_tag_without_arch), "Failed to tag {}".format(build_tag_without_arch))
                 return True
             else:
-                if cross_build:
-                    self.print_title("Building {}".format(self.name), "{} ({})".format(self.tag, self.arch))
-                    buildx_platform = None
-                    if self.arch == "aarch64":
-                        buildx_platform = "linux/arm64"
-                    if not platform:
-                        print("Error: The CPU architecture ({}) is not supported currently".format(self.arch), file=sys.stderr)
-                        exit(1)
-                    cmd = "docker buildx build --platform {} --progress plain --load -f {} -t {} {} {}".format(
-                        buildx_platform, dockerfile, build_tag, " ".join(args), build_dir)
-                    run_command(cmd, "Failed to build {}".format(build_tag))
-                    return True
+                buildx_platform = None
+                if self.arch == "aarch64":
+                    buildx_platform = "linux/arm64"
+                if not platform:
+                    print("Error: The CPU architecture ({}) is not supported currently".format(self.arch), file=sys.stderr)
+                    exit(1)
+                cmd = "docker buildx build --platform {} --progress plain --load -f {} -t {} {} {}".format(
+                    buildx_platform, dockerfile, build_tag, " ".join(args), build_dir)
+                run_command(cmd, "Failed to build {}".format(build_tag))
+                return True
         finally:
             for f in shared_files:
                 os.remove("{}/{}".format(build_dir, f))
-
-        return False
 
     def push(self):
         if self.build([]):
@@ -527,7 +530,7 @@ def get_unmodified_history(img, history, history_modified):
     h = history
     for i, m in enumerate(history_modified):
         if img in m:
-            h = history[:i]
+            h = history[:i+1]
             break
     return h
 
