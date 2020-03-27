@@ -493,6 +493,36 @@ class Config:
         parser.add_argument("--lndbtc.preserve-config", action="store_true")
         parser.add_argument("--lndltc.preserve-config", action="store_true")
 
+        parser.add_argument("--bitcoind.mode")
+        parser.add_argument("--bitcoind.rpc-host")
+        parser.add_argument("--bitcoind.rpc-port", type=int)
+        parser.add_argument("--bitcoind.rpc-user")
+        parser.add_argument("--bitcoind.rpc-password")
+        parser.add_argument("--bitcoind.zmqpubrawblock")
+        parser.add_argument("--bitcoind.zmqpubrawtx")
+        parser.add_argument("--bitcoind.expose-ports")
+
+        parser.add_argument("--litecoind.mode")
+        parser.add_argument("--litecoind.rpc-host")
+        parser.add_argument("--litecoind.rpc-port", type=int)
+        parser.add_argument("--litecoind.rpc-user")
+        parser.add_argument("--litecoind.rpc-password")
+        parser.add_argument("--litecoind.zmqpubrawblock")
+        parser.add_argument("--litecoind.zmqpubrawtx")
+        parser.add_argument("--litecoind.expose-ports")
+
+        parser.add_argument("--geth.mode")
+        parser.add_argument("--geth.rpc-host")
+        parser.add_argument("--geth.rpc-port", type=int)
+        parser.add_argument("--geth.infura-project-id")
+        parser.add_argument("--geth.infura-project-secret")
+        parser.add_argument("--geth.expose-ports")
+
+        parser.add_argument("--lndbtc.expose-ports")
+        parser.add_argument("--lndltc.expose-ports")
+        parser.add_argument("--raiden.expose-ports")
+        parser.add_argument("--xud.expose-ports")
+
         try:
             self.args = parser.parse_args()
             self.logger.info("Parsed command-line arguments: %r", self.args)
@@ -568,32 +598,76 @@ class Config:
                 raise FatalError("Invalid value of option \"mode\": {}".format(value))
             node["mode"] = value
 
+        if node["name"] == "litecoind":
+            opt_prefix = "litecoind"
+        else:
+            opt_prefix = "bitcoind"
+
+        opt = "{}.mode".format(opt_prefix)
+        if hasattr(self.args, opt):
+            value = getattr(self.args, opt)
+            if value not in ["native", "external", "neutrino"]:
+                raise FatalError("Invalid value of option \"--{}\": {}".format(opt, value))
+            node["mode"] = value
+
         if node["mode"] == "external":
             if "rpc-host" in parsed:
                 value = parsed["rpc-host"]
                 # TODO rpc-host value validation
                 node["external_rpc_host"] = value
+            opt = "{}.rpc-host".format(opt_prefix)
+            if hasattr(self.args, opt):
+                value = getattr(self.args, opt)
+                node["external_rpc_host"] = value
+
             if "rpc-port" in parsed:
                 value = parsed["rpc-port"]
                 try:
                     node["external_rpc_port"] = int(value)
                 except ValueError:
                     raise FatalError("Invalid value of option \"rpc-port\": {}".format(value))
+            opt = "{}.rpc-port".format(opt_prefix)
+            if hasattr(self.args, opt):
+                value = getattr(self.args, opt)
+                try:
+                    node["external_rpc_port"] = int(value)
+                except ValueError:
+                    raise FatalError("Invalid value of option \"--{}\": {}".format(opt, value))
+
             if "rpc-user" in parsed:
                 value = parsed["rpc-user"]
                 # TODO rpc-user value validation
                 node["external_rpc_user"] = value
+            opt = "{}.rpc-user".format(opt_prefix)
+            if hasattr(self.args, opt):
+                value = getattr(self.args, opt)
+                node["external_rpc_user"] = value
+
             if "rpc-password" in parsed:
                 value = parsed["rpc-password"]
                 # TODO rpc-password value validation
                 node["external_rpc_password"] = value
+            opt = "{}.rpc-password".format(opt_prefix)
+            if hasattr(self.args, opt):
+                value = getattr(self.args, opt)
+                node["external_rpc_password"] = value
+
             if "zmqpubrawblock" in parsed:
                 value = parsed["zmqpubrawblock"]
                 # TODO zmqpubrawblock value validation
                 node["external_zmqpubrawblock"] = value
+            opt = "{}.zmqpubrawblock".format(opt_prefix)
+            if hasattr(self.args, opt):
+                value = getattr(self.args, opt)
+                node["external_zmqpubrawblock"] = value
+
             if "zmqpubrawtx" in parsed:
                 value = parsed["zmqpubrawtx"]
                 # TODO zmqpubrawtx value validation
+                node["external_zmqpubrawtx"] = value
+            opt = "{}.zmqpubrawtx".format(opt_prefix)
+            if hasattr(self.args, opt):
+                value = getattr(self.args, opt)
                 node["external_zmqpubrawtx"] = value
 
     def update_bitcoind(self, parsed):
@@ -653,25 +727,53 @@ class Config:
                 raise FatalError("Invalid value of option \"mode\": {}" + value)
             node["mode"] = value
 
+        if hasattr(self.args, "geth.mode"):
+            value = getattr(self.args, "geth.mode")
+            if value not in ["native", "external", "infura"]:
+                raise FatalError("Invalid value of option \"--geth.mode\": {}".format(value))
+            node["mode"] = value
+
         if node["mode"] == "external":
             if "rpc-host" in parsed:
                 value = parsed["rpc-host"]
                 # TODO rpc-host value validation
                 node["external_rpc_host"] = value
+            opt = "geth.rpc-host"
+            if hasattr(self.args, opt):
+                value = getattr(self.args, opt)
+                node["external_rpc_host"] = value
+
             if "rpc-port" in parsed:
                 value = parsed["rpc-port"]
                 try:
                     node["external_rpc_port"] = int(value)
                 except ValueError:
                     raise FatalError("Invalid value of option \"rpc-port\": {}".format(value))
+            opt = "geth.rpc-port"
+            if hasattr(self.args, opt):
+                value = getattr(self.args, opt)
+                try:
+                    node["external_rpc_port"] = int(value)
+                except ValueError:
+                    raise FatalError("Invalid value of option \"--{}\": {}".format(opt, value))
+
         elif node["mode"] == "infura":
             if "infura-project-id" in parsed:
                 value = parsed["infura-project-id"]
                 # TODO infura-project-id value validation
                 node["infura_project_id"] = value
+            opt = "geth.infura-project-id"
+            if hasattr(self.args, opt):
+                value = getattr(self.args, opt)
+                node["infura_project_id"] = value
+
             if "infura-project-secret" in parsed:
                 value = parsed["infura-project-secret"]
                 # TODO infura-project-secret value validation
+                node["infura_project_secret"] = value
+            opt = "geth.infura-project-secret"
+            if hasattr(self.args, opt):
+                value = getattr(self.args, opt)
                 node["infura_project_secret"] = value
 
     def update_lndbtc(self, parsed):
