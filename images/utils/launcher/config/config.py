@@ -496,10 +496,10 @@ class Config:
         if hasattr(self.args, "external_ip"):
             self.external_ip = self.args.external_ip
 
-    def apply_network_args(self):
         if hasattr(self.args, f"{self.network}_dir"):
             self.network_dir = getattr(self.args, f"{self.network}_dir")
 
+    def apply_network_args(self):
         if hasattr(self.args, "bitcoin_neutrino"):
             if "bitcoind" in self.nodes:
                 self.nodes["bitcoind"]["mode"] = "neutrino"
