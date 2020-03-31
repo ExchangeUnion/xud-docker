@@ -7,9 +7,12 @@ import traceback
 
 from .config import Config, ArgumentError, InvalidHomeDir, InvalidNetworkDir
 from .node import NodeManager, NodeNotFound, ImagesNotAvailable
-from .check_wallets import Action as CheckWalletsAction, BackupDirNotAvailable
 from .utils import ParallelExecutionError, get_hostfs_file
 from .errors import NetworkConfigFileSyntaxError, NetworkConfigFileValueError, CommandLineArgumentValueError
+
+from .check_wallets import Action as CheckWalletsAction, BackupDirNotAvailable
+from .close_other_utils import Action as CloseOtherUtilsAction
+
 
 
 def init_logging():
@@ -100,11 +103,15 @@ your issue.""")
         # TODO wait for channels
         pass
 
+    def close_other_utils(self):
+        CloseOtherUtilsAction(self.config.network, self.shell).execute()
+
     def pre_start(self):
         if self.config.network in ["testnet", "mainnet"]:
             self.check_wallets()
         elif self.config.network == "simnet":
             self.wait_for_channels()
+        self.close_other_utils()
 
     def start(self):
         try:
