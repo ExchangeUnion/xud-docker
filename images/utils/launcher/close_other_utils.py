@@ -3,6 +3,7 @@ from docker.models.containers import Container
 from docker.errors import APIError
 from typing import List
 from subprocess import check_output
+import re
 
 
 class Action:
@@ -11,11 +12,35 @@ class Action:
         self.shell = shell
         self.client = docker.from_env()
 
-    def execute(self):
-        result: List[Container] = self.client.containers.list(all=True, filters={"name": f"{self.network}_utils"})
+    def get_utils_containers(self):
+        """This method replace old name matching with more exact cmd matching
+        self.client.containers.list(all=True, filters={"name": f"{self.network}_utils"})
+        :return:
+        """
+        containers = self.client.containers.list(all=True)
+        result = []
+        # Exclude self from the result
         hostname = check_output("hostname").decode().splitlines()[0]
+        for c in containers:
+            entrypoint = c.attrs["Config"]["Entrypoint"]
+            cmd = c.attrs["Config"]["Cmd"]
+            env = c.attrs["Config"]["Env"]
+            if not entrypoint:
+                continue
+            if not cmd:
+                continue
+            if len(entrypoint) != 1 or entrypoint[0] != "python":
+                continue
+            if len(cmd) < 2:
+                continue
+            if cmd[0] != "-m" or cmd[1] != "launcher":
+                continue
+            if env and "NETWORK={}".format(self.network) in env and c.attrs["Config"]["Hostname"] != hostname:
+                result.append(c)
+        return result
 
-        result = [c for c in result if c.attrs["Config"]["Hostname"] != hostname]
+    def execute(self):
+        result: List[Container] = self.get_utils_containers()
 
         n = len(result)
 
