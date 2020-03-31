@@ -258,7 +258,7 @@ function ensure_directory() {
 
 function get_utils_name() {
     local N
-    N=$(docker ps -a --filter name="${NETWORK}_utils_" --format '{{.Names}}' | sed 's/mainnet_utils_//' | sort -nr | head -n1)
+    N=$(docker ps -a --filter name="${NETWORK}_utils_" --format '{{.Names}}' | sed "s/${NETWORK}_utils_//" | sort -nr | head -n1)
     ((N++))
     echo "${NETWORK}_utils_${N}"
 }
