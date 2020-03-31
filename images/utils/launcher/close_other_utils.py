@@ -57,9 +57,5 @@ class Action:
                 print(f"Removing {c.name}...")
                 try:
                     c.remove()
-                except APIError as e:
-                    if e.status_code == 409:
-                        # docker.errors.APIError: 409 Client Error: Conflict ("removal of container xxx is already in progress")
-                        pass
-                    else:
-                        raise e
+                except:
+                    pass
