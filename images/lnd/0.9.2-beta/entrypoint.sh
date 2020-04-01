@@ -22,20 +22,20 @@ if [ ! -z ${NEUTRINO} ]; then
     bitcoin)
       case $NETWORK in
         testnet)
-          PEERS="${PEERS}neutrino.connect=159.203.125.125:18333\nneutrino.connect=64.79.152.132:18333\nneutrino.connect=167.71.109.195:18333\nneutrino.connect=178.128.0.29:18333"
+          PEERS="${PEERS}neutrino.addpeer=bitcoin.michael1011.at:18333\nneutrino.addpeer=btc.kilrau.com:18333"
           ;;
         mainnet)
-          PEERS="${PEERS}neutrino.connect=69.143.97.89:8333\nneutrino.connect=73.31.42.95:8333\nneutrino.connect=96.9.244.139:8333\nneutrino.connect=138.68.244.82:8333"
+          PEERS="${PEERS}neutrino.addpeer=bitcoin.michael1011.at:8333\nneutrino.addpeer=btc.kilrau.com:8333"
           ;;
         esac
       ;;
     litecoin)
           case $NETWORK in
         testnet)
-          PEERS="${PEERS}neutrino.connect=ltcd.michael1011.at:19335\nneutrino.connect=ltcd.servebeer.com:54795"
+          PEERS="${PEERS}neutrino.connect=ltcd.michael1011.at:19335\nneutrino.connect=ltc.kilrau.com:19335"
           ;;
         mainnet)
-          PEERS="${PEERS}neutrino.connect=ltcd.michael1011.at:9333\nneutrino.connect=ltcd.servebeer.com:9333"
+          PEERS="${PEERS}neutrino.connect=ltcd.michael1011.at:9333\nneutrino.connect=ltc.kilrau.com:9333"
           ;;
         esac
       ;;
