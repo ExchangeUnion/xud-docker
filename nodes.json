@@ -13,7 +13,7 @@
       "image": "exchangeunion/raiden:0.100.5a1.dev162-2217bcb-simnet"
     },
     "xud": {
-      "image": "exchangeunion/xud:1.0.0-beta.1-simnet"
+      "image": "exchangeunion/xud:1.0.0-beta.2-simnet"
     }
   },
   "testnet": {
@@ -36,7 +36,7 @@
       "image": "exchangeunion/raiden:0.100.5a1.dev162-2217bcb"
     },
     "xud": {
-      "image": "exchangeunion/xud:1.0.0-beta.1"
+      "image": "exchangeunion/xud:1.0.0-beta.2"
     }
   },
   "mainnet": {
@@ -59,7 +59,7 @@
       "image": "exchangeunion/raiden:0.100.5a1.dev162-2217bcb"
     },
     "xud": {
-      "image": "exchangeunion/xud:1.0.0-beta.1"
+      "image": "exchangeunion/xud:1.0.0-beta.2"
     }
   }
 }
