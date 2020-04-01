@@ -46,7 +46,6 @@ ADDRESS=$(get_addr)
 OPTS=(
   "--rpc"
   "--accept-disclaimer"
-  "--resolver-endpoint http://xud:8887/resolveraiden"
   "--eth-rpc-endpoint $RPC_ENDPOINT"
   "--password-file $RAIDEN_DIR/passphrase.txt"
   "--datadir $RAIDEN_DIR"
@@ -70,6 +69,7 @@ testnet)
     "--user-deposit-contract-address 0x3A17B96809258523c4DED8e7F3f9364D13eBc2C5"
     "--monitoring-service-contract-address 0x9F50cEA29307d7D91c5176Af42f3aB74f0190dD3"
     "--one-to-n-contract-address 0xA102879b6AE21B93432160532DeB8f0EA1C50b30"
+    "--resolver-endpoint http://xud:18887/resolveraiden"
   )
   ;;
 mainnet)
@@ -85,6 +85,7 @@ mainnet)
     "--user-deposit-contract-address 0x4F26957E8fd331D53DD60feE77533FBE7564F5Fe"
     "--monitoring-service-contract-address 0x37cC37D7703554183aE544391945e7D0588b7693"
     "--one-to-n-contract-address 0x3dda5BE50Af796618d9f48c021Cf0C9FD64FFeb1"
+    "--resolver-endpoint http://xud:8887/resolveraiden"
   )
   ;;
 esac
