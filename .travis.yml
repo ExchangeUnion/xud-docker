@@ -16,6 +16,5 @@ jobs:
   include:
     - stage: Create and push manifest lists
       script: tools/push --manifest-list
-
-    - stage: Unit Tests
+    - stage: Test common cases
       script: tools/test
