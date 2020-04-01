@@ -1,4 +1,4 @@
-FROM node:12-alpine3.10 AS builder
+FROM node:12-alpine3.11 AS builder
 ARG REPO=ExchangeUnion/xud
 ARG BRANCH=v1.0.0-beta.1
 # Use pure JS implemented secp256k1 bindings
@@ -20,7 +20,7 @@ RUN npm run compile:seedutil
 RUN npm prune --production
 RUN rm -rf seedutil/go
 
-FROM node:12-alpine3.10
+FROM node:12-alpine3.11
 RUN apk add --no-cache bash supervisor tor
 RUN mkdir /root/.xud
 VOLUME [ "/root/.xud" ]

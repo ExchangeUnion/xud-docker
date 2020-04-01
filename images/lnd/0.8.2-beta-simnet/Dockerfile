@@ -1,4 +1,4 @@
-FROM golang:1.12-alpine3.10 as builder
+FROM golang:1.14-alpine3.11 as builder
 RUN apk add --no-cache bash git make gcc musl-dev
 RUN git clone -b v0.8.2-beta https://github.com/lightningnetwork/lnd $GOPATH/src/github.com/lightningnetwork/lnd
 WORKDIR $GOPATH/src/github.com/lightningnetwork/lnd
@@ -12,7 +12,7 @@ RUN patch lnd.go /tmp/patches/lnd.patch
 RUN go install -v -mod=vendor -tags="invoicesrpc" -ldflags "-X github.com/lightningnetwork/lnd/build.Commit=v0.8.2-beta" ./cmd/lnd ./cmd/lncli
 
 
-FROM alpine:3.10
+FROM alpine:3.11.5
 RUN apk add --no-cache bash expect supervisor tor
 COPY --from=builder /go/bin/lnd /go/bin/lncli /usr/local/bin/
 COPY entrypoint.sh wait-file.sh peers.sh start_tor.sh /
