@@ -197,8 +197,19 @@ class NodeManager:
 
     def pretty_image_check_result(self, images):
         result = []
+
+        def get_metadata_str(m):
+            if not m:
+                return ""
+            return "{}\n  * digest: {}\n  * branch: {}\n  * revision: {}\n  * created at: {}".format(m.name, m.digest, m.branch, m.revision, m.created)
+
         for image in images:
-            result.append("- {}\n  Status: {}\n  Pull: {}".format(image, image.status, image.pull_image))
+            status = "  Status: {}\n".format(image.status)
+            pull = "  Pull: {}\n".format(image.pull_image)
+            local = "  Local: {}\n".format(get_metadata_str(image.local_metadata))
+            cloud = "  Cloud: {}\n".format(get_metadata_str(image.cloud_metadata))
+            use = "  Use: {}\n".format(image.use_image)
+            result.append("- {}\n{}{}{}{}{}".format(image.name, status, pull, local, cloud, use))
         return "\n".join(result)
 
     def pretty_container_check_result(self, container_check_result):

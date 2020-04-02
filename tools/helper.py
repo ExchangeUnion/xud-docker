@@ -564,7 +564,9 @@ def test(args):
     #     cmd = "./xud.sh -b {}".format(gitinfo.branch)
     #     os.system(cmd)
     os.chdir(projectdir)
-    os.system("python3 -m tests")
+    exit_code = os.system("python3.8 -m pytest -s")
+    if exit_code != 0:
+        sys.exit(1)
 
 
 def parse_image_with_tag(image):
