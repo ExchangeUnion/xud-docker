@@ -4,7 +4,7 @@ import toml
 from shutil import copyfile
 import traceback
 
-from .config import Config, ArgumentError, InvalidHomeDir, InvalidNetworkDir
+from .config import Config, ConfigLoader, ArgumentError, InvalidHomeDir, InvalidNetworkDir
 from .shell import Shell
 from .node import NodeManager, NodeNotFound, ImagesNotAvailable
 from .utils import ParallelExecutionError, get_hostfs_file
@@ -133,7 +133,8 @@ class Launcher:
         exit_code = 0
         config = None
         try:
-            config = Config()
+            config = Config(ConfigLoader())
+            assert config.network_dir is not None
             shell.set_network_dir(config.network_dir)  # will create shell history file in network_dir
             env = XudEnv(config, shell)
             env.start()

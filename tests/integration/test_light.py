@@ -88,20 +88,78 @@ def check_containers():
             if name in c.attrs["Name"]:
                 target = c
                 break
-        if not target:
-            raise AssertionError("Container not found: {}".format(name))
         return target
 
-    exit_code, output = find("utils").exec_run("cat /var/log/launcher.log")
-    print(output.decode())
+    utils = find("utils")
+
+    if utils:
+        exit_code, output = utils.exec_run("cat /var/log/launcher.log")
+        print(output.decode())
 
     # exit_code, output = find("xud").exec_run("xucli --rpcport=18886 getinfo")
     # print(output.decode())
+    # os.system("docker exec testnet_xud_1 bash -c 'netstat -ant | grep LISTEN'")
+    # os.system("docker exec testnet_xud_1 cat /root/.xud/xud.conf")
+    # os.system("docker exec testnet_xud_1 cat /app/entrypoint.sh")
     #
     # print("Raiden logs:")
     # print(find("raiden").logs().decode())
 
     print("-" * 80)
+
+
+def simulate_tty(data):
+    lines = [" "*80]
+    x = 0
+    y = 0
+
+    i = 0
+    n = len(data)
+    while i < n:
+        if data[i] == '\033':
+            if data[i + 1] == '[':
+                j = i + 2
+                while j < n:
+                    if not data[j].isdigit():
+                        break
+                    j = j + 1
+                if j == i + 2:
+                    # not followed by numbers
+                    if data[j] == 'K':
+                        lines[y] = " " * 80
+                        x = 0
+                        i = j + 1
+                    else:
+                        raise RuntimeError("should be K at {}".format(j))
+                else:
+                    m = int(data[i + 2:j])
+                    if data[j] == 'A':
+                        y = y - m
+                        i = j + 1
+                    else:
+                        raise RuntimeError("should be A at {}".format(j))
+            else:
+                raise RuntimeError("should be [ at {}".format(i + 1))
+        elif data[i] == '\r':
+            x = 0
+            i = i + 1
+        elif data[i] == '\n':
+            y = y + 1
+            i = i + 1
+            if y >= len(lines):
+                for j in range(len(lines), y+1):
+                    lines.append(" " * 80)
+        else:
+            if y >= len(lines):
+                for j in range(len(lines), y+1):
+                    lines.append(" " * 80)
+            line = lines[y]
+            line = line[:x] + data[i] + line[x+1:]
+            lines[y] = line
+            x = x + 1
+            i = i + 1
+
+    return lines
 
 
 def create_wallet(child, retry=0):
@@ -110,7 +168,8 @@ def create_wallet(child, retry=0):
     if retry == 0:
         print("[EXPECT] Create/Restore choice")
         child.expect(r"Do you want to create a new xud environment or restore an existing one\?", timeout=500)
-        print(child.before, end="")
+        for line in simulate_tty(child.before):
+            print(line)
         print(child.match.group(0), end="")
         sys.stdout.flush()
 
@@ -161,16 +220,16 @@ def create_wallet(child, retry=0):
         print(child.match.group(0), end="")
         sys.stdout.flush()
     elif i == 1:
-        failed_reason = child.before
+        failed_reason: str = child.before
         failed_reason = failed_reason.strip()
         print(child.before, end="")
         sys.stdout.flush()
 
         if failed_reason == "xud is starting... try again in a few seconds":
             pass
-        elif failed_reason == "Error: 13 INTERNAL: could not initialize lnd-BTC: 14 UNAVAILABLE: failed to connect to all addresses":
+        elif failed_reason.startswith("Error: 13 INTERNAL: could not initialize lnd-BTC"):
             pass
-        elif failed_reason == "Error: 13 INTERNAL: could not initialize lnd-LTC: 14 UNAVAILABLE: failed to connect to all addresses":
+        elif failed_reason.startswith("Error: 13 INTERNAL: could not initialize lnd-LTC"):
             pass
         elif failed_reason == "Error: 14 UNAVAILABLE: lnd-BTC is Disconnected":
             pass
@@ -187,7 +246,7 @@ def create_wallet(child, retry=0):
         print(child.match.group(0), end="")
         sys.stdout.flush()
 
-        time.sleep(5)
+        time.sleep(10)
 
         child.sendline("1\r")
         child.expect("1\r\n")
@@ -277,7 +336,7 @@ def run_flow(child, flow):
     try:
         flow(child)
     except pexpect.exceptions.EOF:
-        raise AssertionError("The program exits unexpectedly")
+        raise AssertionError("The program exits unexpectedly: {}".format(child.before.strip()))
     except pexpect.exceptions.TIMEOUT:
         raise AssertionError("Timeout")
     except KeyboardInterrupt:
@@ -285,9 +344,6 @@ def run_flow(child, flow):
 
 
 def diagnose():
-    os.system("docker exec testnet_xud_1 bash -c 'netstat -ant | grep LISTEN'")
-    os.system("docker exec testnet_xud_1 cat /root/.xud/xud.conf")
-    os.system("docker exec testnet_xud_1 cat /app/entrypoint.sh")
     check_containers()
 
 
@@ -299,7 +355,9 @@ def test_config_file():
         prepare()
         output = check_output("git rev-parse --abbrev-ref HEAD", shell=True)
         branch = output.decode().splitlines()[0]
-        child = pexpect.spawnu("bash setup.sh -b {} --nodes-json ./nodes.json".format(branch))
+        if branch == "HEAD":
+            branch = os.environ["TRAVIS_BRANCH"]
+        child = pexpect.spawnu("bash setup.sh -b {}".format(branch))
         run_flow(child, simple_flow)
     except:
         diagnose()
