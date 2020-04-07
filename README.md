@@ -25,7 +25,7 @@ git checkout -b your-feature-branch
 
 Make your desired changes to the images located at: `$PROJECT_DIR/images`.
 
-Build your modified images. Optionally modify the `nodes.json` in the project root if necessary.
+Build your modified images.
 
 ```bash
 tools/build
@@ -34,13 +34,7 @@ tools/build
 Test it locally.
 
 ```bash
-./xud.sh -b your-feature-branch
-```
-
-or
-
-```bash
-./xud.sh -b your-feature-branch --nodes-json ./nodes.json
+bash setup.sh -b your-feature-branch
 ```
 
 To let others test without building the images by themselves push your feature branch to remote repository. Travis will build & push images for you.

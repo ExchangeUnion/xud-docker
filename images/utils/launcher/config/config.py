@@ -1,9 +1,7 @@
 import argparse
-import json
 import logging
 import os
 from shutil import copyfile
-from urllib.request import urlopen
 import re
 
 import toml
@@ -67,19 +65,9 @@ class PortPublish:
 
 networks = {
     "simnet": {
-        "ltcd": {
-            "image": "exchangeunion/ltcd",
-            "volumes": [
-                {
-                    "host": "$data_dir/ltcd",
-                    "container": "/root/.ltcd",
-                },
-            ],
-            "ports": [],
-            "mode": "native",
-        },
         "lndbtc": {
-            "image": "exchangeunion/lnd",
+            "name": "lndbtc",
+            "image": "exchangeunion/lnd:0.8.2-beta-simnet",
             "volumes": [
                 {
                     "host": "$data_dir/lndbtc",
@@ -90,7 +78,8 @@ networks = {
             "mode": "native",
         },
         "lndltc": {
-            "image": "exchangeunion/lnd",
+            "name": "lndltc",
+            "image": "exchangeunion/lnd:0.8.2-beta-simnet",
             "volumes": [
                 {
                     "host": "$data_dir/lndltc",
@@ -105,7 +94,8 @@ networks = {
             "mode": "native",
         },
         "raiden": {
-            "image": "exchangeunion/raiden",
+            "name": "raiden",
+            "image": "exchangeunion/raiden:0.100.5a1.dev162-2217bcb-simnet",
             "volumes": [
                 {
                     "host": "$data_dir/raiden",
@@ -116,7 +106,8 @@ networks = {
             "mode": "native",
         },
         "xud": {
-            "image": "exchangeunion/xud",
+            "name": "xud",
+            "image": "exchangeunion/xud:1.0.0-beta.2-simnet",
             "volumes": [
                 {
                     "host": "$data_dir/xud",
@@ -145,7 +136,8 @@ networks = {
     },
     "testnet": {
         "bitcoind": {
-            "image": "exchangeunion/bitcoind",
+            "name": "bitcoind",
+            "image": "exchangeunion/bitcoind:0.19.1",
             "volumes": [
                 {
                     "host": "$data_dir/bitcoind",
@@ -162,7 +154,8 @@ networks = {
             "external_zmqpubrawtx": "127.0.0.1:28333",
         },
         "litecoind": {
-            "image": "exchangeunion/litecoind",
+            "name": "litecoind",
+            "image": "exchangeunion/litecoind:0.17.1",
             "volumes": [
                 {
                     "host": "$data_dir/litecoind",
@@ -179,7 +172,8 @@ networks = {
             "external_zmqpubrawtx": "127.0.0.1:29333",
         },
         "geth": {
-            "image": "exchangeunion/geth",
+            "name": "geth",
+            "image": "exchangeunion/geth:1.9.12",
             "volumes": [
                 {
                     "host": "$data_dir/geth",
@@ -194,7 +188,8 @@ networks = {
             "infura_project_secret": None,
         },
         "lndbtc": {
-            "image": "exchangeunion/lnd",
+            "name": "lndbtc",
+            "image": "exchangeunion/lnd:0.9.2-beta",
             "volumes": [
                 {
                     "host": "$data_dir/lndbtc",
@@ -205,7 +200,8 @@ networks = {
             "mode": "native",
         },
         "lndltc": {
-            "image": "exchangeunion/lnd",
+            "name": "lndltc",
+            "image": "exchangeunion/lnd:0.9.0-beta-ltc",
             "volumes": [
                 {
                     "host": "$data_dir/lndltc",
@@ -216,7 +212,8 @@ networks = {
             "mode": "native",
         },
         "raiden": {
-            "image": "exchangeunion/raiden",
+            "name": "raiden",
+            "image": "exchangeunion/raiden:0.100.5a1.dev162-2217bcb",
             "volumes": [
                 {
                     "host": "$data_dir/raiden",
@@ -227,7 +224,8 @@ networks = {
             "mode": "native",
         },
         "xud": {
-            "image": "exchangeunion/xud",
+            "name": "xud",
+            "image": "exchangeunion/xud:1.0.0-beta.2",
             "volumes": [
                 {
                     "host": "$data_dir/xud",
@@ -256,7 +254,8 @@ networks = {
     },
     "mainnet": {
         "bitcoind": {
-            "image": "exchangeunion/bitcoind",
+            "name": "bitcoind",
+            "image": "exchangeunion/bitcoind:0.19.1",
             "volumes": [
                 {
                     "host": "$data_dir/bitcoind",
@@ -273,7 +272,8 @@ networks = {
             "external_zmqpubrawtx": "127.0.0.1:28333",
         },
         "litecoind": {
-            "image": "exchangeunion/litecoind",
+            "name": "litecoind",
+            "image": "exchangeunion/litecoind:0.17.1",
             "volumes": [
                 {
                     "host": "$data_dir/litecoind",
@@ -290,7 +290,8 @@ networks = {
             "external_zmqpubrawtx": "127.0.0.1:29333",
         },
         "geth": {
-            "image": "exchangeunion/geth",
+            "name": "geth",
+            "image": "exchangeunion/geth:1.9.12",
             "volumes": [
                 {
                     "host": "$data_dir/geth",
@@ -305,7 +306,8 @@ networks = {
             "infura_project_secret": None,
         },
         "lndbtc": {
-            "image": "exchangeunion/lnd",
+            "name": "lndbtc",
+            "image": "exchangeunion/lnd:0.9.2-beta",
             "volumes": [
                 {
                     "host": "$data_dir/lndbtc",
@@ -316,7 +318,8 @@ networks = {
             "mode": "native",
         },
         "lndltc": {
-            "image": "exchangeunion/lnd",
+            "name": "lndltc",
+            "image": "exchangeunion/lnd:0.9.0-beta-ltc",
             "volumes": [
                 {
                     "host": "$data_dir/lndltc",
@@ -327,7 +330,8 @@ networks = {
             "mode": "native",
         },
         "raiden": {
-            "image": "exchangeunion/raiden",
+            "name": "raiden",
+            "image": "exchangeunion/raiden:0.100.5a1.dev162-2217bcb",
             "volumes": [
                 {
                     "host": "$data_dir/raiden",
@@ -338,7 +342,8 @@ networks = {
             "mode": "native",
         },
         "xud": {
-            "image": "exchangeunion/xud",
+            "name": "xud",
+            "image": "exchangeunion/xud:1.0.0-beta.2",
             "volumes": [
                 {
                     "host": "$data_dir/xud",
@@ -393,51 +398,37 @@ class InvalidNetworkDir(Exception):
         super().__init__(reason)
 
 
-class NodesJsonMissing(Exception):
-    pass
+class ConfigLoader:
+    def load_general_config(self, home_dir):
+        config_file = get_hostfs_file(f"{home_dir}/xud-docker.conf")
+        sample_config_file = get_hostfs_file(f"{home_dir}/sample-xud-docker.conf")
+        try:
+            copyfile(os.path.dirname(__file__) + "/xud-docker.conf", sample_config_file)
+        except FileNotFoundError:
+            copyfile(os.path.dirname(__file__) + f"/xud-docker.conf", config_file)
+        with open(config_file) as f:
+            return f.read()
 
+    def load_network_config(self, network, network_dir):
+        config_file = get_hostfs_file(f"{network_dir}/{network}.conf")
+        sample_config_file = get_hostfs_file(f"{network_dir}/sample-{network}.conf")
+        try:
+            copyfile(os.path.dirname(__file__) + f'/{network}.conf', sample_config_file)
+        except FileNotFoundError:
+            copyfile(os.path.dirname(__file__) + f"/{network}.conf", config_file)
+        with open(config_file) as f:
+            return f.read()
 
-class Config:
-    def __init__(self):
-        self.logger = logging.getLogger("launcher.Config")
+    def load_lndenv(self, network_dir):
+        lndenv = get_hostfs_file(f"{network_dir}/lnd.env")
+        try:
+            with open(lndenv) as f:
+                return f.read()
+        except FileNotFoundError:
+            return ""
 
-        self.branch = "master"
-        self.disable_update = False
-        self.external_ip = None
-        self.network = os.environ["NETWORK"]
-
-        self.home_dir = self.ensure_home_dir()
-        self.network_dir = None
-        self.backup_dir = None
-        self.restore_dir = None
-
-        self.nodes = networks[self.network]
-
-        self.args = None
-
-    def parse(self):
-        self.parse_command_line_arguments()
-        self.network_dir = "{}/{}".format(self.home_dir, self.network)
-        # parse general configurations
-        self.parse_config_file()
-        self.apply_general_args()
-        # parse network specific configurations
-        self.network_dir = self.ensure_network_dir()
-        self.parse_network_config_file()
-        self.apply_network_args()
-
-        for node in self.nodes.values():
-            for v in node["volumes"]:
-                v["host"] = self.expand_vars(v["host"])
-
-        node_json = self.get_nodes_json()
-        for key, value in self.nodes.items():
-            image = node_json[key]["image"]
-            value["image"] = image
-
-    def ensure_home_dir(self):
-        home = os.environ["HOST_HOME"]
-        home_dir = home + "/.xud-docker"
+    def ensure_home_dir(self, host_home):
+        home_dir = host_home + "/.xud-docker"
         hostfs_dir = get_hostfs_file(home_dir)
         if os.path.exists(hostfs_dir):
             if not os.path.isdir(hostfs_dir):
@@ -451,8 +442,8 @@ class Config:
             os.mkdir(hostfs_dir)
         return home_dir
 
-    def ensure_network_dir(self):
-        network_dir = normalize_path(self.network_dir)
+    def ensure_network_dir(self, network_dir):
+        network_dir = normalize_path(network_dir)
         hostfs_dir = get_hostfs_file(network_dir)
         if os.path.exists(hostfs_dir):
             if not os.path.isdir(hostfs_dir):
@@ -469,6 +460,40 @@ class Config:
             os.mkdir(hostfs_dir + "/logs")
         return network_dir
 
+
+class Config:
+    def __init__(self, loader: ConfigLoader):
+        self.logger = logging.getLogger("launcher.Config")
+
+        self.loader = loader
+
+        self.branch = "master"
+        self.disable_update = False
+        self.external_ip = None
+        self.network = os.environ["NETWORK"]
+
+        self.home_dir = self.loader.ensure_home_dir(os.environ["HOST_HOME"])
+        self.network_dir = None
+        self.backup_dir = None
+        self.restore_dir = None
+
+        self.nodes = networks[self.network]
+
+        self.args = None
+
+        self.parse()
+
+    def parse(self):
+        self.parse_command_line_arguments()
+        self.network_dir = "{}/{}".format(self.home_dir, self.network)
+        self.parse_general_config()
+        self.network_dir = self.loader.ensure_network_dir(self.network_dir)
+        self.parse_network_config()
+
+        for node in self.nodes.values():
+            for v in node["volumes"]:
+                v["host"] = self.expand_vars(v["host"])
+
     def parse_command_line_arguments(self):
         parser = ArgumentParser(argument_default=argparse.SUPPRESS, prog="launcher")
         parser.add_argument("--branch", "-b")
@@ -478,15 +503,22 @@ class Config:
         parser.add_argument("--mainnet-dir")
         parser.add_argument("--external-ip")
         parser.add_argument("--backup-dir")
-        parser.add_argument("--bitcoin-neutrino", type=bool)
-        parser.add_argument("--litecoin-neutrino", type=bool)
         parser.add_argument("--nodes-json")
         parser.add_argument("--expose-ports")
 
         self.args = parser.parse_args()
-        self.logger.info("[Config] Parsed command-line arguments: %r", self.args)
+        self.logger.info("Parsed command-line arguments: %r", self.args)
 
-    def apply_general_args(self):
+    def parse_general_config(self):
+        network = self.network
+        parsed = toml.loads(self.loader.load_general_config(self.home_dir))
+        self.logger.info("Parsed general config file: %r", parsed)
+        key = f"{network}-dir"
+        if key in parsed:
+            self.network_dir = parsed[key]
+        if hasattr(self.args, f"{self.network}_dir"):
+            self.network_dir = getattr(self.args, f"{self.network}_dir")
+
         if hasattr(self.args, "branch"):
             self.branch = self.args.branch
 
@@ -495,53 +527,6 @@ class Config:
 
         if hasattr(self.args, "external_ip"):
             self.external_ip = self.args.external_ip
-
-        if hasattr(self.args, f"{self.network}_dir"):
-            self.network_dir = getattr(self.args, f"{self.network}_dir")
-
-    def apply_network_args(self):
-        if hasattr(self.args, "bitcoin_neutrino"):
-            if "bitcoind" in self.nodes:
-                self.nodes["bitcoind"]["mode"] = "neutrino"
-
-        if hasattr(self.args, "litecoin_neutrino"):
-            if "litecoind" in self.nodes:
-                self.nodes["litecoind"]["mode"] = "neutrino"
-
-        if hasattr(self.args, "expose_ports"):
-            value = self.args.expose_ports
-            parts = value.split(",")
-            p = re.compile("^(.*)/(.*)$")
-            for part in parts:
-                part = part.strip()
-                m = p.match(part)
-                if m:
-                    name = m.group(1)
-                    port = m.group(2)
-                    if name in self.nodes:
-                        ports = self.nodes[name]["ports"]
-                        port = PortPublish(port)
-                        if port not in ports:
-                            ports.append(port)
-                    else:
-                        raise CommandLineArgumentValueError("--expose-ports {}: No such node: {}".format(value, name))
-                else:
-                    raise CommandLineArgumentValueError("--expose-ports {}: Syntax error: {}".format(value, part))
-
-    def parse_config_file(self):
-        network = self.network
-        config_file = get_hostfs_file(f"{self.home_dir}/xud-docker.conf")
-        sample_config_file = get_hostfs_file(f"{self.home_dir}/sample-xud-docker.conf")
-        try:
-            copyfile(os.path.dirname(__file__) + "/xud-docker.conf", sample_config_file)
-            with open(config_file) as f:
-                parsed = toml.load(f)
-                self.logger.info("[Config] Parsed TOML file %s: %r", config_file, parsed)
-                key = f"{network}-dir"
-                if key in parsed:
-                    self.network_dir = parsed[key]
-        except FileNotFoundError:
-            copyfile(os.path.dirname(__file__) + f"/xud-docker.conf", config_file)
 
     def update_volume(self, volumes, container_dir, host_dir):
         target = [v for v in volumes if v["container_dir"] == container_dir]
@@ -564,42 +549,47 @@ class Config:
 
     def update_bitcoind_kind(self, node, parsed):
         if "external" in parsed:
-            print("Warning: Using deprecated field \"external\". Please use \"mode\" instead.")
+            print("Warning: Using deprecated option \"external\". Please use \"mode\" instead.")
             if parsed["external"]:
                 node["mode"] = "external"
 
         if "neutrino" in parsed:
-            print("Warning: Using deprecated field \"neutrino\". Please use \"mode\" instead.")
+            print("Warning: Using deprecated option \"neutrino\". Please use \"mode\" instead.")
             if parsed["neutrino"]:
                 node["mode"] = "neutrino"
 
         if "mode" in parsed:
             value = parsed["mode"]
             if value not in ["native", "external", "neutrino"]:
-                raise NetworkConfigFileValueError("Invalid value of field \"mode\": " + value)
-            node["mode"] = parsed["mode"]
+                raise NetworkConfigFileValueError("Invalid value of option \"mode\": {}".format(value))
+            node["mode"] = value
 
         if node["mode"] == "external":
             if "rpc-host" in parsed:
                 value = parsed["rpc-host"]
+                # TODO rpc-host value validation
                 node["external_rpc_host"] = value
             if "rpc-port" in parsed:
                 value = parsed["rpc-port"]
                 try:
                     node["external_rpc_port"] = int(value)
                 except ValueError:
-                    raise NetworkConfigFileValueError("Invalid value of field \"rpc-port\": " + value)
+                    raise NetworkConfigFileValueError("Invalid value of option \"rpc-port\": {}".format(value))
             if "rpc-user" in parsed:
                 value = parsed["rpc-user"]
+                # TODO rpc-user value validation
                 node["external_rpc_user"] = value
             if "rpc-password" in parsed:
                 value = parsed["rpc-password"]
+                # TODO rpc-password value validation
                 node["external_rpc_password"] = value
             if "zmqpubrawblock" in parsed:
                 value = parsed["zmqpubrawblock"]
+                # TODO zmqpubrawblock value validation
                 node["external_zmqpubrawblock"] = value
             if "zmqpubrawtx" in parsed:
                 value = parsed["zmqpubrawtx"]
+                # TODO zmqpubrawtx value validation
                 node["external_zmqpubrawtx"] = value
 
     def update_bitcoind(self, parsed):
@@ -649,37 +639,40 @@ class Config:
         self.update_ports(node, parsed)
 
         if "external" in parsed:
-            print("Warning: Using deprecated field \"external\". Please use \"mode\" instead.")
+            print("Warning: Using deprecated option \"external\". Please use \"mode\" instead.")
             if parsed["external"]:
                 node["mode"] = "external"
 
         if "infura-project-id" in parsed:
             if "mode" not in parsed:
-                print("Warning: Please use field \"mode\" to specify Infura usage.")
+                print("Warning: Please use option \"mode\" to specify Infura usage.")
                 node["mode"] = "infura"
 
         if "mode" in parsed:
             value = parsed["mode"]
             if value not in ["native", "external", "infura"]:
-                raise NetworkConfigFileValueError("Invalid value of field \"mode\": " + value)
-            node["mode"] = parsed["mode"]
+                raise NetworkConfigFileValueError("Invalid value of option \"mode\": {}" + value)
+            node["mode"] = value
 
         if node["mode"] == "external":
             if "rpc-host" in parsed:
                 value = parsed["rpc-host"]
+                # TODO rpc-host value validation
                 node["external_rpc_host"] = value
             if "rpc-port" in parsed:
                 value = parsed["rpc-port"]
                 try:
                     node["external_rpc_port"] = int(value)
                 except ValueError:
-                    raise NetworkConfigFileValueError("Invalid value of field \"rpc-port\": " + value)
+                    raise NetworkConfigFileValueError("Invalid value of option \"rpc-port\": {}".format(value))
         elif node["mode"] == "infura":
             if "infura-project-id" in parsed:
                 value = parsed["infura-project-id"]
+                # TODO infura-project-id value validation
                 node["infura_project_id"] = value
             if "infura-project-secret" in parsed:
                 value = parsed["infura-project-secret"]
+                # TODO infura-project-secret value validation
                 node["infura_project_secret"] = value
 
     def update_lndbtc(self, parsed):
@@ -717,48 +710,60 @@ class Config:
         node = self.nodes["ltcd"]
         self.update_ports(node, parsed)
 
-    def parse_network_config_file(self):
+    def parse_network_config(self):
         network = self.network
-        config_file = get_hostfs_file(f"{self.network_dir}/{network}.conf")
-        sample_config_file = get_hostfs_file(f"{self.network_dir}/sample-{network}.conf")
-        try:
-            copyfile(os.path.dirname(__file__) + f'/{network}.conf', sample_config_file)
-            with open(config_file) as f:
-                parsed = toml.load(f)
-                self.logger.info("[Config] Parsed TOML file %s: %r", config_file, parsed)
+        parsed = toml.loads(self.loader.load_network_config(network, self.network_dir))
+        self.logger.info("Parsed network config file: %r", parsed)
 
-                if "backup-dir" in parsed and len(parsed["backup-dir"].strip()) > 0:
-                    self.backup_dir = parsed["backup-dir"]
+        if "backup-dir" in parsed and len(parsed["backup-dir"].strip()) > 0:
+            self.backup_dir = parsed["backup-dir"]
 
-                if "bitcoind" in parsed:
-                    self.update_bitcoind(parsed["bitcoind"])
+        if "bitcoind" in parsed:
+            self.update_bitcoind(parsed["bitcoind"])
 
-                if "litecoind" in parsed:
-                    self.update_litecoind(parsed["litecoind"])
+        if "litecoind" in parsed:
+            self.update_litecoind(parsed["litecoind"])
 
-                if "geth" in parsed:
-                    self.update_geth(parsed["geth"])
+        if "geth" in parsed:
+            self.update_geth(parsed["geth"])
 
-                if "lndbtc" in parsed:
-                    self.update_lndbtc(parsed["lndbtc"])
+        if "lndbtc" in parsed:
+            self.update_lndbtc(parsed["lndbtc"])
 
-                if "lndltc" in parsed:
-                    self.update_lndltc(parsed["lndltc"])
+        if "lndltc" in parsed:
+            self.update_lndltc(parsed["lndltc"])
 
-                if "raiden" in parsed:
-                    self.update_raiden(parsed["raiden"])
+        if "raiden" in parsed:
+            self.update_raiden(parsed["raiden"])
 
-                if "xud" in parsed:
-                    self.update_xud(parsed["xud"])
+        if "xud" in parsed:
+            self.update_xud(parsed["xud"])
 
-                if "ltcd" in parsed:
-                    self.update_ltcd(parsed["ltcd"])
+        if "ltcd" in parsed:
+            self.update_ltcd(parsed["ltcd"])
 
-        except FileNotFoundError:
-            copyfile(os.path.dirname(__file__) + f"/{network}.conf", config_file)
+        if hasattr(self.args, "expose_ports"):
+            value = self.args.expose_ports
+            parts = value.split(",")
+            p = re.compile("^(.*)/(.*)$")
+            for part in parts:
+                part = part.strip()
+                m = p.match(part)
+                if m:
+                    name = m.group(1)
+                    port = m.group(2)
+                    if name in self.nodes:
+                        ports = self.nodes[name]["ports"]
+                        port = PortPublish(port)
+                        if port not in ports:
+                            ports.append(port)
+                    else:
+                        raise CommandLineArgumentValueError("--expose-ports {}: No such node: {}".format(value, name))
+                else:
+                    raise CommandLineArgumentValueError("--expose-ports {}: Syntax error: {}".format(value, part))
 
         # Backward compatible with lnd.env
-        lndenv = f"{self.home_dir}/{network}/lnd.env"
+        lndenv = get_hostfs_file(f"{self.network_dir}/lnd.env")
         try:
             with open(lndenv) as f:
                 for line in f.readlines():
@@ -787,14 +792,3 @@ class Config:
             suffix = os.environ["LOG_TIMESTAMP"]
             return f"{self.network_dir}/logs/{network}-{suffix}.log"
         return None
-
-    def get_nodes_json(self):
-        if hasattr(self.args, "nodes_json"):
-            f = get_hostfs_file(normalize_path(self.args.nodes_json))
-            return json.load(open(f))[self.network]
-
-        try:
-            r = urlopen(f"https://raw.githubusercontent.com/ExchangeUnion/xud-docker/{self.branch}/nodes.json")
-            return json.load(r)[self.network]
-        except:
-            raise NodesJsonMissing()

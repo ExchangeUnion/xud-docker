@@ -86,6 +86,12 @@ def create_git_info():
             history = get_branch_history(commit_before_travis)
         else:
             history = get_branch_history(master)
+
+        output = check_output("git diff --name-only", shell=True)
+        output = output.decode().strip()
+        if len(output) > 0:
+            history.insert(0, "HEAD")
+
         return GitInfo(b, r, master, history)
     return None
 
@@ -498,7 +504,7 @@ def get_modified_image(x):
             return None
 
 
-def get_modified_images_since_commit(nodes, commit):
+def get_modified_images_since_commit(commit):
     lines = check_output("git diff --name-only {}".format(commit), shell=True, stderr=PIPE).decode().splitlines()
 
     modified = set()
@@ -512,7 +518,7 @@ def get_modified_images_since_commit(nodes, commit):
     return sorted(modified)
 
 
-def get_modified_images_at_commit(nodes, commit):
+def get_modified_images_at_commit(commit):
     lines = check_output("git diff-tree --no-commit-id --name-only -r {}".format(commit), shell=True, stderr=PIPE).decode().splitlines()
 
     modified = set()
@@ -535,14 +541,14 @@ def get_unmodified_history(img, history, history_modified):
     return h
 
 
-def get_modified_images(nodes):
+def get_modified_images():
     if branch == "master":
-        modified = get_modified_images_since_commit(nodes, commit_before_travis)
+        modified = get_modified_images_since_commit(commit_before_travis)
     else:
-        modified = get_modified_images_since_commit(nodes, gitinfo.master)
+        modified = get_modified_images_since_commit(gitinfo.master)
     history_modified = []
     for commit in gitinfo.history:
-        images = get_modified_images_at_commit(nodes, commit)
+        images = get_modified_images_at_commit(commit)
         history_modified.append(images)
     print("Unmodified history:")
     for img in modified:
@@ -564,7 +570,9 @@ def test(args):
     #     cmd = "./xud.sh -b {}".format(gitinfo.branch)
     #     os.system(cmd)
     os.chdir(projectdir)
-    os.system("python3 -m tests")
+    exit_code = os.system("python3.8 -m pytest -s")
+    if exit_code != 0:
+        sys.exit(1)
 
 
 def parse_image_with_tag(image):
@@ -636,8 +644,6 @@ def main():
     if hasattr(args, "dry_run") and args.dry_run:
         dry_run = True
 
-    nodes = json.load(open("../nodes.json"))
-
     if args.command == "build":
         if args.no_cache:
             no_cache = True
@@ -651,7 +657,7 @@ def main():
                 branch = args.branch
         if len(args.images) == 0:
             # Auto-detect modified images
-            modified = filter_deleted_images(get_modified_images(nodes))
+            modified = filter_deleted_images(get_modified_images())
             print_modified_images(modified)
             for image in modified:
                 image.build()
@@ -679,7 +685,7 @@ def main():
             exit(1)
         if len(args.images) == 0:
             # Auto-detect modified images
-            modified = filter_deleted_images(get_modified_images(nodes))
+            modified = filter_deleted_images(get_modified_images())
             print_modified_images(modified)
             for image in modified:
                 image.push()

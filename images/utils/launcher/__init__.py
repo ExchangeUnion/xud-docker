@@ -1,11 +1,11 @@
 import logging
-from .shell import Shell
 import shlex
 import toml
 from shutil import copyfile
 import traceback
 
-from .config import Config, ArgumentError, InvalidHomeDir, InvalidNetworkDir
+from .config import Config, ConfigLoader, ArgumentError, InvalidHomeDir, InvalidNetworkDir
+from .shell import Shell
 from .node import NodeManager, NodeNotFound, ImagesNotAvailable
 from .utils import ParallelExecutionError, get_hostfs_file
 from .errors import NetworkConfigFileSyntaxError, NetworkConfigFileValueError, CommandLineArgumentValueError
@@ -32,13 +32,13 @@ init_logging()
 
 
 class XudEnv:
-    def __init__(self, config: Config, shell: Shell):
+    def __init__(self, config, shell):
         self.logger = logging.getLogger("launcher.XudEnv")
 
         self.config = config
         self.shell = shell
 
-        self.node_manager = NodeManager(self.config, self.shell)
+        self.node_manager = NodeManager(config, shell)
 
     def delegate_cmd_to_xucli(self, cmd):
         self.node_manager.get_node("xud").cli(cmd, self.shell)
@@ -129,14 +129,14 @@ class Launcher:
         self.logfile = None
 
     def launch(self):
-        sh = Shell()
+        shell = Shell()
         exit_code = 0
-        cfg = None
+        config = None
         try:
-            cfg = Config()
-            cfg.parse()
-            sh.set_network_dir(cfg.network_dir)  # will create shell history file in network_dir
-            env = XudEnv(cfg, sh)
+            config = Config(ConfigLoader())
+            assert config.network_dir is not None
+            shell.set_network_dir(config.network_dir)  # will create shell history file in network_dir
+            env = XudEnv(config, shell)
             env.start()
         except KeyboardInterrupt:
             print()
@@ -164,14 +164,14 @@ class Launcher:
             exit_code = 101
         except:
             self.logger.exception("Failed to launch")
-            if cfg and cfg.logfile:
-                copyfile("/var/log/launcher.log", get_hostfs_file(cfg.logfile))
-                print(f"❌ Failed to launch {cfg.network} environment. For more details, see {cfg.logfile}")
+            if config and config.logfile:
+                copyfile("/var/log/launcher.log", get_hostfs_file(config.logfile))
+                print(f"❌ Failed to launch {config.network} environment. For more details, see {config.logfile}")
                 traceback.print_exc()
             else:
                 traceback.print_exc()
             exit_code = 1
         finally:
-            sh.stop()
+            shell.stop()
         exit(exit_code)
 

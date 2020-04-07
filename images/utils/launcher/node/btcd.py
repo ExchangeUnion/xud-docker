@@ -1,13 +1,11 @@
-from docker import DockerClient
 from .base import Node, CliBackend
 from .bitcoind import BitcoindApi
-from ..config import Config
 
 
 class Btcd(Node):
-    def __init__(self, client: DockerClient, config: Config, name, litecoin: bool = False):
+    def __init__(self, name, ctx, litecoin: bool = False):
         self.litecoin = litecoin
-        super().__init__(client, config, name)
+        super().__init__(name, ctx)
 
         command = [
             "--simnet",
@@ -28,7 +26,7 @@ class Btcd(Node):
         if self.network == "simnet":
             self._cli += " --simnet"
 
-        self.api = BitcoindApi(CliBackend(client, self.container_name, self._logger, self._cli))
+        self.api = BitcoindApi(CliBackend(self.client, self.container_name, self._logger, self._cli))
 
     def status(self):
         status = super().status()

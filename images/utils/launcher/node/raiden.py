@@ -1,7 +1,5 @@
-from docker import DockerClient
 from .base import Node, CliBackend, CliError
 import json
-from ..config import Config
 
 
 class RaidenApiError(Exception):
@@ -20,8 +18,8 @@ class RaidenApi:
 
 
 class Raiden(Node):
-    def __init__(self, client: DockerClient, config: Config, name: str):
-        super().__init__(client, config, name)
+    def __init__(self, name, ctx):
+        super().__init__(name, ctx)
 
         if self.network == "simnet":
             environment = [
@@ -47,7 +45,7 @@ class Raiden(Node):
             environment = []
 
         if self.network in ["testnet", "mainnet"]:
-            geth = config.nodes["geth"]
+            geth = self.config.nodes["geth"]
             if geth["mode"] == "external":
                 rpc_host = geth["external_rpc_host"]
                 rpc_port = geth["external_rpc_port"]
@@ -69,7 +67,7 @@ class Raiden(Node):
         self.container_spec.environment.extend(environment)
 
         self._cli = "curl -s"
-        self.api = RaidenApi(CliBackend(client, self.container_name, self._logger, self._cli))
+        self.api = RaidenApi(CliBackend(self.client, self.container_name, self._logger, self._cli))
 
     def status(self):
         status = super().status()

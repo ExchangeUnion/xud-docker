@@ -10,7 +10,7 @@ services:
   - docker
 before_script:
   - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
-  - pip install pexpect
+  - pip install -r requirements-dev.txt
 script: tools/push --no-manifest-list
 jobs:
   include:
