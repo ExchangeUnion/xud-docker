@@ -332,7 +332,9 @@ def test1():
         branch = output.decode().splitlines()[0]
         if branch == "HEAD":
             branch = os.environ["TRAVIS_BRANCH"]
-        child = pexpect.spawnu("bash setup.sh -b {}".format(branch))
+        cmd = "bash setup.sh -b {}".format(branch)
+        print("$ {}".format(cmd))
+        child = pexpect.spawnu(cmd)
         run_flow(child, simple_flow)
     except:
         diagnose()
