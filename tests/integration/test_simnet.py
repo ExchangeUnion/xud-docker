@@ -7,6 +7,9 @@ import os
 from shutil import copyfile
 from subprocess import check_output, CalledProcessError, PIPE
 import sys
+import re
+
+from .utils import simulate_tty
 
 
 def cleanup_containers(network):
@@ -106,60 +109,6 @@ def check_containers():
     # print(find("raiden").logs().decode())
 
     print("-" * 80)
-
-
-def simulate_tty(data):
-    lines = [" "*80]
-    x = 0
-    y = 0
-
-    i = 0
-    n = len(data)
-    while i < n:
-        if data[i] == '\033':
-            if data[i + 1] == '[':
-                j = i + 2
-                while j < n:
-                    if not data[j].isdigit():
-                        break
-                    j = j + 1
-                if j == i + 2:
-                    # not followed by numbers
-                    if data[j] == 'K':
-                        lines[y] = " " * 80
-                        x = 0
-                        i = j + 1
-                    else:
-                        raise RuntimeError("should be K at {}".format(j))
-                else:
-                    m = int(data[i + 2:j])
-                    if data[j] == 'A':
-                        y = y - m
-                        i = j + 1
-                    else:
-                        raise RuntimeError("should be A at {}".format(j))
-            else:
-                raise RuntimeError("should be [ at {}".format(i + 1))
-        elif data[i] == '\r':
-            x = 0
-            i = i + 1
-        elif data[i] == '\n':
-            y = y + 1
-            i = i + 1
-            if y >= len(lines):
-                for j in range(len(lines), y+1):
-                    lines.append(" " * 80)
-        else:
-            if y >= len(lines):
-                for j in range(len(lines), y+1):
-                    lines.append(" " * 80)
-            line = lines[y]
-            line = line[:x] + data[i] + line[x+1:]
-            lines[y] = line
-            x = x + 1
-            i = i + 1
-
-    return lines
 
 
 def create_wallet(child, retry=0):
@@ -277,7 +226,27 @@ def expect_command_status(child):
     print("status")
 
     child.expect("simnet > ")
-    print(child.before, end="")
+
+    lines = simulate_tty(child.before)
+    for line in lines:
+        print(line)
+
+    nodes = ["lndbtc", "lndltc", "raiden", "xud"]
+
+    status = {}
+
+    for i, node in enumerate(nodes):
+        p = re.compile(r"^.*%s.*│(.+)│.*$" % node)
+        m = p.match(lines[i * 2 + 3])
+        if m:
+            status[node] = m.group(1).strip()
+        else:
+            raise AssertionError("Failed to parse {} status".format(node))
+
+    print(status)
+
+    input()
+
     print(child.match.group(0), end="")
     sys.stdout.flush()
 
@@ -288,7 +257,8 @@ def expect_command_getinfo(child):
     print("getinfo")
 
     child.expect("simnet > ")
-    print(child.before, end="")
+    for line in simulate_tty(child.before):
+        print(line)
     print(child.match.group(0), end="")
     sys.stdout.flush()
 
@@ -330,6 +300,8 @@ def simple_flow(child):
     print(child.before, end="")
     print(child.match.group(0), end="")
     sys.stdout.flush()
+
+    time.sleep(10)
 
     expect_command_status(child)
     expect_command_getinfo(child)
