@@ -262,6 +262,45 @@ def create_wallet(child, retry=0):
     print()
 
 
+def expect_banner(child):
+    print("[EXPECT] The banner")
+    banner = open(os.path.dirname(__file__) + "/banner.txt").read()
+    banner = banner.replace("\n", "\r\n")
+    child.expect_exact(banner)
+    print(child.before, end="")
+    print(child.match, end="")
+
+
+def expect_command_status(child):
+    child.sendline("status\r")
+    child.expect("status\r\n")
+    print("status")
+
+    child.expect("simnet > ")
+    print(child.before, end="")
+    print(child.match.group(0), end="")
+    sys.stdout.flush()
+
+
+def expect_command_getinfo(child):
+    child.sendline("getinfo\r")
+    child.expect("getinfo\r\n")
+    print("getinfo")
+
+    child.expect("simnet > ")
+    print(child.before, end="")
+    print(child.match.group(0), end="")
+    sys.stdout.flush()
+
+
+def expect_command_exit(child):
+    child.sendline("exit\r")
+    child.expect("exit\r\n")
+    print("exit")
+
+    child.eof()
+
+
 def simple_flow(child):
     print("[EXPECT] Network choosing (testnet)")
     child.expect("Please choose the network: ")
@@ -285,51 +324,16 @@ def simple_flow(child):
     print(child.match.group(0), end="")
     sys.stdout.flush()
 
-    create_wallet(child)
+    expect_banner(child)
 
-    print("[EXPECT] Backup location setup")
-    child.expect("Enter path to backup location: ")
-    print(child.before, end="")
-    print(child.match.group(0), end="")
-    sys.stdout.flush()
-    child.sendline("/tmp/xud-testnet-backup\r")
-    child.expect("/tmp/xud-testnet-backup\r\n")
-    print("/tmp/xud-testnet-backup")
-
-    child.expect("Checking backup location... (.*).")
+    child.expect("simnet > ")
     print(child.before, end="")
     print(child.match.group(0), end="")
     sys.stdout.flush()
 
-    print("[EXPECT] Xudctl shell")
-    child.expect("testnet > ")
-    print(child.before, end="")
-    print(child.match.group(0), end="")
-    sys.stdout.flush()
-
-    child.sendline("status\r")
-    child.expect("status\r\n")
-    print("status")
-
-    child.expect("testnet > ")
-    print(child.before, end="")
-    print(child.match.group(0), end="")
-    sys.stdout.flush()
-
-    child.sendline("getinfo\r")
-    child.expect("getinfo\r\n")
-    print("getinfo")
-
-    child.expect("testnet > ")
-    print(child.before, end="")
-    print(child.match.group(0), end="")
-    sys.stdout.flush()
-
-    child.sendline("exit\r")
-    child.expect("exit\r\n")
-    print("exit")
-
-    child.eof()
+    expect_command_status(child)
+    expect_command_getinfo(child)
+    expect_command_exit(child)
 
 
 def run_flow(child, flow):
