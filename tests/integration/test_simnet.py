@@ -5,7 +5,7 @@ import docker.errors
 import time
 import os
 from shutil import copyfile
-from subprocess import check_output, CalledProcessError, PIPE
+from subprocess import check_output
 import sys
 import re
 
@@ -111,106 +111,6 @@ def check_containers():
     print("-" * 80)
 
 
-def create_wallet(child, retry=0):
-    if retry > 10:
-        raise AssertionError("Creating wallets failed too many times")
-    if retry == 0:
-        print("[EXPECT] Create/Restore choice")
-        child.expect(r"Do you want to create a new xud environment or restore an existing one\?", timeout=500)
-        for line in simulate_tty(child.before):
-            print(line)
-        print(child.match.group(0), end="")
-        sys.stdout.flush()
-
-        child.expect("Please choose: ")
-        print(child.before, end="")
-        print(child.match.group(0), end="")
-        sys.stdout.flush()
-
-        child.sendline("1\r")
-        child.expect("1\r\n")
-        print("1")
-
-    print("[EXPECT] Xud master password")
-    child.expect("You are creating an xud node key and underlying wallets.", timeout=180)
-    print(child.before, end="")
-    print(child.match.group(0), end="")
-    sys.stdout.flush()
-
-    child.expect("Enter a password: ")
-    print(child.before, end="")
-    print(child.match.group(0), end="")
-    sys.stdout.flush()
-    child.sendline("12345678\r")
-    child.expect("\r\n")
-    print()
-
-    child.expect("Re-enter password: ")
-    print(child.before, end="")
-    print(child.match.group(0), end="")
-    sys.stdout.flush()
-    child.sendline("12345678\r")
-    child.expect("\r\n")
-    print()
-
-    i = child.expect([
-        "----------------------BEGIN XUD SEED---------------------\r\n",
-        r"Do you want to create a new xud environment or restore an existing one\?\r\n",
-    ])
-
-    if i == 0:
-        print(child.before, end="")
-        print(child.match.group(0), end="")
-        sys.stdout.flush()
-
-        child.expect("-----------------------END XUD SEED----------------------\r\n")
-        seed = child.before
-        print(child.before, end="")
-        print(child.match.group(0), end="")
-        sys.stdout.flush()
-    elif i == 1:
-        failed_reason: str = child.before
-        failed_reason = failed_reason.strip()
-        print(child.before, end="")
-        sys.stdout.flush()
-
-        if failed_reason == "xud is starting... try again in a few seconds":
-            pass
-        elif failed_reason.startswith("Error: 13 INTERNAL: could not initialize lnd-BTC"):
-            pass
-        elif failed_reason.startswith("Error: 13 INTERNAL: could not initialize lnd-LTC"):
-            pass
-        elif failed_reason == "Error: 14 UNAVAILABLE: lnd-BTC is Disconnected":
-            pass
-        elif failed_reason == "Error: 14 UNAVAILABLE: lnd-LTC is Disconnected":
-            pass
-        else:
-            raise AssertionError("Failed to create wallets: {}".format(failed_reason))
-
-        print(child.match.group(0), end="")
-        sys.stdout.flush()
-
-        child.expect("Please choose: ")
-        print(child.before, end="")
-        print(child.match.group(0), end="")
-        sys.stdout.flush()
-
-        time.sleep(10)
-
-        child.sendline("1\r")
-        child.expect("1\r\n")
-        print("1")
-        create_wallet(child, retry=retry + 1)
-        return
-
-    child.expect("YOU WILL NOT BE ABLE TO DISPLAY YOUR XUD SEED AGAIN. Press ENTER to continue...")
-    print(child.before, end="")
-    print(child.match.group(0), end="")
-    child.sendline("\r")
-    child.expect("\r\n")
-    print()
-
-
 def expect_banner(child):
     print("[EXPECT] The banner")
     banner = open(os.path.dirname(__file__) + "/banner.txt").read()
@@ -272,7 +172,7 @@ def expect_command_exit(child):
 
 
 def simple_flow(child):
-    print("[EXPECT] Network choosing (testnet)")
+    print("[EXPECT] Network choosing (simnet)")
     child.expect("Please choose the network: ")
     print(child.before, end="")
     print(child.match.group(0), end="")
