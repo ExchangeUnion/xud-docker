@@ -16,5 +16,4 @@ COPY --from=builder /opt/venv /opt/venv
 WORKDIR /opt
 COPY entrypoint.sh onboarder.py /opt/
 ENTRYPOINT ["/opt/entrypoint.sh"]
-EXPOSE 5001
 VOLUME ["/root/.raiden"]

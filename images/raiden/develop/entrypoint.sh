@@ -20,6 +20,16 @@ else
     addr=$(cat addr.txt)
 fi
 
+echo python -m raiden \
+--accept-disclaimer \
+--datadir /root/.raiden \
+--keystore-path /root/.raiden/keystore \
+--password-file /root/.raiden/password.txt \
+--address $addr \
+--rpc \
+--api-address 0.0.0.0:5001 \
+$@
+
 python -m raiden \
 --accept-disclaimer \
 --datadir /root/.raiden \

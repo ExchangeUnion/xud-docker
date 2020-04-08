@@ -67,7 +67,7 @@ networks = {
     "simnet": {
         "lndbtc": {
             "name": "lndbtc",
-            "image": "exchangeunion/lnd:0.8.2-beta-simnet",
+            "image": "exchangeunion/lnd:0.9.2-beta-patched",
             "volumes": [
                 {
                     "host": "$data_dir/lndbtc",
@@ -80,7 +80,7 @@ networks = {
         },
         "lndltc": {
             "name": "lndltc",
-            "image": "exchangeunion/lnd:0.8.2-beta-simnet",
+            "image": "exchangeunion/lnd:0.9.0-beta-ltc-patched",
             "volumes": [
                 {
                     "host": "$data_dir/lndltc",
@@ -97,7 +97,7 @@ networks = {
         },
         "raiden": {
             "name": "raiden",
-            "image": "exchangeunion/raiden:0.100.5a1.dev162-2217bcb-simnet",
+            "image": "exchangeunion/raiden:develop",
             "volumes": [
                 {
                     "host": "$data_dir/raiden",
@@ -110,7 +110,7 @@ networks = {
         },
         "xud": {
             "name": "xud",
-            "image": "exchangeunion/xud:1.0.0-beta.2-simnet",
+            "image": "exchangeunion/xud:latest",
             "volumes": [
                 {
                     "host": "$data_dir/xud",
