@@ -434,7 +434,7 @@ class Node:
             same, details = self.compare(container)
 
             if same:
-                return "up-to-date", None
+                return "up-to-date", details
             else:
                 return "outdated", details
 
