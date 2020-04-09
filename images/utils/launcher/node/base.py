@@ -40,7 +40,7 @@ class CompareEntity:
         self.diff = diff
 
     def __repr__(self):
-        return f"<CompareEntity {self.obj=} {self.diff=}>"
+        return f"<CompareEntity obj={self.obj} diff={self.diff}>"
 
 
 class CompareResult:
@@ -51,7 +51,7 @@ class CompareResult:
         self.new = new
 
     def __repr__(self):
-        return f"<CompareDetails {self.same=} {self.message=} {self.old=} {self.new=}>"
+        return f"<CompareDetails same={self.same} message={self.message} old={self.old} new={self.new}>"
 
 
 class Node:
