@@ -145,8 +145,6 @@ def expect_command_status(child):
 
     print(status)
 
-    input()
-
     print(child.match.group(0), end="")
     sys.stdout.flush()
 
