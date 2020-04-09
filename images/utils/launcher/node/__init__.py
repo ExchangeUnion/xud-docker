@@ -215,7 +215,15 @@ class NodeManager:
     def pretty_container_check_result(self, container_check_result):
         result = []
         for key, value in container_check_result.items():
-            result.append("- {}\n  Status: {}\n  Details: {}".format(key, value[0], value[1]))
+            status, details = value
+
+            if details:
+                details_str = "\n"
+                for key2, value in details.items():
+                    details_str += "  * {}: {}\n    old: {}\n    new: {}\n".format(key2, value.message, value.old, value.new)
+            else:
+                details_str = "\n    (None)"
+            result.append("- {}\n  Status: {}\n  Details: {}".format(key, status, details_str))
         return "\n".join(result)
 
     def _display_container_status_text(self, status):
@@ -236,7 +244,7 @@ class NodeManager:
         print("🌍 Checking for updates...")
         images = self.image_manager.check_for_updates()
 
-        self.logger.info("[Update] Image checking result:\n{}".format(self.pretty_image_check_result(images)))
+        self.logger.info("Image update checking result:\n{}".format(self.pretty_image_check_result(images)))
 
         # TODO handle image local status. Print a warning or give users a choice
         for image in images:
@@ -266,7 +274,7 @@ class NodeManager:
 
         parallel_execute(containers, lambda c: c.check_for_updates(), 60, print_failed, try_again, handle_result)
 
-        self.logger.info("[Update] Container checking result:\n{}".format(self.pretty_container_check_result(container_check_result)))
+        self.logger.info("Container update checking result:\n{}".format(self.pretty_container_check_result(container_check_result)))
 
         for container, result in container_check_result.items():
             status, details = result
