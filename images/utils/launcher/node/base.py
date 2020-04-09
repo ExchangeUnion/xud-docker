@@ -395,7 +395,7 @@ class Node:
         new = CompareEntity(new_ports)
 
         old_set = set(old_ports)
-        new_set = set(old_ports)
+        new_set = set(new_ports)
 
         if old_set != new_set:
             old.diff = old_set - new_set
