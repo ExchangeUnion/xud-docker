@@ -61,7 +61,7 @@ testnet)
   TOKEN_NETWORK_REGISTRY_ADDRESS="0x04662e916bA46bf84638daF72b067478053B6801"
   NETWORK_ID=3
   OPTS+=(
-    "--network-id ropsten"
+    "--network-id rinkeby"
     "--routing-mode local"
     "--environment-type production"
     "--tokennetwork-registry-contract-address $TOKEN_NETWORK_REGISTRY_ADDRESS"
