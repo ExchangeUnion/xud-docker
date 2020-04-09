@@ -527,7 +527,7 @@ class Config:
             self.external_ip = self.args.external_ip
 
     def update_volume(self, volumes, container_dir, host_dir):
-        target = [v for v in volumes if v["container_dir"] == container_dir]
+        target = [v for v in volumes if v["container"] == container_dir]
         if len(target) == 0:
             volumes.append({
                 "host": host_dir,
