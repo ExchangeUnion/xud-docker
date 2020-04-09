@@ -40,7 +40,7 @@ class CompareEntity:
         self.diff = diff
 
     def __repr__(self):
-        return f"<CompareEntity {self.obj=} {self.diff=}>"
+        return f"<CompareEntity obj={self.obj} diff={self.diff}>"
 
 
 class CompareResult:
@@ -51,7 +51,7 @@ class CompareResult:
         self.new = new
 
     def __repr__(self):
-        return f"<CompareDetails {self.same=} {self.message=} {self.old=} {self.new=}>"
+        return f"<CompareDetails same={self.same} message={self.message} old={self.old} new={self.new}>"
 
 
 class Node:
@@ -395,7 +395,7 @@ class Node:
         new = CompareEntity(new_ports)
 
         old_set = set(old_ports)
-        new_set = set(old_ports)
+        new_set = set(new_ports)
 
         if old_set != new_set:
             old.diff = old_set - new_set
@@ -434,7 +434,7 @@ class Node:
             same, details = self.compare(container)
 
             if same:
-                return "up-to-date", None
+                return "up-to-date", details
             else:
                 return "outdated", details
 
