@@ -99,6 +99,12 @@ class Image:
         else:
             return self.name + "__" + self.branch.replace("/", "-")
 
+    @property
+    def digest(self):
+        if not self.local_metadata:
+            return None
+        return self.local_metadata.digest
+
     def get_image_metadata(self, name):
         image = self.client.images.get(name)
         digest = image.id
