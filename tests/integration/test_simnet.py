@@ -115,7 +115,7 @@ def expect_banner(child):
     print("[EXPECT] The banner")
     banner = open(os.path.dirname(__file__) + "/banner.txt").read()
     banner = banner.replace("\n", "\r\n")
-    child.expect_exact(banner)
+    child.expect_exact(banner, timeout=500)
     print(child.before, end="")
     print(child.match, end="")
 
