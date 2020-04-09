@@ -61,7 +61,7 @@ class Raiden(Node):
                     ])
                 elif self.network == "testnet":
                     environment.extend([
-                        f'RPC_ENDPOINT=https://ropsten.infura.io/v3/{project_id}'
+                        f'RPC_ENDPOINT=https://rinkeby.infura.io/v3/{project_id}'
                     ])
 
         self.container_spec.environment.extend(environment)
