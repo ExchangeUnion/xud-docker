@@ -5,9 +5,10 @@ import docker.errors
 import time
 import os
 from shutil import copyfile
-from subprocess import check_output
+from subprocess import check_output, PIPE, CalledProcessError
 import sys
 import re
+import json
 
 from .utils import simulate_tty
 
@@ -120,7 +121,55 @@ def expect_banner(child):
     print(child.match, end="")
 
 
+def wait_lnd_synced(chain):
+    if chain == "bitcoin":
+        name = "lndbtc"
+    elif chain == "litecoin":
+        name = "lndltc"
+    else:
+        raise ValueError("chain should be bitcoin or litecoin")
+
+    height = None
+    for i in range(10):
+        try:
+            info = json.loads(check_output("docker exec simnet_{}_1 lncli -n simnet -c {} getinfo".format(name, chain), shell=True, stderr=PIPE).decode())
+            height = info["block_height"]
+        except CalledProcessError as e:
+            print(e.stderr.decode())
+        time.sleep(3)
+
+    if not height:
+        raise AssertionError("Failed to get block height of {}".format(name))
+
+    print("{} block height: {}".format(name, height))
+
+    for i in range(1000):
+        try:
+            lines = check_output("docker logs --tail=100 simnet_{}_1 | grep 'New block'".format(name), shell=True, stderr=PIPE).decode().splitlines()
+            if len(lines) > 0:
+                p = re.compile(r"^.*height=(\d+).*$")
+                m = p.match(lines[-1])
+                if m:
+                    current_height = int(m.group(1))
+                    print("{} current block height: {}/{}".format(name, current_height, height))
+                    if current_height >= height:
+                        return
+                else:
+                    print(lines[-1])
+        except CalledProcessError as e:
+            print(e.stderr.decode())
+        time.sleep(3)
+    raise AssertionError("Failed to wait for {}".format(name))
+
+
 def expect_command_status(child):
+    wait_lnd_synced("bitcoin")
+    wait_lnd_synced("litecoin")
+
+    print(child.before, end="")
+    print(child.match.group(0), end="")
+    sys.stdout.flush()
+
     child.sendline("status\r")
     child.expect("status\r\n")
     print("status")
@@ -195,11 +244,6 @@ def simple_flow(child):
     expect_banner(child)
 
     child.expect("simnet > ")
-    print(child.before, end="")
-    print(child.match.group(0), end="")
-    sys.stdout.flush()
-
-    time.sleep(10)
 
     expect_command_status(child)
     expect_command_getinfo(child)
