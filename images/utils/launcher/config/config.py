@@ -535,7 +535,7 @@ class Config:
             })
         else:
             target = target[0]
-            target["host_dir"] = host_dir
+            target["host"] = host_dir
 
     def update_ports(self, node, parsed):
         if "expose-ports" in parsed:
