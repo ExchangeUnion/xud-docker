@@ -99,8 +99,3 @@ class Geth(Node):
                 return "Container running"
         else:
             return status
-
-    def cli(self, cmd, shell):
-        if self.external:
-            return
-        return super().cli(cmd, shell)
