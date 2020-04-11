@@ -32,12 +32,28 @@ class Geth(Node):
                 "project_secret": self.node_config["infura_project_secret"],
             }
 
+        self.container_spec.environment.extend(self.get_environment())
+
         if self.network == "testnet":
             self._cli = "geth --testnet"
         elif self.network == "mainnet":
             self._cli = "geth"
 
         self.api = GethApi(CliBackend(self.client, self.container_name, self._logger, self._cli))
+
+    def get_environment(self):
+        result = []
+        if self.use_custom_ancient_chaindata():
+            result.append("CUSTOM_ANCIENT_CHAINDATA=true")
+        else:
+            result.append("CUSTOM_ANCIENT_CHAINDATA=false")
+        return result
+
+    def use_custom_ancient_chaindata(self):
+        for v in self.node_config["volumes"]:
+            if v["container"] == "/root/.ethereum-ancient-chaindata":
+                return True
+        return False
 
     def get_external_status(self):
         s = socket.socket()

@@ -627,12 +627,7 @@ class Config:
 
         if "ancient-chaindata-dir" in parsed:
             value = parsed["ancient-chaindata-dir"]
-            # TODO backward compatible with /root/.ethereum/chaindata
-            if self.network == "mainnet":
-                host_dir = "/root/.ethereum/chaindata/ancient"
-            else:
-                host_dir = "/root/.ethereum/testnet/chaindata/ancient"
-            self.update_volume(node["volumes"], host_dir, value)
+            self.update_volume(node["volumes"], "/root/.ethereum-ancient-chaindata", value)
 
         self.update_ports(node, parsed)
 
