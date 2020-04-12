@@ -117,7 +117,9 @@ def expect_banner(child):
     banner = open(os.path.dirname(__file__) + "/banner.txt").read()
     banner = banner.replace("\n", "\r\n")
     child.expect_exact(banner, timeout=500)
-    print(child.before, end="")
+    lines = simulate_tty(child.before)
+    for line in lines:
+        print(line)
     print(child.match, end="")
 
 
