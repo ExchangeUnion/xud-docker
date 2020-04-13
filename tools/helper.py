@@ -225,13 +225,15 @@ class Image:
                     source = "{}/blob/{}/images/{}/{}/Dockerfile".format(
                         projectgithub, self.git.revision, self.name, self.tag)
                 labels += [
-                    "--label {}.source={}".format(labelprefix, source)
+                    "--label {}.source='{}'".format(labelprefix, source)
                 ]
         else:
             labels.extend([
                 "--label {}.revision=".format(labelprefix),
                 "--label {}.source=".format(labelprefix),
             ])
+        if "TRAVIS_BUILD_WEB_URL" in os.environ:
+            labels.append("--label {}.travis='{}'".format(labelprefix, os.environ["TRAVIS_BUILD_WEB_URL"]))
         return labels
 
     def get_build_args(self, args):
