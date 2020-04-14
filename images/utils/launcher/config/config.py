@@ -95,13 +95,13 @@ networks = {
             "mode": "native",
             "preserve_config": False,
         },
-        "raiden": {
-            "name": "raiden",
-            "image": "exchangeunion/raiden:develop",
+        "connext": {
+            "name": "connext",
+            "image": "exchangeunion/connext:1.0.0-beta.2-simnet",
             "volumes": [
                 {
-                    "host": "$data_dir/raiden",
-                    "container": "/root/.raiden",
+                    "host": "$data_dir/connext",
+                    "container": "/root/.connext",
                 },
             ],
             "ports": [],
@@ -703,10 +703,19 @@ class Config:
         node = self.nodes["lndltc"]
         self.update_ports(node, parsed)
 
+    def update_connext(self, parsed):
+        """Update Connext related configurations from parsed TOML raiden section
+        :param parsed: Parsed raiden TOML section
+        """
+        node = self.nodes["connext"]
+        self.update_ports(node, parsed)
+
     def update_raiden(self, parsed):
         """Update raiden related configurations from parsed TOML raiden section
         :param parsed: Parsed raiden TOML section
         """
+        if self.network == "simnet":
+            return
         node = self.nodes["raiden"]
         self.update_ports(node, parsed)
 
@@ -749,6 +758,9 @@ class Config:
 
         if "raiden" in parsed:
             self.update_raiden(parsed["raiden"])
+
+        if "connext" in parsed:
+            self.update_connext(parsed["connext"])
 
         if "xud" in parsed:
             self.update_xud(parsed["xud"])
