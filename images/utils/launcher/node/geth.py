@@ -70,7 +70,12 @@ class Geth(Node):
 
     def get_infura_status(self):
         s = socket.socket()
-        rpc_host = f"{self.network}.infura.io"
+        if self.network == "mainnet":
+            rpc_host = "mainnet.infura.io"
+        elif self.network == "testnet":
+            rpc_host = "ropsten.infura.io"
+        else:
+            raise RuntimeError(f"{self.network} won't use Infura")
         rpc_port = 443
         try:
             s.connect((rpc_host, rpc_port))
