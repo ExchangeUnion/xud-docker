@@ -204,7 +204,7 @@ class Image:
                 print("ERROR: Unexpected schemaVersion: " + payload["schemaVersion"], file=sys.stderr)
                 exit(1)
         except HTTPError as e:
-            if e.code == 404:
+            if e.code == 404 or e.code == 401:
                 return False
             else:
                 raise e
