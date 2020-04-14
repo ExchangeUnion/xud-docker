@@ -527,7 +527,7 @@ class Config:
             self.external_ip = self.args.external_ip
 
     def update_volume(self, volumes, container_dir, host_dir):
-        target = [v for v in volumes if v["container_dir"] == container_dir]
+        target = [v for v in volumes if v["container"] == container_dir]
         if len(target) == 0:
             volumes.append({
                 "host": host_dir,
@@ -535,7 +535,7 @@ class Config:
             })
         else:
             target = target[0]
-            target["host_dir"] = host_dir
+            target["host"] = host_dir
 
     def update_ports(self, node, parsed):
         if "expose-ports" in parsed:
@@ -627,12 +627,7 @@ class Config:
 
         if "ancient-chaindata-dir" in parsed:
             value = parsed["ancient-chaindata-dir"]
-            # TODO backward compatible with /root/.ethereum/chaindata
-            if self.network == "mainnet":
-                host_dir = "/root/.ethereum/chaindata/ancient"
-            else:
-                host_dir = "/root/.ethereum/testnet/chaindata/ancient"
-            self.update_volume(node["volumes"], host_dir, value)
+            self.update_volume(node["volumes"], "/root/.ethereum-ancient-chaindata", value)
 
         self.update_ports(node, parsed)
 

@@ -15,8 +15,11 @@ OPTS=(
   "--rpcvhosts=*"
   "--cache=256"
   "--nousb"
-  "--datadir.ancient=$ETHEREUM_DIR/chaindata"
 )
+
+if [[ $CUSTOM_ANCIENT_CHAINDATA == "true" ]]; then
+    OPTS+=("--datadir.ancient=/root/.ethereum-ancient-chaindata")
+fi
 
 if [[ $NETWORK == "testnet" ]]; then
   OPTS+=("--testnet")
