@@ -30,7 +30,8 @@ if [[ -e $PEERS ]]; then
 else
   case $NETWORK in
   testnet)
-    OPTS+=("--bootnodes=$(paste -sd ',' $RINKEBY_PEERS)")
+    #geth seems to overwrite bootstrap nodes with the list below, only enable with additional logic to keep this list up-to-date
+    #OPTS+=("--bootnodes=$(paste -sd ',' $RINKEBY_PEERS)")
     ;;
   mainnet)
     #geth seems to overwrite bootstrap nodes with the list below, only enable with additional logic to keep this list up-to-date
