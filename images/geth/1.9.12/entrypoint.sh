@@ -4,7 +4,7 @@ set -euo pipefail
 
 ETHEREUM_DIR=/root/.ethereum
 PEERS=$ETHEREUM_DIR/peers.txt
-rinkeby_PEERS=/rinkeby-peers.txt
+RINKEBY_PEERS=/rinkeby-peers.txt
 MAINNET_PEERS=/mainnet-peers.txt
 
 OPTS=(
@@ -30,7 +30,7 @@ if [[ -e $PEERS ]]; then
 else
   case $NETWORK in
   testnet)
-    OPTS+=("--bootnodes=$(paste -sd ',' $rinkeby_PEERS)")
+    OPTS+=("--bootnodes=$(paste -sd ',' $RINKEBY_PEERS)")
     ;;
   mainnet)
     #geth seems to overwrite bootstrap nodes with the list below, only enable with additional logic to keep this list up-to-date
