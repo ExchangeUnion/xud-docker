@@ -35,7 +35,7 @@ class Geth(Node):
         self.container_spec.environment.extend(self.get_environment())
 
         if self.network == "testnet":
-            self._cli = "geth --testnet"
+            self._cli = "geth --rinkeby"
         elif self.network == "mainnet":
             self._cli = "geth"
 
