@@ -61,6 +61,8 @@ def get_branch_history(master):
 
 
 def get_commit_message(commit):
+    if commit == "HEAD":
+        return ""
     cmd = "git show -s --format=%B {}".format(commit)
     return check_output(cmd, shell=True, stderr=PIPE).decode().splitlines()[0]
 
@@ -506,10 +508,7 @@ def get_modified_image(x):
             return None
 
 
-def get_modified_images_since_commit(commit):
-    lines = check_output("git diff --name-only {}".format(commit), shell=True, stderr=PIPE).decode().splitlines()
-
-    modified = set()
+def add_diff_lines_to_modified_images(modified, lines):
     for x in lines:
         r = get_modified_image(x)
         if x.startswith("images") and r:
@@ -517,28 +516,39 @@ def get_modified_images_since_commit(commit):
                 modified.update(r)
             else:
                 modified.add(r)
-    return sorted(modified)
+
+
+def get_modified_images_since_commit(commit):
+    result = set()
+    lines = check_output("git diff --name-only {}".format(commit), shell=True, stderr=PIPE).decode().splitlines()
+    add_diff_lines_to_modified_images(result, lines)
+    return sorted(result)
+
+
+def get_modified_images_at_head():
+    result = set()
+    lines = check_output("git diff --name-only", shell=True, stderr=PIPE).decode().splitlines()
+    add_diff_lines_to_modified_images(result, lines)
+    lines = check_output("git diff --name-only --cached", shell=True, stderr=PIPE).decode().splitlines()
+    add_diff_lines_to_modified_images(result, lines)
+    return sorted(result)
 
 
 def get_modified_images_at_commit(commit):
-    lines = check_output("git diff-tree --no-commit-id --name-only -r {}".format(commit), shell=True, stderr=PIPE).decode().splitlines()
+    if commit == "HEAD":
+        return get_modified_images_at_head()
 
-    modified = set()
-    for x in lines:
-        r = get_modified_image(x)
-        if x.startswith("images") and r:
-            if isinstance(r, list):
-                modified.update(r)
-            else:
-                modified.add(r)
-    return sorted(modified)
+    result = set()
+    lines = check_output("git diff-tree --no-commit-id --name-only -r {}".format(commit), shell=True, stderr=PIPE).decode().splitlines()
+    add_diff_lines_to_modified_images(result, lines)
+    return sorted(result)
 
 
 def get_unmodified_history(img, history, history_modified):
     h = history
     for i, m in enumerate(history_modified):
         if img in m:
-            h = history[:i+1]
+            h = history[:i + 1]
             break
     return h
 
@@ -549,14 +559,22 @@ def get_modified_images():
     else:
         modified = get_modified_images_since_commit(gitinfo.master)
     history_modified = []
+    print("\033[1mBranch {} history:\033[0m".format(branch))
     for commit in gitinfo.history:
         images = get_modified_images_at_commit(commit)
         history_modified.append(images)
-    print("Unmodified history:")
+        print("\033[33m{}:\033[0m {}".format(commit[:7], get_commit_message(commit)))
+        if len(images) == 0:
+            print("  (None)")
+        else:
+            for img in images:
+                print("- {}".format(img.image_dir))
+    print("\n\033[1mImages' unmodified history:\033[0m")
     for img in modified:
         unmodified_history = get_unmodified_history(img, gitinfo.history, history_modified)
-        print("- {}: {}".format(img, unmodified_history))
+        print("- {}: {}".format(img.image_dir, ", ".join([h[:7] for h in unmodified_history])))
         img.set_unmodified_history(unmodified_history)
+    print()
     return modified
 
 
@@ -601,10 +619,10 @@ def print_modified_images(images):
     if len(images) == 0:
         print("No modified images")
         return
-    print("Detected modified images:")
+    print("\033[1mDetected modified images:\033[0m")
     for img in images:
         print("- {}".format(img.image_dir))
-    sys.stdout.flush()
+    print()
 
 
 def main():
