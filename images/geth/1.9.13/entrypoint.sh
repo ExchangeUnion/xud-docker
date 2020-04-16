@@ -22,7 +22,6 @@ if [[ $CUSTOM_ANCIENT_CHAINDATA == "true" ]]; then
 fi
 
 if [[ $NETWORK == "testnet" ]]; then
-# 3=ropsten 4=rinkeby for more see: https://github.com/ethereum/EIPs/blob/master/EIPS/eip-155.md#list-of-chain-ids
   OPTS+=("--rinkeby")
 fi
 
