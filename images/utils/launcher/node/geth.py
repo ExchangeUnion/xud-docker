@@ -73,7 +73,7 @@ class Geth(Node):
         if self.network == "mainnet":
             rpc_host = "mainnet.infura.io"
         elif self.network == "testnet":
-            rpc_host = "ropsten.infura.io"
+            rpc_host = "rinkeby.infura.io"
         else:
             raise RuntimeError(f"{self.network} won't use Infura")
         rpc_port = 443
