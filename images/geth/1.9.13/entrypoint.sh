@@ -23,7 +23,7 @@ fi
 
 if [[ $NETWORK == "testnet" ]]; then
 # 3=ropsten 4=rinkeby for more see: https://github.com/ethereum/EIPs/blob/master/EIPS/eip-155.md#list-of-chain-ids
-  OPTS+=("--networkid=4")
+  OPTS+=("--rinkeby")
 fi
 
 if [[ -e $PEERS ]]; then
