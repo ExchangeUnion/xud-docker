@@ -34,14 +34,6 @@ done
 LND_ADDRESS=$(cat "$LND_HOSTNAME")
 echo "[DEBUG] Onion address for lndbtc is $LND_ADDRESS"
 
-#lnd --externalip=$LND_ADDRESS:$P2P_PORT \
-#--listen=0.0.0.0:$P2P_PORT \
-#--rpclisten=0.0.0.0:10009 \
-#--restlisten=0.0.0.0:8080 \
-#--tor.active \
-#--tor.socks=9050 \
-#--tor.streamisolation \
-#$@
 
 function connect() {
     lncli -n simnet -c litecoin connect 023f670b916d8b89e362f4832f8eeca4f2d578a737c97f6fd4845bb7b584647667@xud1.simnet.exchangeunion.com:10011
@@ -50,8 +42,11 @@ function connect() {
 (sleep 30 && connect) &
 
 
-lnd \
+lnd --externalip=$LND_ADDRESS:$P2P_PORT \
 --listen=0.0.0.0:$P2P_PORT \
 --rpclisten=0.0.0.0:10009 \
 --restlisten=0.0.0.0:8080 \
+--tor.active \
+--tor.socks=9050 \
+--tor.streamisolation \
 $@
