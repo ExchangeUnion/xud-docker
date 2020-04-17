@@ -35,7 +35,7 @@ LND_ADDRESS=$(cat "$LND_HOSTNAME")
 echo "[DEBUG] Onion address for lndbtc is $LND_ADDRESS"
 
 function connect() {
-    lncli -n simnet -c litecoin connect 02db09dd366d7ba6d061502b5b6db1bbb47c0daacd36fc399ab617fd6406cf822a@xud1.simnet.exchangeunion.com:10012
+    lncli -n simnet -c bitcoin connect 02db09dd366d7ba6d061502b5b6db1bbb47c0daacd36fc399ab617fd6406cf822a@xud1.simnet.exchangeunion.com:10012
 }
 
 (sleep 30 && connect) &
