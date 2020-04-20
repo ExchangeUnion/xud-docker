@@ -163,7 +163,7 @@ def simulate_tty(data):
 
 
 def create_wallet(child, retry=0):
-    if retry > 10:
+    if retry > 100:
         raise AssertionError("Creating wallets failed too many times")
     if retry == 0:
         print("[EXPECT] Create/Restore choice")

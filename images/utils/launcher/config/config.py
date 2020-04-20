@@ -225,7 +225,7 @@ networks = {
         },
         "xud": {
             "name": "xud",
-            "image": "exchangeunion/xud:1.0.0-beta.2",
+            "image": "exchangeunion/xud:latest",
             "volumes": [
                 {
                     "host": "$data_dir/xud",
