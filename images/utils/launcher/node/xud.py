@@ -40,10 +40,7 @@ class Xud(Node):
     def __init__(self, name, ctx):
         super().__init__(name, ctx)
 
-        if self.network == "simnet":
-            self._cli = "xucli --rpcport=28886"
-        else:
-            self._cli = "xucli"
+        self._cli = "xucli -h localhost"
 
         self.api = XudApi(CliBackend(self.client, self.container_name, self._logger, self._cli))
 
