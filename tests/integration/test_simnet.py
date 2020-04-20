@@ -132,7 +132,7 @@ def wait_lnd_synced(chain):
         raise ValueError("chain should be bitcoin or litecoin")
 
     height = None
-    for i in range(10):
+    for i in range(100):
         try:
             info = json.loads(check_output("docker exec simnet_{}_1 lncli -n simnet -c {} getinfo".format(name, chain), shell=True, stderr=PIPE).decode())
             height = info["block_height"]
@@ -145,7 +145,7 @@ def wait_lnd_synced(chain):
 
     print("{} block height: {}".format(name, height))
 
-    for i in range(1000):
+    for i in range(100000):
         try:
             lines = check_output("docker logs --tail=100 simnet_{}_1 | grep 'New block'".format(name), shell=True, stderr=PIPE).decode().splitlines()
             if len(lines) > 0:
