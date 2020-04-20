@@ -12,7 +12,7 @@ BACKUP_DIR=$(cat "$BACKUP_DIR_VALUE_PATH")
 
 function check_backup_dir() {
     if [[ ! -e $1 ]]; then
-        echo "[xud-backup] $BACKUP_DIR is not existed"
+        echo "[xud-backup] $BACKUP_DIR does not exist"
         return 1
     fi
 
