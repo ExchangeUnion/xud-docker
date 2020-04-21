@@ -286,7 +286,7 @@ def diagnose():
 
 
 @pytest.mark.integration_test
-def test1():
+def test1():  # dummy comment
     print()  # avoid output first line being in the end of pytest case line
     cleanup()
     try:
