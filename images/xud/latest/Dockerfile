@@ -18,7 +18,7 @@ RUN tar -cJf /app.tar.xz .
 FROM node:12-alpine3.11
 RUN apk add --no-cache bash tor xz
 COPY --from=builder /app.tar.xz /
-COPY entrypoint.sh /
+COPY entrypoint.sh update-backup-dir.sh xud-backup.sh /
 ENTRYPOINT ["/entrypoint.sh"]
 VOLUME [ "/root/.xud" ]
 EXPOSE 8887 18887 28887

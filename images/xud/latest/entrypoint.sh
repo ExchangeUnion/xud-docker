@@ -54,37 +54,39 @@ EOF
 tor -f /etc/tor/torrc &
 
 while [[ ! -e $LND_HOSTNAME ]]; do
-    echo "[DEBUG] Waiting for xud onion address"
+    echo "[entrypoint] Waiting for xud onion address"
     sleep 1
 done
 
 XUD_ADDRESS=$(cat "$LND_HOSTNAME")
-echo "[DEBUG] Onion address for xud is $XUD_ADDRESS"
+echo "[entrypoint] Onion address for xud is $XUD_ADDRESS"
 
 while [[ ! -e "/root/.lndbtc/data/chain/bitcoin/$NETWORK/admin.macaroon" ]]; do
-    echo "Waiting for lndbtc admin.macaroon"
+    echo "[entrypoint] Waiting for lndbtc admin.macaroon"
     sleep 3
 done
 
 while ! [ -e "/root/.lndltc/data/chain/litecoin/$NETWORK/admin.macaroon" ]; do
-    echo "Waiting for lndltc admin.macaroon"
+    echo "[entrypoint] Waiting for lndltc admin.macaroon"
     sleep 3
 done
 
-echo 'Detecting localnet IP for lndbtc...'
+echo '[entrypoint] Detecting localnet IP for lndbtc...'
 LNDBTC_IP=$(getent hosts lndbtc || echo '' | awk '{ print $1 }')
-echo "$LNDBTC_IP lndbtc" >> /etc/hosts
+echo "[entrypoint] $LNDBTC_IP lndbtc" >> /etc/hosts
 
-echo 'Detecting localnet IP for lndltc...'
+echo '[entrypoint] Detecting localnet IP for lndltc...'
 LNDLTC_IP=$(getent hosts lndltc || echo '' | awk '{ print $1 }')
-echo "$LNDLTC_IP lndltc" >> /etc/hosts
+echo "[entrypoint] $LNDLTC_IP lndltc" >> /etc/hosts
 
-echo 'Detecting localnet IP for raiden...'
+echo '[entrypoint] Detecting localnet IP for raiden...'
 RAIDEN_IP=$(getent hosts raiden || echo '' | awk '{ print $1 }')
-echo "$RAIDEN_IP raiden" >> /etc/hosts
+echo "[entrypoint] $RAIDEN_IP raiden" >> /etc/hosts
 
 
 [[ -e $XUD_CONF && $PRESERVE_CONFIG == "true" ]] || {
+    cp /app/sample-xud.conf $XUD_CONF
+
     sed -i "s/network.*/network = \"$NETWORK\"/" $XUD_CONF
     sed -i 's/noencrypt.*/noencrypt = false/' $XUD_CONF
     sed -i '/\[http/,/^$/s/host.*/host = "0.0.0.0"/' $XUD_CONF
@@ -104,4 +106,9 @@ echo "$RAIDEN_IP raiden" >> /etc/hosts
     sed -i "/\[rpc/,/^$/s/port.*/port = $RPC_PORT/" $XUD_CONF
 }
 
-xud $@ 2>&1
+echo "[entrypoint] Launch with xud.conf:"
+cat $XUD_CONF
+
+/xud-backup.sh &
+
+xud $@
