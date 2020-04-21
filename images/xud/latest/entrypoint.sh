@@ -88,7 +88,7 @@ echo "[entrypoint] $RAIDEN_IP raiden" >> /etc/hosts
     cp /app/sample-xud.conf $XUD_CONF
 
     sed -i "s/network.*/network = \"$NETWORK\"/" $XUD_CONF
-    sed -i 's/noencrypt.*/noencrypt = false/' $XUD_CONF
+    [[ $NETWORK != "simnet" ]] && sed -i 's/noencrypt.*/noencrypt = false/' $XUD_CONF
     sed -i '/\[http/,/^$/s/host.*/host = "0.0.0.0"/' $XUD_CONF
     sed -i "/\[http/,/^$/s/port.*/port = $HTTP_PORT/" $XUD_CONF
     sed -i '/\[lnd\.BTC/,/^$/s/host.*/host = "lndbtc"/' $XUD_CONF
