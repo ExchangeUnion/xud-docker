@@ -171,7 +171,7 @@ def create_wallet(child, retry=0):
         print("11111")
 
     print("[EXPECT] Xud master password")
-    child.expect("You are creating an xud node key and underlying wallets.")
+    child.expect("You are creating an xud node key and underlying wallets.", timeout=180)
     print(child.before, end="")
     print(child.match.group(0), end="")
     sys.stdout.flush()
