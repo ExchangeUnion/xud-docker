@@ -120,6 +120,22 @@ def get_lnd_height(name, chain):
     return None
 
 
+def get_lnd_status_from_xud(name, chain):
+    if chain == "bitcoin":
+        key = "BTC"
+    else:
+        key = "LTC"
+    info = json.loads(check_output("docker exec simnet_xud_1 xucli getinfo -j", shell=True, stderr=PIPE).decode())
+    if "lndMap" in info:
+        m = info["lndMap"]
+        result = [x[1] for x in m if x[0] == key]
+        if len(result) > 0:
+            lnd = result[0]
+            # lnd-BTC has no active channels / Ready
+            return lnd["status"]
+    return None
+
+
 def wait_lnd_synced(chain):
     if chain == "bitcoin":
         name = "lndbtc"
@@ -144,7 +160,7 @@ def wait_lnd_synced(chain):
 
     print("{} block height: {}".format(name, height))
 
-    for i in range(100000):
+    for i in range(1000):
         try:
             height = get_lnd_height(name, chain)
             lines = check_output("docker logs --tail=100 simnet_{}_1 | grep 'New block'".format(name), shell=True, stderr=PIPE).decode().splitlines()
@@ -154,7 +170,9 @@ def wait_lnd_synced(chain):
                 if m:
                     current_height = int(m.group(1))
                     print("{} syncing: {}/{}".format(name, current_height, height))
-                    if current_height >= height:
+                    status = get_lnd_status_from_xud(name, chain)
+                    print("{} status: {}".format(name, status))
+                    if current_height >= height or status == "Ready":
                         return
                 else:
                     print(lines[-1])
