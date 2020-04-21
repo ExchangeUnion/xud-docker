@@ -12,14 +12,6 @@ TOR_DATA_DIR=$XUD_DIR/tor-data
 LND_HOSTNAME="$TOR_DIR/hostname"
 KEYSTORE_DIR=$HOME/.raiden/keystore
 
-[[ -e /app ]] || {
-    mkdir /app
-    tar -xf /app.tar.xz -C /app
-    [ -e /usr/local/bin/xucli ] || ln -s /app/bin/xucli /usr/local/bin/xucli
-    [ -e /usr/local/bin/xud ] || ln -s /app/bin/xud /usr/local/bin/xud
-}
-
-cd /app
 
 [[ -e $KEYSTORE_DIR ]] || mkdir -p "$KEYSTORE_DIR"
 

@@ -77,7 +77,6 @@ def check_containers():
     containers = client.containers.list(filters={
         "name": "testnet_"
     })
-    print("-" * 80)
     print("Running containers:")
     for c in containers:
         print("- {}".format(c.attrs["Name"]))
@@ -95,17 +94,6 @@ def check_containers():
     if utils:
         exit_code, output = utils.exec_run("cat /var/log/launcher.log")
         print(output.decode())
-
-    # exit_code, output = find("xud").exec_run("xucli --rpcport=18886 getinfo")
-    # print(output.decode())
-    # os.system("docker exec testnet_xud_1 bash -c 'netstat -ant | grep LISTEN'")
-    # os.system("docker exec testnet_xud_1 cat /root/.xud/xud.conf")
-    # os.system("docker exec testnet_xud_1 cat /app/entrypoint.sh")
-    #
-    # print("Raiden logs:")
-    # print(find("raiden").logs().decode())
-
-    print("-" * 80)
 
 
 def simulate_tty(data):
@@ -180,10 +168,10 @@ def create_wallet(child, retry=0):
 
         child.sendline("1\r")
         child.expect("1\r\n")
-        print("1")
+        print("11111")
 
     print("[EXPECT] Xud master password")
-    child.expect("You are creating an xud node key and underlying wallets.", timeout=180)
+    child.expect("You are creating an xud node key and underlying wallets.")
     print(child.before, end="")
     print(child.match.group(0), end="")
     sys.stdout.flush()
@@ -351,6 +339,7 @@ def diagnose():
 def test_config_file():
     print()
     cleanup()
+    child = None
     try:
         prepare()
         output = check_output("git rev-parse --abbrev-ref HEAD", shell=True)
@@ -359,10 +348,23 @@ def test_config_file():
             branch = os.environ["TRAVIS_BRANCH"]
         child = pexpect.spawnu("bash setup.sh -b {}".format(branch))
         run_flow(child, simple_flow)
-    except:
+    except Exception as e:
+        print()
+        print("-" * 80)
+        print(":: Diagnostic")
+        print("-" * 80)
+        print("Error: {}".format(e))
+        if child:
+            print(child.before)
+        print()
         diagnose()
+        input()
         raise
     finally:
+        print()
+        print("-" * 80)
+        print(":: Cleanup")
+        print("-" * 80)
         cleanup()
 
 @pytest.mark.integration_test
