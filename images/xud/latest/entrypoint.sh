@@ -19,6 +19,8 @@ KEYSTORE_DIR=$HOME/.raiden/keystore
     [ -e /usr/local/bin/xud ] || ln -s /app/bin/xud /usr/local/bin/xud
 }
 
+cd /app
+
 [[ -e $KEYSTORE_DIR ]] || mkdir -p "$KEYSTORE_DIR"
 
 case $NETWORK in
@@ -61,12 +63,12 @@ done
 XUD_ADDRESS=$(cat "$LND_HOSTNAME")
 echo "[entrypoint] Onion address for xud is $XUD_ADDRESS"
 
-while [[ ! -e "/root/.lndbtc/data/chain/bitcoin/$NETWORK/admin.macaroon" ]]; do
+[[ $NETWORK == "simnet" ]] && while [[ ! -e "/root/.lndbtc/data/chain/bitcoin/$NETWORK/admin.macaroon" ]]; do
     echo "[entrypoint] Waiting for lndbtc admin.macaroon"
     sleep 3
 done
 
-while ! [ -e "/root/.lndltc/data/chain/litecoin/$NETWORK/admin.macaroon" ]; do
+[[ $NETWORK == "simnet" ]] && while ! [ -e "/root/.lndltc/data/chain/litecoin/$NETWORK/admin.macaroon" ]; do
     echo "[entrypoint] Waiting for lndltc admin.macaroon"
     sleep 3
 done
