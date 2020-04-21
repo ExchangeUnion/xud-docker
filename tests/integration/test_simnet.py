@@ -133,6 +133,8 @@ def wait_lnd_synced(chain):
         print("Try to get {} block height (retry={})".format(name, i))
         try:
             height = get_lnd_height(name, chain)
+            if height:
+                break
         except CalledProcessError as e:
             print(e.stderr.decode().strip())
         time.sleep(3)

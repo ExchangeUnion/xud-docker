@@ -109,6 +109,6 @@ echo "[entrypoint] $RAIDEN_IP raiden" >> /etc/hosts
 echo "[entrypoint] Launch with xud.conf:"
 cat $XUD_CONF
 
-/xud-backup.sh &
+[[ $NETWORK != "simnet" ]] && /xud-backup.sh &
 
 xud $@
