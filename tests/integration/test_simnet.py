@@ -79,9 +79,8 @@ def prepare():
 def check_containers():
     client = docker.from_env()
     containers = client.containers.list(filters={
-        "name": "testnet_"
+        "name": "simnet_"
     })
-    print("-" * 80)
     print("Running containers:")
     for c in containers:
         print("- {}".format(c.attrs["Name"]))
@@ -100,17 +99,6 @@ def check_containers():
         exit_code, output = utils.exec_run("cat /var/log/launcher.log")
         print(output.decode())
 
-    # exit_code, output = find("xud").exec_run("xucli --rpcport=18886 getinfo")
-    # print(output.decode())
-    # os.system("docker exec testnet_xud_1 bash -c 'netstat -ant | grep LISTEN'")
-    # os.system("docker exec testnet_xud_1 cat /root/.xud/xud.conf")
-    # os.system("docker exec testnet_xud_1 cat /app/entrypoint.sh")
-    #
-    # print("Raiden logs:")
-    # print(find("raiden").logs().decode())
-
-    print("-" * 80)
-
 
 def expect_banner(child):
     print("[EXPECT] The banner")
@@ -123,6 +111,15 @@ def expect_banner(child):
     print(child.match, end="")
 
 
+def get_lnd_height(name, chain):
+    info = json.loads(check_output("docker exec simnet_{}_1 lncli -n simnet -c {} getinfo".format(name, chain), shell=True, stderr=PIPE).decode())
+    if "block_height" in info:
+        height = info["block_height"]
+        if height > 0:
+            return height
+    return None
+
+
 def wait_lnd_synced(chain):
     if chain == "bitcoin":
         name = "lndbtc"
@@ -133,11 +130,11 @@ def wait_lnd_synced(chain):
 
     height = None
     for i in range(100):
+        print("Try to get {} block height (retry={})".format(name, i))
         try:
-            info = json.loads(check_output("docker exec simnet_{}_1 lncli -n simnet -c {} getinfo".format(name, chain), shell=True, stderr=PIPE).decode())
-            height = info["block_height"]
+            height = get_lnd_height(name, chain)
         except CalledProcessError as e:
-            print(e.stderr.decode())
+            print(e.stderr.decode().strip())
         time.sleep(3)
 
     if not height:
@@ -147,19 +144,20 @@ def wait_lnd_synced(chain):
 
     for i in range(100000):
         try:
+            height = get_lnd_height(name, chain)
             lines = check_output("docker logs --tail=100 simnet_{}_1 | grep 'New block'".format(name), shell=True, stderr=PIPE).decode().splitlines()
             if len(lines) > 0:
                 p = re.compile(r"^.*height=(\d+).*$")
                 m = p.match(lines[-1])
                 if m:
                     current_height = int(m.group(1))
-                    print("{} current block height: {}/{}".format(name, current_height, height))
+                    print("{} syncing: {}/{}".format(name, current_height, height))
                     if current_height >= height:
                         return
                 else:
                     print(lines[-1])
         except CalledProcessError as e:
-            print(e.stderr.decode())
+            print(e.stderr.decode().strip())
         time.sleep(3)
     raise AssertionError("Failed to wait for {}".format(name))
 
@@ -280,8 +278,18 @@ def test1():
         print("$ {}".format(cmd))
         child = pexpect.spawnu(cmd)
         run_flow(child, simple_flow)
-    except:
+    except Exception as e:
+        print()
+        print("-" * 80)
+        print(":: Diagnostic")
+        print("-" * 80)
+        print("Error: {}".format(e))
+        print()
         diagnose()
         raise
     finally:
+        print()
+        print("-" * 80)
+        print(":: Cleanup")
+        print("-" * 80)
         cleanup()
