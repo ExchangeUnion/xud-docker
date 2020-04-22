@@ -1,5 +1,0 @@
-DataDirectory /root/.xud/tor-data
-ExitPolicy reject *:* # no exits allowed
-HiddenServiceDir /root/.xud/tor
-HiddenServicePort 28885 127.0.0.1:28885
-HiddenServiceVersion 3

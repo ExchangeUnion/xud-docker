@@ -11,19 +11,6 @@ index adbc906d..c1a562b7 100644
  )
  
  // defaultBtcChannelConstraints is the default set of channel constraints that are
-diff --git a/fundingmanager.go b/fundingmanager.go
-index bc272312..8e27f5f4 100644
---- a/fundingmanager.go
-+++ b/fundingmanager.go
-@@ -61,7 +61,7 @@ const (
- 	// Protocol. This limit is defined in BOLT-0002, and serves as an
- 	// initial precautionary limit while implementations are battle tested
- 	// in the real world.
--	MaxBtcFundingAmount = btcutil.Amount(1<<24) - 1
-+	MaxBtcFundingAmount = btcutil.Amount(1<<32) - 1
- 
- 	// maxLtcFundingAmount is a soft-limit of the maximum channel size
- 	// currently accepted on the Litecoin chain within the Lightning
 diff --git a/rpcserver.go b/rpcserver.go
 index bef358f3..459734f3 100644
 --- a/rpcserver.go

@@ -67,7 +67,7 @@ networks = {
     "simnet": {
         "lndbtc": {
             "name": "lndbtc",
-            "image": "exchangeunion/lnd:0.8.2-beta-simnet",
+            "image": "exchangeunion/lnd:0.9.2-beta-patched",
             "volumes": [
                 {
                     "host": "$data_dir/lndbtc",
@@ -76,10 +76,11 @@ networks = {
             ],
             "ports": [],
             "mode": "native",
+            "preserve_config": False,
         },
         "lndltc": {
             "name": "lndltc",
-            "image": "exchangeunion/lnd:0.8.2-beta-simnet",
+            "image": "exchangeunion/lnd:0.9.0-beta-ltc-patched",
             "volumes": [
                 {
                     "host": "$data_dir/lndltc",
@@ -92,10 +93,11 @@ networks = {
             ],
             "ports": [],
             "mode": "native",
+            "preserve_config": False,
         },
         "raiden": {
             "name": "raiden",
-            "image": "exchangeunion/raiden:0.100.5a1.dev162-2217bcb-simnet",
+            "image": "exchangeunion/raiden:develop",
             "volumes": [
                 {
                     "host": "$data_dir/raiden",
@@ -104,10 +106,11 @@ networks = {
             ],
             "ports": [],
             "mode": "native",
+            "preserve_config": False,
         },
         "xud": {
             "name": "xud",
-            "image": "exchangeunion/xud:1.0.0-beta.2-simnet",
+            "image": "exchangeunion/xud:latest",
             "volumes": [
                 {
                     "host": "$data_dir/xud",
@@ -132,6 +135,7 @@ networks = {
             ],
             "ports": [PortPublish("28885")],
             "mode": "native",
+            "preserve_config": False,
         }
     },
     "testnet": {
@@ -152,6 +156,7 @@ networks = {
             "external_rpc_password": "xu",
             "external_zmqpubrawblock": "127.0.0.1:28332",
             "external_zmqpubrawtx": "127.0.0.1:28333",
+            "preserve_config": False,
         },
         "litecoind": {
             "name": "litecoind",
@@ -170,6 +175,7 @@ networks = {
             "external_rpc_password": "xu",
             "external_zmqpubrawblock": "127.0.0.1:29332",
             "external_zmqpubrawtx": "127.0.0.1:29333",
+            "preserve_config": False,
         },
         "geth": {
             "name": "geth",
@@ -186,6 +192,7 @@ networks = {
             "external_rpc_port": 8545,
             "infura_project_id": None,
             "infura_project_secret": None,
+            "preserve_config": False,
         },
         "lndbtc": {
             "name": "lndbtc",
@@ -198,6 +205,7 @@ networks = {
             ],
             "ports": [],
             "mode": "native",
+            "preserve_config": False,
         },
         "lndltc": {
             "name": "lndltc",
@@ -210,6 +218,7 @@ networks = {
             ],
             "ports": [],
             "mode": "native",
+            "preserve_config": False,
         },
         "raiden": {
             "name": "raiden",
@@ -222,6 +231,7 @@ networks = {
             ],
             "ports": [],
             "mode": "native",
+            "preserve_config": False,
         },
         "xud": {
             "name": "xud",
@@ -250,6 +260,7 @@ networks = {
             ],
             "ports": [PortPublish("18885")],
             "mode": "native",
+            "preserve_config": False,
         }
     },
     "mainnet": {
@@ -270,6 +281,7 @@ networks = {
             "external_rpc_password": "xu",
             "external_zmqpubrawblock": "127.0.0.1:28332",
             "external_zmqpubrawtx": "127.0.0.1:28333",
+            "preserve_config": False,
         },
         "litecoind": {
             "name": "litecoind",
@@ -288,6 +300,7 @@ networks = {
             "external_rpc_password": "xu",
             "external_zmqpubrawblock": "127.0.0.1:29332",
             "external_zmqpubrawtx": "127.0.0.1:29333",
+            "preserve_config": False,
         },
         "geth": {
             "name": "geth",
@@ -304,6 +317,7 @@ networks = {
             "external_rpc_port": 8545,
             "infura_project_id": None,
             "infura_project_secret": None,
+            "preserve_config": False,
         },
         "lndbtc": {
             "name": "lndbtc",
@@ -316,6 +330,7 @@ networks = {
             ],
             "ports": [],
             "mode": "native",
+            "preserve_config": False,
         },
         "lndltc": {
             "name": "lndltc",
@@ -328,6 +343,7 @@ networks = {
             ],
             "ports": [],
             "mode": "native",
+            "preserve_config": False,
         },
         "raiden": {
             "name": "raiden",
@@ -340,6 +356,7 @@ networks = {
             ],
             "ports": [],
             "mode": "native",
+            "preserve_config": False,
         },
         "xud": {
             "name": "xud",
@@ -368,6 +385,7 @@ networks = {
             ],
             "ports": [PortPublish("8885")],
             "mode": "native",
+            "preserve_config": False,
         }
     }
 }
@@ -503,6 +521,9 @@ class Config:
         parser.add_argument("--backup-dir")
         parser.add_argument("--nodes-json")
         parser.add_argument("--expose-ports")
+        parser.add_argument("--xud.preserve-config", action="store_true")
+        parser.add_argument("--lndbtc.preserve-config", action="store_true")
+        parser.add_argument("--lndltc.preserve-config", action="store_true")
 
         self.args = parser.parse_args()
         self.logger.info("Parsed command-line arguments: %r", self.args)
@@ -765,6 +786,18 @@ class Config:
                         self.external_ip = parts[1].strip()
         except FileNotFoundError:
             pass
+
+        if hasattr(self.args, "xud.preserve_config"):
+            if "xud" in self.nodes:
+                self.nodes["xud"]["preserve_config"] = True
+
+        if hasattr(self.args, "lndbtc.preserve_config"):
+            if "lndbtc" in self.nodes:
+                self.nodes["lndbtc"]["preserve_config"] = True
+
+        if hasattr(self.args, "lndltc.preserve_config"):
+            if "lndltc" in self.nodes:
+                self.nodes["lndltc"]["preserve_config"] = True
 
     def expand_vars(self, value):
         if value is None:

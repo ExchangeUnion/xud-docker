@@ -11,17 +11,16 @@ RUN npm run compile
 RUN npm run compile:seedutil
 RUN npm prune --production
 RUN rm -rf seedutil/go
+RUN strip seedutil/seedutil
 
 
 FROM node:12-alpine3.11
-RUN apk add --no-cache bash supervisor tor
+RUN apk add --no-cache bash tor
 COPY --from=builder /xud /app
-COPY entrypoint.sh xud-backup.sh /app/
-COPY start_tor.sh update-backup-dir.sh /
-COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
-COPY torrc /etc/tor/torrc
-RUN ln -s /app/bin/xucli /usr/local/bin/xucli
-RUN mkdir -p /root/.xud/tor
+COPY entrypoint.sh update-backup-dir.sh xud-backup.sh /
 WORKDIR /app
-ENTRYPOINT ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]
+RUN ln -s /app/bin/xud /usr/local/bin/xud
+RUN ln -s /app/bin/xucli /usr/local/bin/xucli
+ENTRYPOINT ["/entrypoint.sh"]
+VOLUME [ "/root/.xud" ]
 EXPOSE 8887 18887 28887

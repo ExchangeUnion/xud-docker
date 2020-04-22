@@ -1,8 +1,17 @@
 #!/bin/bash
 
+set -o errexit # -e
+set -o nounset # -u
+set -o pipefail
+set -o monitor # -m
+
 XUD_DIR=$HOME/.xud
 XUD_CONF=$XUD_DIR/xud.conf
+TOR_DIR=$XUD_DIR/tor
+TOR_DATA_DIR=$XUD_DIR/tor-data
+LND_HOSTNAME="$TOR_DIR/hostname"
 KEYSTORE_DIR=$HOME/.raiden/keystore
+
 
 [[ -e $KEYSTORE_DIR ]] || mkdir -p "$KEYSTORE_DIR"
 
@@ -27,27 +36,53 @@ case $NETWORK in
         exit 1
 esac
 
-wait_file() {
-  local file="$1"; shift
-  local wait_seconds="${1:-10}"; shift # after 10 seconds we give up
 
-  until test $((wait_seconds--)) -eq 0 -o -f "$file" ; do sleep 1; done
+[[ -e /etc/tor/torrc ]] || cat <<EOF >/etc/tor/torrc
+DataDirectory $TOR_DATA_DIR
+ExitPolicy reject *:* # no exits allowed
+HiddenServiceDir $TOR_DIR
+HiddenServicePort $P2P_PORT 127.0.0.1:$P2P_PORT
+HiddenServiceVersion 3
+EOF
 
-  ((++wait_seconds))
-}
+tor -f /etc/tor/torrc &
 
-write_config() {
-    echo "xud.conf not found - creating a new one..."
+while [[ ! -e $LND_HOSTNAME ]]; do
+    echo "[entrypoint] Waiting for xud onion address"
+    sleep 1
+done
+
+XUD_ADDRESS=$(cat "$LND_HOSTNAME")
+echo "[entrypoint] Onion address for xud is $XUD_ADDRESS"
+
+[[ $NETWORK == "simnet" ]] && while [[ ! -e "/root/.lndbtc/data/chain/bitcoin/$NETWORK/admin.macaroon" ]]; do
+    echo "[entrypoint] Waiting for lndbtc admin.macaroon"
+    sleep 3
+done
+
+[[ $NETWORK == "simnet" ]] && while ! [ -e "/root/.lndltc/data/chain/litecoin/$NETWORK/admin.macaroon" ]; do
+    echo "[entrypoint] Waiting for lndltc admin.macaroon"
+    sleep 3
+done
+
+echo '[entrypoint] Detecting localnet IP for lndbtc...'
+LNDBTC_IP=$(getent hosts lndbtc || echo '' | awk '{ print $1 }')
+echo "[entrypoint] $LNDBTC_IP lndbtc" >> /etc/hosts
+
+echo '[entrypoint] Detecting localnet IP for lndltc...'
+LNDLTC_IP=$(getent hosts lndltc || echo '' | awk '{ print $1 }')
+echo "[entrypoint] $LNDLTC_IP lndltc" >> /etc/hosts
+
+echo '[entrypoint] Detecting localnet IP for raiden...'
+RAIDEN_IP=$(getent hosts raiden || echo '' | awk '{ print $1 }')
+echo "[entrypoint] $RAIDEN_IP raiden" >> /etc/hosts
+
+
+[[ -e $XUD_CONF && $PRESERVE_CONFIG == "true" ]] || {
     cp /app/sample-xud.conf $XUD_CONF
 
-    XUD_HOSTNAME="/root/.xud/tor/hostname"
-    wait_file "$XUD_HOSTNAME" && {
-        XUD_ONION_ADDRESS=$(cat $XUD_HOSTNAME)
-        echo "Onion address for xud is $XUD_ONION_ADDRESS"
-    }
-
     sed -i "s/network.*/network = \"$NETWORK\"/" $XUD_CONF
-    sed -i 's/noencrypt.*/noencrypt = false/' $XUD_CONF
+    [[ $NETWORK != "simnet" ]] && sed -i 's/noencrypt.*/noencrypt = false/' $XUD_CONF
     sed -i '/\[http/,/^$/s/host.*/host = "0.0.0.0"/' $XUD_CONF
     sed -i "/\[http/,/^$/s/port.*/port = $HTTP_PORT/" $XUD_CONF
     sed -i '/\[lnd\.BTC/,/^$/s/host.*/host = "lndbtc"/' $XUD_CONF
@@ -55,7 +90,7 @@ write_config() {
     sed -i '/\[lnd\.LTC/,/^$/s/host.*/host = "lndltc"/' $XUD_CONF
     sed -i '/\[lnd\.LTC/,/^$/s/port.*/port = 10009/' $XUD_CONF
     sed -i "/\[lnd\.LTC/,/^$/s|^$|certpath = \"/root/.lndltc/tls.cert\"\nmacaroonpath = \"/root/.lndltc/data/chain/litecoin/$NETWORK/admin.macaroon\"\n|" $XUD_CONF
-    sed -i "/\[p2p/,/^$/s/addresses.*/addresses = \[\"$XUD_ONION_ADDRESS\"]/" $XUD_CONF
+    sed -i "/\[p2p/,/^$/s/addresses.*/addresses = \[\"$XUD_ADDRESS\"]/" $XUD_CONF
     sed -i "/\[p2p/,/^$/s/port.*/port = $P2P_PORT/" $XUD_CONF
     sed -i '/\[p2p/,/^$/s/tor = .*/tor = true/' $XUD_CONF
     sed -i '/\[p2p/,/^$/s/torport.*/torport = 9050/' $XUD_CONF
@@ -65,20 +100,9 @@ write_config() {
     sed -i "/\[rpc/,/^$/s/port.*/port = $RPC_PORT/" $XUD_CONF
 }
 
-if [[ $XUD_REWRITE_CONFIG || ! -e $XUD_CONF ]]; then
-	write_config
-fi
+echo "[entrypoint] Launch with xud.conf:"
+cat $XUD_CONF
 
-echo 'Detecting localnet IP for lndbtc...'
-LNDBTC_IP=$(getent hosts lndbtc | awk '{ print $1 }')
-echo "$LNDBTC_IP lndbtc" >> /etc/hosts
+[[ $NETWORK != "simnet" ]] && /xud-backup.sh &
 
-echo 'Detecting localnet IP for lndltc...'
-LNDLTC_IP=$(getent hosts lndltc | awk '{ print $1 }')
-echo "$LNDLTC_IP lndltc" >> /etc/hosts
-
-echo 'Detecting localnet IP for raiden...'
-RAIDEN_IP=$(getent hosts raiden | awk '{ print $1 }')
-echo "$RAIDEN_IP raiden" >> /etc/hosts
-
-exec ./bin/xud
+xud $@

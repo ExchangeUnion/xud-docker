@@ -27,15 +27,55 @@ class Lnd(Node):
         super().__init__(name, ctx)
         self.chain = chain
 
-        external_ip = self.config.external_ip
+        command = self.get_command()
+        environment = self.get_environment()
 
+        self.container_spec.command.extend(command)
+        self.container_spec.environment.extend(environment)
+
+        self._cli = f"lncli -n {self.network} -c {self.chain}"
+        self.api = LndApi(CliBackend(self.client, self.container_name, self._logger, self._cli))
+
+    def get_command(self):
+        if self.network != "simnet":
+            return []
+        if self.chain == "bitcoin":
+            # TODO better to have --alias
+            # nohup lnd-btc --noseedbackup --rpclisten=127.0.0.1:10002 --listen=127.0.0.1:10012 --restlisten=8002 --datadir=./data --logdir=./logs  --nobootstrap --no-macaroons --bitcoin.active --bitcoin.simnet  --btcd.rpcuser=xu --btcd.rpcpass=xu --debuglevel=debug --alias="BTC@$xname" --btcd.rpchost=127.0.0.1:18556  --btcd.rpccert=$cert --bitcoin.node neutrino  --neutrino.connect 35.231.222.142:38555 --chan-enable-timeout=0m10s --max-cltv-expiry=5000 > /dev/null 2>&1 &
+            return [
+                "--debuglevel=debug",
+                "--noseedbackup",
+                "--nobootstrap",
+                "--bitcoin.active",
+                "--bitcoin.simnet",
+                "--bitcoin.node=neutrino",
+                "--neutrino.connect=35.231.222.142:38555",
+                "--chan-enable-timeout=0m10s",
+                "--max-cltv-expiry=5000",
+            ]
+        if self.chain == "litecoin":
+            # nohup lnd-ltc --noseedbackup --rpclisten=127.0.0.1:10001 --listen=127.0.0.1:10011 --restlisten=8001 --datadir=./data --logdir=./logs --nobootstrap --no-macaroons --litecoin.active --litecoin.simnet --debuglevel=debug --alias="LTC@$xname" --litecoin.node neutrino --neutrino.connect 35.231.222.142:39555 --chan-enable-timeout=0m10s --max-cltv-expiry=20000 > /dev/null 2>&1 &
+            return [
+                "--debuglevel=debug",
+                "--noseedbackup",
+                "--nobootstrap",
+                "--litecoin.active",
+                "--litecoin.simnet",
+                "--litecoin.node=neutrino",
+                "--neutrino.connect=35.231.222.142:39555",
+                "--chan-enable-timeout=0m10s",
+                "--max-cltv-expiry=20000",
+            ]
+
+    def get_environment(self):
         environment = [f"CHAIN={self.chain}"]
 
+        external_ip = self.config.external_ip
         if external_ip is not None:
             environment.append(f"EXTERNAL_IP={external_ip}")
 
         if self.network in ["testnet", "mainnet"]:
-            if name == "lndbtc":
+            if self.name == "lndbtc":
                 layer1_node = self.config.nodes["bitcoind"]
             else:
                 layer1_node = self.config.nodes["litecoind"]
@@ -52,11 +92,7 @@ class Lnd(Node):
                     f'ZMQPUBRAWBLOCK={layer1_node["external_zmqpubrawblock"]}',
                     f'ZMQPUBRAWTX={layer1_node["external_zmqpubrawtx"]}',
                 ])
-
-        self.container_spec.environment.extend(environment)
-
-        self._cli = f"lncli -n {self.network} -c {self.chain}"
-        self.api = LndApi(CliBackend(self.client, self.container_name, self._logger, self._cli))
+        return environment
 
     def status(self):
         status = super().status()

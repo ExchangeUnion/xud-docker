@@ -41,6 +41,7 @@ class Xud(Node):
         super().__init__(name, ctx)
 
         self._cli = "xucli"
+
         self.api = XudApi(CliBackend(self.client, self.container_name, self._logger, self._cli))
 
     def status(self):
@@ -51,27 +52,33 @@ class Xud(Node):
         elif status == "running":
             try:
                 info = self.api.getinfo()
-                lndbtc_ready = info["lndMap"][0][1]["status"] == "Ready"
-                lndltc_ready = info["lndMap"][1][1]["status"] == "Ready"
-                raiden_ready = info["raiden"]["status"] == "Ready"
-                if self.network in ["testnet", "mainnet"]:
-                    lndbtc_ready = lndbtc_ready or ("has no active channels" in info["lndMap"][0][1]["status"])
-                    lndltc_ready = lndltc_ready or ("has no active channels" in info["lndMap"][1][1]["status"])
-                    raiden_ready = raiden_ready or ("has no active channels" in info["raiden"]["status"])
-                if lndbtc_ready and lndltc_ready and raiden_ready:
+                lndbtc_status = info["lndMap"][0][1]["status"]
+                lndltc_status = info["lndMap"][1][1]["status"]
+                raiden_status = info["raiden"]["status"]
+
+                if "has no active channels" in lndbtc_status \
+                        or "has no active channels" in lndltc_status \
+                        or "has no active channels" in raiden_status:
+                    return "Waiting for channels"
+
+                if "Ready" == lndbtc_status \
+                        and "Ready" == lndltc_status \
+                        and "Ready" == raiden_status:
                     return "Ready"
                 else:
                     not_ready = []
-                    if not lndbtc_ready:
+                    if lndbtc_status != "Ready":
                         not_ready.append("lndbtc")
-                    if not lndltc_ready:
+                    if lndltc_status != "Ready":
                         not_ready.append("lndltc")
-                    if not raiden_ready:
+                    if raiden_status != "Ready":
                         not_ready.append("raiden")
                     return "Waiting for " + ", ".join(not_ready)
             except XudApiError as e:
                 if "xud is locked" in str(e):
                     return "Wallet locked. Unlock with xucli unlock."
+                elif "no such file or directory, open '/root/.xud/tls.cert'" in str(e):
+                    return "Starting"
                 else:
                     return str(e)
             except:
