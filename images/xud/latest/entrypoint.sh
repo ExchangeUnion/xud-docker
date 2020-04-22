@@ -103,7 +103,7 @@ echo "[entrypoint] $CONNEXT_IP connext" >> /etc/hosts
     sed -i '/\[connext/,/^$/s/host.*/host = "connext"/' $XUD_CONF
     sed -i '/\[connext/,/^$/s/port.*/port = 5040/' $XUD_CONF
     sed -i '/\[connext/,/^$/s/webhookhost.*/webhookhost = "xud"/' $XUD_CONF
-    sed -i '/\[connext/,/^$/s/webhookport.*/webhookport = 8887/' $XUD_CONF
+    sed -i "/\[connext/,/^$/s/webhookport.*/webhookport = $HTTP_PORT/" $XUD_CONF
 }
 
 echo "[entrypoint] Launch with xud.conf:"
