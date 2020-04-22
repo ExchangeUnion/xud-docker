@@ -73,9 +73,9 @@ echo '[entrypoint] Detecting localnet IP for lndltc...'
 LNDLTC_IP=$(getent hosts lndltc || echo '' | awk '{ print $1 }')
 echo "[entrypoint] $LNDLTC_IP lndltc" >> /etc/hosts
 
-echo '[entrypoint] Detecting localnet IP for raiden...'
-RAIDEN_IP=$(getent hosts raiden || echo '' | awk '{ print $1 }')
-echo "[entrypoint] $RAIDEN_IP raiden" >> /etc/hosts
+echo '[entrypoint] Detecting localnet IP for connext...'
+CONNEXT_IP=$(getent hosts connext || echo '' | awk '{ print $1 }')
+echo "[entrypoint] $CONNEXT_IP connext" >> /etc/hosts
 
 
 [[ -e $XUD_CONF && $PRESERVE_CONFIG == "true" ]] || {
@@ -94,10 +94,16 @@ echo "[entrypoint] $RAIDEN_IP raiden" >> /etc/hosts
     sed -i "/\[p2p/,/^$/s/port.*/port = $P2P_PORT/" $XUD_CONF
     sed -i '/\[p2p/,/^$/s/tor = .*/tor = true/' $XUD_CONF
     sed -i '/\[p2p/,/^$/s/torport.*/torport = 9050/' $XUD_CONF
+    sed -i '/\[raiden/,/^$/s/disable.*/disable = true/' $XUD_CONF
     sed -i '/\[raiden/,/^$/s/host.*/host = "raiden"/' $XUD_CONF
     sed -i "/\[raiden/,/^$/s|^$|keystorepath = \"$KEYSTORE_DIR\"\n|" $XUD_CONF
     sed -i '/\[rpc/,/^$/s/host.*/host = "0.0.0.0"/' $XUD_CONF
     sed -i "/\[rpc/,/^$/s/port.*/port = $RPC_PORT/" $XUD_CONF
+    sed -i '/\[connext/,/^$/s/disable.*/disable = false/' $XUD_CONF
+    sed -i '/\[connext/,/^$/s/host.*/host = "connext"/' $XUD_CONF
+    sed -i '/\[connext/,/^$/s/port.*/port = 5040/' $XUD_CONF
+    sed -i '/\[connext/,/^$/s/webhookhost.*/webhookhost = "xud"/' $XUD_CONF
+    sed -i '/\[connext/,/^$/s/webhookport.*/webhookport = 8887/' $XUD_CONF
 }
 
 echo "[entrypoint] Launch with xud.conf:"
