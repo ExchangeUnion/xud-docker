@@ -178,7 +178,7 @@ function get_image_status() {
 function pull_image() {
     echo "Pulling image $1"
     if ! docker pull "$1" >/dev/null 2>&1; then
-        echo >&2 "❌ Failed to pull image $1. This may be a Docker issue. Check your Docker installation and make sure you have added your user to the docker group: https://docs.docker.com/engine/install/linux-postinstall/"
+        echo >&2 "❌ Failed to pull image $1. This may be a Docker issue or a permissions issue. Check your Docker installation and make sure you have added your user to the docker group: https://docs.docker.com/engine/install/linux-postinstall/"
         exit 1
     fi
 }
