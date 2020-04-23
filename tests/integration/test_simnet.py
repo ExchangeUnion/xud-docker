@@ -160,7 +160,7 @@ def wait_lnd_synced(chain):
 
     print("{} block height: {}".format(name, height))
 
-    for i in range(1000):
+    for i in range(100):
         try:
             height = get_lnd_height(name, chain)
             lines = check_output("docker logs --tail=100 simnet_{}_1 | grep 'New block'".format(name), shell=True, stderr=PIPE).decode().splitlines()
