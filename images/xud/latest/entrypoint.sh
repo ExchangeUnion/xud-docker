@@ -111,4 +111,5 @@ cat $XUD_CONF
 
 [[ $NETWORK != "simnet" ]] && /xud-backup.sh &
 
-xud $@
+# use exec to properly respond to SIGINT
+exec xud $@
