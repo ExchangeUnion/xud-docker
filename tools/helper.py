@@ -60,7 +60,7 @@ def get_branch_history(master):
     try:
         return check_output(cmd, shell=True, stderr=PIPE).decode().splitlines()
     except CalledProcessError as e:
-        print(e.stderr)
+        print(e.stderr.decode())
         raise
 
 
