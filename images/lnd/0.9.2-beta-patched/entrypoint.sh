@@ -35,24 +35,6 @@ done
 LND_ADDRESS=$(cat "$LND_HOSTNAME")
 echo "[entrypoint] Onion address for lndbtc is $LND_ADDRESS"
 
-function connect() {
-    local key="02db09dd366d7ba6d061502b5b6db1bbb47c0daacd36fc399ab617fd6406cf822a"
-    local uri="$key@xud1.simnet.exchangeunion.com:10012"
-    while true; do
-        echo "[entrypoint] Connecting to $uri"
-        if lncli -n simnet -c bitcoin connect $uri >/dev/null 2>&1; then
-            if lncli -n simnet -c bitcoin listpeers | grep -q $key; then
-                echo "[entrypoint] Connected to $uri"
-                break
-            fi
-        fi
-        sleep 5
-    done
-}
-
-connect &
-
-
 while ! nc -z 127.0.0.1 9050; do
     echo "[entrypoint] Waiting for Tor port 9050 to be open"
     sleep 1
