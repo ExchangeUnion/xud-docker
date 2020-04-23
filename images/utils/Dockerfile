@@ -4,4 +4,4 @@ ADD . /usr/local/src/utils
 WORKDIR /usr/local/src/utils
 RUN python setup.py install
 WORKDIR /root
-RUN echo a
+RUN echo b
