@@ -10,9 +10,10 @@ class ConnextApi:
     def __init__(self, backend):
         self._backend = backend
 
-    def get_health(self):
+    def is_healthy(self):
         try:
-            return json.loads(self._backend["http://localhost:5040/health"]())
+            result = self._backend["http://localhost:5040/health"]()
+            return result == ""
         except CliError as e:
             raise ConnextApiError(f"{e.exit_code}|{e.output!r}")
 
@@ -62,8 +63,8 @@ class Connext(Node):
             return "Container exited"
         elif status == "running":
             try:
-                health = self.api.get_health()
-                if health:
+                healthy = self.api.is_healthy()
+                if healthy:
                     return "Ready"
                 else:
                     return "Starting..."

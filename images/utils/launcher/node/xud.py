@@ -54,16 +54,16 @@ class Xud(Node):
                 info = self.api.getinfo()
                 lndbtc_status = info["lndMap"][0][1]["status"]
                 lndltc_status = info["lndMap"][1][1]["status"]
-                raiden_status = info["raiden"]["status"]
+                connext_status = info["connext"]["status"]
 
                 if "has no active channels" in lndbtc_status \
                         or "has no active channels" in lndltc_status \
-                        or "has no active channels" in raiden_status:
+                        or "has no active channels" in connext_status:
                     return "Waiting for channels"
 
                 if "Ready" == lndbtc_status \
                         and "Ready" == lndltc_status \
-                        and "Ready" == raiden_status:
+                        and "Ready" == connext_status:
                     return "Ready"
                 else:
                     not_ready = []
@@ -71,8 +71,8 @@ class Xud(Node):
                         not_ready.append("lndbtc")
                     if lndltc_status != "Ready":
                         not_ready.append("lndltc")
-                    if raiden_status != "Ready":
-                        not_ready.append("raiden")
+                    if connext_status != "Ready":
+                        not_ready.append("connext")
                     return "Waiting for " + ", ".join(not_ready)
             except XudApiError as e:
                 if "xud is locked" in str(e):
