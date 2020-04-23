@@ -57,7 +57,11 @@ def get_master_commit_hash():
 
 def get_branch_history(master):
     cmd = "git log --oneline --pretty=format:%h --abbrev=-1 {}..".format(master[:7])
-    return check_output(cmd, shell=True, stderr=PIPE).decode().splitlines()
+    try:
+        return check_output(cmd, shell=True, stderr=PIPE).decode().splitlines()
+    except CalledProcessError as e:
+        print(e.stderr)
+        raise
 
 
 def get_commit_message(commit):
