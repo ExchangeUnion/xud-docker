@@ -201,7 +201,7 @@ def expect_command_status(child):
     for line in lines:
         print(line)
 
-    nodes = ["lndbtc", "lndltc", "raiden", "xud"]
+    nodes = ["lndbtc", "lndltc", "connext", "xud"]
 
     status = {}
 
