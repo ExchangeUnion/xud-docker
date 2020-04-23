@@ -160,6 +160,7 @@ def wait_lnd_synced(chain):
 
     print("{} block height: {}".format(name, height))
 
+    # waiting for channels up to 1000 seconds (10 ~ 20 minutes)
     for i in range(100):
         try:
             height = get_lnd_height(name, chain)
@@ -178,7 +179,7 @@ def wait_lnd_synced(chain):
                     print(lines[-1])
         except CalledProcessError as e:
             print(e.stderr.decode().strip())
-        time.sleep(3)
+        time.sleep(10)
     raise AssertionError("Failed to wait for {}".format(name))
 
 
