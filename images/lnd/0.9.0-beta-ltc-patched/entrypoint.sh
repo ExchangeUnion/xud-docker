@@ -39,11 +39,16 @@ echo "[entrypoint] Onion address for lndbtc is $LND_ADDRESS"
 function connect() {
     local key="03af9876d7a367cd92d192c745194e91173830c9e4f0d51cfe19beb687189a99e5"
     local uri="$key@zqnr7vepxwk6w26zlmuh55edg45yu44rcqdk5d2gzfp7rtodduc6ycid.onion:30375"
+    local result
     while true; do
         echo "[entrypoint] Connecting to $uri"
-        if lncli -n simnet -c litecoin connect $uri >/dev/null 2>&1; then
+        if result=$(lncli -n simnet -c litecoin connect $uri 2>&1); then
             if lncli -n simnet -c litecoin listpeers | grep -q $key; then
                 echo "[entrypoint] Connected to $uri"
+                break
+            fi
+        else
+            if echo "$result" | grep -q "cannot make connection to self"; then
                 break
             fi
         fi
