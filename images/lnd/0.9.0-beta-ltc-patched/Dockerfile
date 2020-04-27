@@ -27,4 +27,4 @@ COPY --from=builder /go/bin/lnd /go/bin/lncli /usr/local/bin/
 COPY entrypoint.sh /
 ENTRYPOINT ["/entrypoint.sh"]
 VOLUME ["/root/.lnd"]
-EXPOSE 10009 8080 30375
+EXPOSE 10009 8080 30735

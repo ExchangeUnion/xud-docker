@@ -15,7 +15,7 @@ TOR_DIR=$LND_DIR/tor
 TOR_LOG=$LND_DIR/tor.log
 TOR_DATA_DIR=$LND_DIR/tor-data
 LND_HOSTNAME="$TOR_DIR/hostname"
-P2P_PORT=29375
+P2P_PORT=29735
 
 [[ -e /etc/tor/torrc ]] || cat <<EOF >/etc/tor/torrc
 DataDirectory $TOR_DATA_DIR
