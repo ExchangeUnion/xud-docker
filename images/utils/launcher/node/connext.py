@@ -15,7 +15,7 @@ class ConnextApi:
             result = self._backend["http://localhost:5040/health"]()
             return result == ""
         except CliError as e:
-            raise ConnextApiError("connext is staring... try again in a few seconds")
+            raise ConnextApiError("connext is starting... try again in a few seconds")
 
 
 class Connext(Node):
