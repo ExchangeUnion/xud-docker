@@ -55,15 +55,6 @@ done
 XUD_ADDRESS=$(cat "$LND_HOSTNAME")
 echo "[entrypoint] Onion address for xud is $XUD_ADDRESS"
 
-[[ $NETWORK == "simnet" ]] && while [[ ! -e "/root/.lndbtc/data/chain/bitcoin/$NETWORK/admin.macaroon" ]]; do
-    echo "[entrypoint] Waiting for lndbtc admin.macaroon"
-    sleep 3
-done
-
-[[ $NETWORK == "simnet" ]] && while ! [ -e "/root/.lndltc/data/chain/litecoin/$NETWORK/admin.macaroon" ]; do
-    echo "[entrypoint] Waiting for lndltc admin.macaroon"
-    sleep 3
-done
 
 echo '[entrypoint] Detecting localnet IP for lndbtc...'
 LNDBTC_IP=$(getent hosts lndbtc || echo '' | awk '{ print $1 }')
