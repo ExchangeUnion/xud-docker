@@ -107,9 +107,9 @@ your issue.""")
         CloseOtherUtilsAction(self.config.network, self.shell).execute()
 
     def pre_start(self):
-        if self.config.network in ["testnet", "mainnet"]:
+        if self.config.network in ["simnet", "testnet", "mainnet"]:
             self.check_wallets()
-        elif self.config.network == "simnet":
+        if self.config.network == "simnet":
             self.wait_for_channels()
         self.close_other_utils()
 
