@@ -3,7 +3,6 @@
 set -o errexit # -e
 set -o nounset # -u
 set -o pipefail
-set -o monitor # -m
 
 if [[ $CHAIN != "bitcoin" ]]; then
     echo "[entrypoint] Invalid chain: $CHAIN"
