@@ -23,7 +23,7 @@ RUN strip /go/bin/lnd /go/bin/lncli
 FROM alpine:3.10
 RUN apk add --no-cache bash tor
 COPY --from=builder /go/bin/lnd /go/bin/lncli /usr/local/bin/
-COPY entrypoint.sh /
+COPY entrypoint.sh rpc.cert /
 ENTRYPOINT ["/entrypoint.sh"]
 VOLUME ["/root/.lnd"]
 EXPOSE 10009 10010 8080 29735

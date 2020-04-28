@@ -50,9 +50,12 @@ class Lnd(Node):
                 "--maxbackoff=24h",
                 "--bitcoin.active",
                 "--bitcoin.simnet",
-                "--bitcoin.node=neutrino",
+                "--bitcoin.node=btcd",
                 "--bitcoin.defaultchanconfs=1",
-                "--neutrino.connect=35.231.222.142:38555",
+                "--btcd.rpchost=btcd.simnet.exchangeunion.com:18556"
+                "--btcd.rpcuser=xuadmin",
+                "--btcd.rpcpass=kilian",
+                "--btcd.rpccert=/rpc.cert",
                 "--chan-enable-timeout=0m10s",
                 "--max-cltv-expiry=5000",
             ]
