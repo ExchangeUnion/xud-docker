@@ -109,7 +109,7 @@ echo "[entrypoint] $CONNEXT_IP connext" >> /etc/hosts
 echo "[entrypoint] Launch with xud.conf:"
 cat $XUD_CONF
 
-[[ $NETWORK != "simnet" ]] && /xud-backup.sh &
+/xud-backup.sh &
 
 # use exec to properly respond to SIGINT
 exec xud $@
