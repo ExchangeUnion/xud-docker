@@ -51,6 +51,9 @@ function connect() {
             if echo "$result" | grep -q "cannot make connection to self"; then
                 break
             fi
+            if echo "$result" | grep -q "already connected to peer"; then
+                break
+            fi
         fi
         sleep 5
     done
