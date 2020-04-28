@@ -18,3 +18,13 @@ jobs:
       script: tools/push --manifest-list
     - stage: Test common cases
       script: tools/test
+
+notifications:
+  webhooks:
+    urls:
+      - http://104.196.206.7:5000/webhooks/travis
+    on_success: always # default: always
+    on_failure: always # default: always
+    on_start:   always # default: never
+    on_cancel:  always # default: always
+    on_error:   always # default: always

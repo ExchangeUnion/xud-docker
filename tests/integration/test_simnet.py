@@ -100,6 +100,63 @@ def check_containers():
         print(output.decode())
 
 
+def expect_update_details(child):
+    print("[EXPECT] Update details")
+    images = []
+    containers = []
+    while True:
+
+        i = child.expect(["- Image (.*): (.*)\r\n", "- Container ([^:]*): missing\r\n"])
+        print(child.before, end="")
+        print(child.match.group(0), end="")
+        sys.stdout.flush()
+        if i == 1:
+            break
+        images.append(child.match.group(1))
+
+    containers.append(child.match.group(1))
+
+    while True:
+        if len(images) == 0:
+            i = child.expect(["- Container ([^:]*): missing\r\n", "Creating (.*)\\.\\.\\.\r\n"])
+        else:
+            i = child.expect(["- Container ([^:]*): missing\r\n", "Pulling (.*)\\.\\.\\.\r\n"])
+        print(child.before, end="")
+        print(child.match.group(0), end="")
+        if i == 1:
+            break
+        containers.append(child.match.group(1))
+
+    for idx, image in enumerate(images):
+        name = child.match.group(1)
+        if image not in name:
+            raise AssertionError("Should pull image: {}".format(image))
+        if idx == len(images) - 1:
+            break
+        child.expect("Pulling (.*)\\.\\.\\.\r\n")
+        print(child.before, end="")
+        print(child.match, end="")
+
+    if len(images) == 0:
+        for idx, container in enumerate(containers):
+            name = child.match.group(1)
+            if container not in name:
+                raise AssertionError("Should create container: {}".format(container))
+            if idx == len(containers) - 1:
+                break
+            child.expect(f"Creating (.*)\\.\\.\\.\r\n")
+            print(child.before, end="")
+            print(child.match.group(0), end="")
+    else:
+        for container in enumerate(containers):
+            child.expect(f"Creating (.*)\\.\\.\\.\r\n")
+            print(child.before, end="")
+            print(child.match.group(0), end="")
+            name = child.match.group(1)
+            if container not in name:
+                raise AssertionError("Should create image: {}".format(container))
+
+
 def expect_banner(child):
     print("[EXPECT] The banner")
     banner = open(os.path.dirname(__file__) + "/banner.txt").read()
@@ -262,6 +319,8 @@ def simple_flow(child):
     print(child.match.group(0), end="")
     sys.stdout.flush()
 
+    expect_update_details(child)
+
     expect_banner(child)
 
     child.expect("simnet > ")
@@ -287,7 +346,6 @@ def diagnose():
 
 
 @pytest.mark.integration_test
-@pytest.mark.skip(reason="no way of currently bypassing this")
 def test1():  # dummy comment
     print()  # avoid output first line being in the end of pytest case line
     cleanup()
@@ -307,7 +365,7 @@ def test1():  # dummy comment
         print("-" * 80)
         print("Error: {}".format(e))
         print()
-        diagnose()
+        # diagnose()
         raise
     finally:
         print()
