@@ -37,7 +37,7 @@ echo "[entrypoint] Onion address for lndbtc is $LND_ADDRESS"
 
 function connect() {
     local key="0331c98ab6ec199164130cca2b2118a17e7d5e8b53d4e46ddfd4b656a30c636b70"
-    local uri="$key@5ucnksx35jjj34atausbifhyoiv7adsrjatqb5vpns6fftqaxmbvzfid.onion:29375"
+    local uri="$key@xud1.simnet.exchangeunion.com:29735"
     local result
     while true; do
         echo "[entrypoint] Connecting to $uri"
