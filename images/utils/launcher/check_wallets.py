@@ -38,10 +38,10 @@ class Action:
         client = docker.from_env()
         lndbtc = client.containers.get("simnet_lndbtc_1")
         lndltc = client.containers.get("simnet_lndltc_1")
-        xud = client.containers.get("simnet_xud_1")
+        #xud = client.containers.get("simnet_xud_1")
         threading.Thread(target=lndbtc.restart).start()
         threading.Thread(target=lndltc.restart).start()
-        threading.Thread(target=xud.restart).start()
+        #threading.Thread(target=xud.restart).start()
 
     def xucli_create_wrapper(self, xud):
         counter = 0
