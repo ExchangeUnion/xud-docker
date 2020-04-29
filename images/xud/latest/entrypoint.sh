@@ -10,10 +10,7 @@ XUD_CONF=$XUD_DIR/xud.conf
 TOR_DIR=$XUD_DIR/tor
 TOR_DATA_DIR=$XUD_DIR/tor-data
 LND_HOSTNAME="$TOR_DIR/hostname"
-KEYSTORE_DIR=$HOME/.raiden/keystore
 
-
-[[ -e $KEYSTORE_DIR ]] || mkdir -p "$KEYSTORE_DIR"
 
 case $NETWORK in
     mainnet)
@@ -97,8 +94,6 @@ done
     sed -i '/\[p2p/,/^$/s/tor = .*/tor = true/' $XUD_CONF
     sed -i '/\[p2p/,/^$/s/torport.*/torport = 9050/' $XUD_CONF
     sed -i '/\[raiden/,/^$/s/disable.*/disable = true/' $XUD_CONF
-    sed -i '/\[raiden/,/^$/s/host.*/host = "raiden"/' $XUD_CONF
-    sed -i "/\[raiden/,/^$/s|^$|keystorepath = \"$KEYSTORE_DIR\"\n|" $XUD_CONF
     sed -i '/\[rpc/,/^$/s/host.*/host = "0.0.0.0"/' $XUD_CONF
     sed -i "/\[rpc/,/^$/s/port.*/port = $RPC_PORT/" $XUD_CONF
     sed -i '/\[connext/,/^$/s/disable.*/disable = false/' $XUD_CONF
