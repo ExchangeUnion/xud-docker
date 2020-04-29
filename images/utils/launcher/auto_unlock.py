@@ -9,8 +9,11 @@ class Action:
     def xucli_unlock_wrapper(self, xud):
         while True:
             try:
+                print()
                 xud.cli("unlock", self.shell)
                 break
+            except KeyboardInterrupt:
+                raise
             except:
                 pass
 
