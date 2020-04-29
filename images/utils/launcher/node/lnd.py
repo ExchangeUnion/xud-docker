@@ -1,5 +1,6 @@
 from .base import Node, CliBackend, CliError
 import json
+import re
 
 
 class InvalidChain(Exception):
@@ -98,6 +99,19 @@ class Lnd(Node):
                 ])
         return environment
 
+    def get_current_height(self):
+        try:
+            c = self.get_container()
+            lines = c.logs(tail=100).decode().splitlines()
+            p = re.compile(r".*New block: height=(\d+),.*")
+            for line in lines:
+                m = p.match(line)
+                if m:
+                    return int(m.group(1))
+            return None
+        except:
+            return None
+
     def status(self):
         status = super().status()
         if status == "exited":
@@ -107,10 +121,20 @@ class Lnd(Node):
             try:
                 info = self.api.getinfo()
                 synced_to_chain = info["synced_to_chain"]
+                total = info["block_height"]
+                current = self.get_current_height()
                 if synced_to_chain:
-                    return "Ready"
+                    msg = "Ready"
                 else:
-                    return "Waiting for sync"
+                    msg = "Syncing"
+                if current:
+                    p = current / total * 100
+                    if p > 0.005:
+                        p = p - 0.005
+                    else:
+                        p = 0
+                    msg += " %.2f%% (%d/%d)" % (p, current, total)
+                return msg
             except LndApiError as e:
                 # [lncli] Wallet is encrypted. Please unlock using 'lncli unlock', or set password using 'lncli create' if this is the first time starting lnd.
                 if "Wallet is encrypted" in str(e):
