@@ -35,15 +35,14 @@ class Action:
         This is temporary solution for lnd unlock stuck problem
         TODO remove it later
         """
-        def restart(name, delay=0):
-            time.sleep(delay)
+        def restart(name):
             client = docker.from_env()
             c = client.containers.get(name)
             c.restart()
             return c
 
         def xud_restart():
-            c = restart("simnet_xud_1", 15)
+            c = restart("simnet_xud_1")
 
             # xud is locked, run 'xucli unlock', 'xucli create', or 'xucli restore' then try again
             for i in range(10):
@@ -55,11 +54,39 @@ class Action:
 
             raise RuntimeError("Restarted xud should be locked")
 
-        t1 = threading.Thread(target=restart, args=("simnet_lndbtc_1",))
-        t2 = threading.Thread(target=restart, args=("simnet_lndltc_1",))
+        def lnd_restart(chain):
+            if chain == "bitcoin":
+                name = "simnet_lndbtc_1"
+            else:
+                name = "simnet_lndltc_1"
+
+            client = docker.from_env()
+            c = client.containers.get(name)
+            exit_code, output = c.exec_run(f"lncli -n simnet -c {chain} getinfo")
+            if exit_code == 0:
+                return
+
+            c = restart(name)
+
+            # [lncli] Wallet is encrypted. Please unlock using 'lncli unlock', or set password using 'lncli create' if this is the first time starting lnd.
+            for i in range(10):
+                exit_code, output = c.exec_run(f"lncli -n simnet -c {chain} getinfo")
+                result = output.decode()
+                if exit_code == 0:
+                    return
+                time.sleep(10)
+
+            raise RuntimeError("Restarted lnd should be locked")
+
+        t1 = threading.Thread(target=lnd_restart, args=("bitcoin",))
+        t2 = threading.Thread(target=lnd_restart, args=("litecoin",))
         t3 = threading.Thread(target=xud_restart)
+
         t1.start()
         t2.start()
+        t1.join()
+        t2.join()
+
         t3.start()
         t3.join()
 
