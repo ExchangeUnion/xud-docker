@@ -63,7 +63,6 @@ class Action:
         t3.start()
         t3.join()
 
-
     def xucli_create_wrapper(self, xud):
         counter = 0
         ok = False

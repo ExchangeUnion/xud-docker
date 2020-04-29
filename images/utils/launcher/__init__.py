@@ -13,6 +13,7 @@ from .errors import NetworkConfigFileSyntaxError, NetworkConfigFileValueError, C
 
 from .check_wallets import Action as CheckWalletsAction, BackupDirNotAvailable
 from .close_other_utils import Action as CloseOtherUtilsAction
+from .auto_unlock import Action as AutoUnlockAction
 
 
 
@@ -104,6 +105,9 @@ your issue.""")
         # TODO wait for channels
         pass
 
+    def auto_unlock(self):
+        AutoUnlockAction(self.node_manager).execute()
+
     def close_other_utils(self):
         CloseOtherUtilsAction(self.config.network, self.shell).execute()
 
@@ -114,6 +118,7 @@ your issue.""")
             self.check_wallets()
         if self.config.network == "simnet":
             self.wait_for_channels()
+            self.auto_unlock()
         self.close_other_utils()
 
     def start(self):

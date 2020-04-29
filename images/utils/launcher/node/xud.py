@@ -104,7 +104,7 @@ class Xud(Node):
             elif "it is your ONLY backup in case of data loss" in output:
                 return None
             else:
-                return Exception("Unexpected xucli create error happens")
+                return Exception("Unexpected xucli create error: " + output.strip())
         elif cmd.startswith("restore"):
             if "Password must be at least 8 characters" in output:
                 return InvalidPassword()
@@ -115,4 +115,9 @@ class Xud(Node):
             elif "The following wallets were restored" in output:
                 return None
             else:
-                return Exception("Unexpected xucli restore error")
+                return Exception("Unexpected xucli restore error: " + output.strip())
+        elif cmd.startswith("unlock"):
+            if "xud was unlocked succesfully" in output:
+                return None
+            else:
+                return Exception("Unexpected xucli unlock error: " + output.strip())
