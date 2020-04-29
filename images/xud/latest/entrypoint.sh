@@ -69,6 +69,17 @@ CONNEXT_IP=$(getent hosts connext || echo '' | awk '{ print $1 }')
 echo "[entrypoint] $CONNEXT_IP connext" >> /etc/hosts
 
 
+while [[ ! -e /root/.lndbtc/tls.cert ]]; do
+    echo "[entrypoint] Waiting for /root/.lndbtc/tls.cert to be created..."
+    sleep 1
+done
+
+while [[ ! -e /root/.lndltc/tls.cert ]]; do
+    echo "[entrypoint] Waiting for /root/.lndltc/tls.cert to be created..."
+    sleep 1
+done
+
+
 [[ -e $XUD_CONF && $PRESERVE_CONFIG == "true" ]] || {
     cp /app/sample-xud.conf $XUD_CONF
 
