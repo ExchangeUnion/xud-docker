@@ -3,6 +3,7 @@ import sys
 import os
 from subprocess import check_output
 import toml
+import docker
 
 from .node import NodeManager
 from .node.xud import PasswordNotMatch, InvalidPassword, MnemonicNot24Words
@@ -27,12 +28,26 @@ class Action:
     def config(self):
         return self.node_manager.config
 
+
+    def restart_lnds(self):
+        """
+        This is temporary solution for lnd unlock stuck problem
+        TODO remove it later
+        """
+        client = docker.from_env()
+        lndbtc = client.containers.get("simnet_lndbtc_1")
+        lndltc = client.containers.get("simnet_lndltc_1")
+        lndbtc.restart()
+        lndltc.restart()
+
     def xucli_create_wrapper(self, xud):
         counter = 0
         ok = False
         while counter < 3:
             try:
                 xud.cli("create", self.shell)
+                if self.node_manager.config.network == "simnet":
+                    self.restart_lnds()
                 while True:
                     confirmed = self.shell.confirm("YOU WILL NOT BE ABLE TO DISPLAY YOUR XUD SEED AGAIN. Press ENTER to continue...")
                     if confirmed:
