@@ -40,9 +40,29 @@ class Action:
             client = docker.from_env()
             c = client.containers.get(name)
             c.restart()
-        threading.Thread(target=restart, args=("simnet_lndbtc_1",)).start()
-        threading.Thread(target=restart, args=("simnet_lndltc_1",)).start()
-        threading.Thread(target=restart, args=("simnet_xud_1", 15)).start()
+            return c
+
+        def xud_restart():
+            c = restart("simnet_xud_1", 15)
+
+            # xud is locked, run 'xucli unlock', 'xucli create', or 'xucli restore' then try again
+            for i in range(10):
+                exit_code, output = c.exec_run("xucli getinfo")
+                result = output.decode()
+                if "xud is locked" in result:
+                    return
+                time.sleep(10)
+
+            raise RuntimeError("Restarted xud should be locked")
+
+        t1 = threading.Thread(target=restart, args=("simnet_lndbtc_1",))
+        t2 = threading.Thread(target=restart, args=("simnet_lndltc_1",))
+        t3 = threading.Thread(target=xud_restart)
+        t1.start()
+        t2.start()
+        t3.start()
+        t3.join()
+
 
     def xucli_create_wrapper(self, xud):
         counter = 0
@@ -281,9 +301,10 @@ class Action:
                 self.setup_backup_dir()
 
             if self.node_manager.config.network == "simnet":
-                print("Client restart required. Restarting...")
-                time.sleep(5)
+                print("Client restart required. Restarting...", end="")
+                sys.stdout.flush()
                 self.restart_lnds()
+                print("done")
         else:
             if not self.is_backup_available():
                 print("Backup location not available.")
