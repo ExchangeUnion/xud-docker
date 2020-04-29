@@ -35,13 +35,14 @@ class Action:
         This is temporary solution for lnd unlock stuck problem
         TODO remove it later
         """
-        client = docker.from_env()
-        lndbtc = client.containers.get("simnet_lndbtc_1")
-        lndltc = client.containers.get("simnet_lndltc_1")
-        #xud = client.containers.get("simnet_xud_1")
-        threading.Thread(target=lndbtc.restart).start()
-        threading.Thread(target=lndltc.restart).start()
-        #threading.Thread(target=xud.restart).start()
+        def restart(name, delay=0):
+            time.sleep(delay)
+            client = docker.from_env()
+            c = client.containers.get(name)
+            c.restart()
+        threading.Thread(target=restart, args=("simnet_lndbtc_1",)).start()
+        threading.Thread(target=restart, args=("simnet_lndltc_1",)).start()
+        threading.Thread(target=restart, args=("simnet_xud_1", 15)).start()
 
     def xucli_create_wrapper(self, xud):
         counter = 0
