@@ -5,6 +5,7 @@ from subprocess import check_output
 import toml
 import docker
 import time
+import threading
 
 from .node import NodeManager
 from .node.xud import PasswordNotMatch, InvalidPassword, MnemonicNot24Words
@@ -37,8 +38,10 @@ class Action:
         client = docker.from_env()
         lndbtc = client.containers.get("simnet_lndbtc_1")
         lndltc = client.containers.get("simnet_lndltc_1")
-        lndbtc.restart()
-        lndltc.restart()
+        xud = client.containers.get("simnet_xud_1")
+        threading.Thread(target=lndbtc.restart).start()
+        threading.Thread(target=lndltc.restart).start()
+        threading.Thread(target=xud.restart).start()
 
     def xucli_create_wrapper(self, xud):
         counter = 0
@@ -46,9 +49,6 @@ class Action:
         while counter < 3:
             try:
                 xud.cli("create", self.shell)
-                if self.node_manager.config.network == "simnet":
-                    time.sleep(5)
-                    self.restart_lnds()
                 while True:
                     confirmed = self.shell.confirm("YOU WILL NOT BE ABLE TO DISPLAY YOUR XUD SEED AGAIN. Press ENTER to continue...")
                     if confirmed:
@@ -278,6 +278,11 @@ class Action:
                 print()
                 self.config.backup_dir = None
                 self.setup_backup_dir()
+
+            if self.node_manager.config.network == "simnet":
+                print("Client restart required. Restarting...")
+                time.sleep(5)
+                self.restart_lnds()
         else:
             if not self.is_backup_available():
                 print("Backup location not available.")
