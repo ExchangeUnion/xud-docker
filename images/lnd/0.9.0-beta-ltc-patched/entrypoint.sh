@@ -57,7 +57,7 @@ function connect() {
     done
 }
 
-connect &
+#connect &
 
 
 while ! nc -z 127.0.0.1 9050; do
