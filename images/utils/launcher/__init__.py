@@ -110,7 +110,7 @@ your issue.""")
     def pre_start(self):
         if self.config.network in ["simnet", "testnet", "mainnet"]:
             print("\n🏃 Starting...\n")
-            time.sleep(15)  # cool down 15 seconds in case lnd unlock stuck
+            time.sleep(5)  # cool down 5 seconds in case lnd unlock stuck
             self.check_wallets()
         if self.config.network == "simnet":
             self.wait_for_channels()
