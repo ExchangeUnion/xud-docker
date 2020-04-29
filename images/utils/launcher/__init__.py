@@ -109,7 +109,7 @@ your issue.""")
 
     def pre_start(self):
         if self.config.network in ["simnet", "testnet", "mainnet"]:
-            print("\n🏃 Starting...\n")
+            print("\n🏃 Warming up...\n")
             time.sleep(5)  # cool down 5 seconds in case lnd unlock stuck
             self.check_wallets()
         if self.config.network == "simnet":
