@@ -119,5 +119,7 @@ class Xud(Node):
         elif cmd.startswith("unlock"):
             if "xud was unlocked succesfully" in output:
                 return None
+            elif output == "Enter master xud password: ":
+                return KeyboardInterrupt()
             else:
                 return Exception("Unexpected xucli unlock error: " + output.strip())
