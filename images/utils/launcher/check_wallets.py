@@ -327,7 +327,7 @@ class Action:
                 self.setup_backup_dir()
 
             if self.node_manager.config.network == "simnet":
-                print("\nClient restart required. This will take some seconds and you will be prompted to re-enter your password. Restarting...", end="")
+                print("\nClient restart required. This could take up to 3 minutes and you will be prompted to re-enter your password. Restarting...", end="")
                 sys.stdout.flush()
                 self.restart_lnds()
                 print("done.")
