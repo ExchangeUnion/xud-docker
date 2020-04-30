@@ -70,6 +70,7 @@ exec lnd --externalip=$LND_ADDRESS:$P2P_PORT \
 --listen=0.0.0.0:$P2P_PORT \
 --rpclisten=0.0.0.0:10009 \
 --restlisten=0.0.0.0:8080 \
+--trickledelay=1 \
 --tor.active \
 --tor.socks=9050 \
 --tor.streamisolation \
