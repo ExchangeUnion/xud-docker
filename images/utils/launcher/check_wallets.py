@@ -3,6 +3,9 @@ import sys
 import os
 from subprocess import check_output
 import toml
+import docker
+import time
+import threading
 
 from .node import NodeManager
 from .node.xud import PasswordNotMatch, InvalidPassword, MnemonicNot24Words
@@ -26,6 +29,66 @@ class Action:
     @property
     def config(self):
         return self.node_manager.config
+
+    def restart_lnds(self):
+        """
+        This is temporary solution for lnd unlock stuck problem
+        TODO remove it later
+        """
+        def restart(name):
+            client = docker.from_env()
+            c = client.containers.get(name)
+            c.restart()
+            return c
+
+        def xud_restart():
+            c = restart("simnet_xud_1")
+
+            # xud is locked, run 'xucli unlock', 'xucli create', or 'xucli restore' then try again
+            for i in range(10):
+                exit_code, output = c.exec_run("xucli getinfo")
+                result = output.decode()
+                if "xud is locked" in result:
+                    return
+                time.sleep(10)
+
+            raise RuntimeError("Restarted xud should be locked")
+
+        def lnd_restart(chain):
+            if chain == "bitcoin":
+                name = "simnet_lndbtc_1"
+            else:
+                name = "simnet_lndltc_1"
+
+            client = docker.from_env()
+            c = client.containers.get(name)
+            exit_code, output = c.exec_run(f"lncli -n simnet -c {chain} getinfo")
+            if exit_code == 0:
+                return
+
+            c = restart(name)
+
+            # [lncli] Wallet is encrypted. Please unlock using 'lncli unlock', or set password using 'lncli create' if this is the first time starting lnd.
+            for i in range(10):
+                exit_code, output = c.exec_run(f"lncli -n simnet -c {chain} getinfo")
+                result = output.decode()
+                if exit_code == 0:
+                    return
+                time.sleep(10)
+
+            raise RuntimeError("Restarted lnd should be locked")
+
+        t1 = threading.Thread(target=lnd_restart, args=("bitcoin",))
+        t2 = threading.Thread(target=lnd_restart, args=("litecoin",))
+        t3 = threading.Thread(target=xud_restart)
+
+        t1.start()
+        t2.start()
+        t1.join()
+        t2.join()
+
+        t3.start()
+        t3.join()
 
     def xucli_create_wrapper(self, xud):
         counter = 0
@@ -262,6 +325,16 @@ class Action:
                 print()
                 self.config.backup_dir = None
                 self.setup_backup_dir()
+
+            if self.node_manager.config.network == "simnet":
+                print("\nClient restart required. This could take up to 3 minutes and you will be prompted to re-enter your password. Restarting...", end="")
+                sys.stdout.flush()
+                try:
+                    self.restart_lnds()
+                    print(" Done.")
+                except:
+                    print(" Failed.")
+                    raise RuntimeError("Failed to restart lnds and xud after xucli create")
         else:
             if not self.is_backup_available():
                 print("Backup location not available.")

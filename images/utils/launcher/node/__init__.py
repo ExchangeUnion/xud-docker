@@ -15,7 +15,7 @@ from .btcd import Btcd, Ltcd
 from .geth import Geth
 from .lnd import Lndbtc, Lndltc
 from .raiden import Raiden
-from .xud import Xud
+from .xud import Xud, XudApiError
 from .connext import Connext
 from .image import Image, ImageManager
 

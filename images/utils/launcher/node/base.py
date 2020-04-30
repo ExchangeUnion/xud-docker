@@ -2,10 +2,9 @@ import datetime
 import itertools
 import logging
 import os
-import re
 import sys
 from typing import List, Dict, Any
-
+import docker
 from docker import DockerClient
 from docker.errors import NotFound
 from docker.models.containers import Container
@@ -56,7 +55,7 @@ class CompareResult:
 
 class Node:
     def __init__(self, name: str, ctx):
-        self.client = ctx.client
+        self.client = docker.from_env(timeout=999999999)
         self.config = ctx.config
         self.image_manager = ctx.image_manager
 
@@ -487,7 +486,7 @@ class CliError(Exception):
 
 class CliBackend:
     def __init__(self, client: DockerClient, container_name, logger, cli):
-        self.client = client
+        self.client = docker.from_env(timeout=999999999)
         self.container_name = container_name
         self.logger = logger
         self.cli = cli
