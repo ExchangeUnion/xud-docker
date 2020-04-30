@@ -327,10 +327,10 @@ class Action:
                 self.setup_backup_dir()
 
             if self.node_manager.config.network == "simnet":
-                print("Client restart required. Restarting...", end="")
+                print("\nClient restart required. This will take some seconds and you will be prompted to re-enter your password. Restarting...", end="")
                 sys.stdout.flush()
                 self.restart_lnds()
-                print("done")
+                print("done.")
         else:
             if not self.is_backup_available():
                 print("Backup location not available.")
