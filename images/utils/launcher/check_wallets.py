@@ -329,8 +329,12 @@ class Action:
             if self.node_manager.config.network == "simnet":
                 print("\nClient restart required. This could take up to 3 minutes and you will be prompted to re-enter your password. Restarting...", end="")
                 sys.stdout.flush()
-                self.restart_lnds()
-                print("done.")
+                try:
+                    self.restart_lnds()
+                    print(" Done.")
+                except:
+                    print(" Failed.")
+                    raise RuntimeError("Failed to restart lnds and xud after xucli create")
         else:
             if not self.is_backup_available():
                 print("Backup location not available.")
