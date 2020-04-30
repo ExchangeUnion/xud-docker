@@ -86,10 +86,6 @@ networks = {
                     "host": "$data_dir/lndltc",
                     "container": "/root/.lnd",
                 },
-                {
-                    "host": "$data_dir/ltcd",
-                    "container": "/root/.ltcd",
-                }
             ],
             "ports": [],
             "mode": "native",
@@ -123,10 +119,6 @@ networks = {
                 {
                     "host": "$data_dir/lndltc",
                     "container": "/root/.lndltc",
-                },
-                {
-                    "host": "$data_dir/raiden",
-                    "container": "/root/.raiden",
                 },
                 {
                     "host": "/",

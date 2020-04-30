@@ -3,6 +3,7 @@ import shlex
 import toml
 from shutil import copyfile
 import traceback
+import time
 
 from .config import Config, ConfigLoader, ArgumentError, InvalidHomeDir, InvalidNetworkDir
 from .shell import Shell
@@ -12,6 +13,7 @@ from .errors import NetworkConfigFileSyntaxError, NetworkConfigFileValueError, C
 
 from .check_wallets import Action as CheckWalletsAction, BackupDirNotAvailable
 from .close_other_utils import Action as CloseOtherUtilsAction
+from .auto_unlock import Action as AutoUnlockAction
 
 
 
@@ -103,14 +105,20 @@ your issue.""")
         # TODO wait for channels
         pass
 
+    def auto_unlock(self):
+        AutoUnlockAction(self.node_manager).execute()
+
     def close_other_utils(self):
         CloseOtherUtilsAction(self.config.network, self.shell).execute()
 
     def pre_start(self):
-        if self.config.network in ["testnet", "mainnet"]:
+        if self.config.network in ["simnet", "testnet", "mainnet"]:
+            print("\n🏃 Warming up...\n")
+            time.sleep(5)  # cool down 5 seconds in case lnd unlock stuck
             self.check_wallets()
-        elif self.config.network == "simnet":
+        if self.config.network == "simnet":
             self.wait_for_channels()
+            self.auto_unlock()
         self.close_other_utils()
 
     def start(self):
