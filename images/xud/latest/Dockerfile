@@ -13,7 +13,6 @@ RUN npm prune --production
 RUN rm -rf seedutil/go
 RUN strip seedutil/seedutil
 
-
 FROM node:12-alpine3.11
 RUN apk add --no-cache bash tor
 COPY --from=builder /xud /app
