@@ -19,7 +19,10 @@ function parse_arguments() {
                     exit 1
                 fi
                 if ! curl -sf -o /dev/null https://api.github.com/repos/ExchangeUnion/xud-docker/git/refs/heads/$1; then
-                    echo >&2 "❌ Branch \"$1\" does not exist"
+                    if ! curl -sL -w "%{http_code}" "https://www.github.com/" -o /dev/null | grep 200; then
+                        echo >&2 "Couldn't connect to GitHub: please check your internet connection and githubstatus.com"
+                        else echo >&2 "❌ Branch \"$1\" does not exist"
+                    fi
                     exit 1
                 fi
                 VALUE=$1
