@@ -67,7 +67,7 @@ networks = {
     "simnet": {
         "lndbtc": {
             "name": "lndbtc",
-            "image": "exchangeunion/lnd:0.9.2-beta-patched",
+            "image": "exchangeunion/lnd:0.10.0-beta-patched",
             "volumes": [
                 {
                     "host": "$data_dir/lndbtc",
