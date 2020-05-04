@@ -80,7 +80,7 @@ networks = {
         },
         "lndltc": {
             "name": "lndltc",
-            "image": "exchangeunion/lnd:0.10.0-beta-ltc-patched",
+            "image": "exchangeunion/lnd:0.9.0-beta-ltc-patched",
             "volumes": [
                 {
                     "host": "$data_dir/lndltc",
