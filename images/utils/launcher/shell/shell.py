@@ -487,16 +487,20 @@ class Shell:
         return result
 
     def yes_or_no(self, prompt: str) -> str:
-        answer = self.input(prompt + " [Y/n] ")
-        if answer.lower() == "y" or len(answer) == 0:
-            return "yes"
-        return "no"
+        while True:
+            answer = self.input(prompt + " [Y/n] ").lower()
+            if answer == "y" or answer == "yes" or len(answer) == 0:
+                return "yes"
+            elif answer == "n" or answer == "no":
+                return "no"
 
     def no_or_yes(self, prompt: str) -> str:
-        answer = self.input(prompt + " [y/N] ")
-        if answer.lower() == "n" or len(answer) == 0:
-            return "no"
-        return "yes"
+        while True:
+            answer = self.input(prompt + " [y/N] ").lower()
+            if answer == "n" or answer == "no" or len(answer) == 0:
+                return "no"
+            if answer == "y" or answer == "yes":
+                return "yes"
 
     def confirm(self, prompt: str) -> bool:
         answer = self.input(prompt)
