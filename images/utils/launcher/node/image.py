@@ -261,6 +261,7 @@ class ImageManager:
         self.branch = config.branch
         self.client = client
         self.shell = shell
+        self.nodes = config.nodes
 
         self.images: Dict[str, Image] = {}
 
@@ -303,6 +304,17 @@ class ImageManager:
 
     def check_for_updates(self) -> List[Image]:
         images = list(self.images.values())
+
+        def check_for_light_setup(images, name):
+            if self.nodes[name]['mode'] != 'native':
+                for image in images:
+                    if name in image.name:
+                        images.remove(image)
+            return images
+        
+        images = check_for_light_setup(images, 'bitcoind')
+        images = check_for_light_setup(images, 'litecoind')
+        images = check_for_light_setup(images, 'geth')
 
         def print_failed(failed):
             print("Failed to check for image updates.")
