@@ -18,13 +18,19 @@ function parse_arguments() {
                     echo >&2 "❌ Missing option value: $OPTION"
                     exit 1
                 fi
-                if ! curl -sf -o /dev/null https://api.github.com/repos/ExchangeUnion/xud-docker/git/refs/heads/$1; then
-                    if ! curl -sL -w "%{http_code}" "https://www.github.com/" -o /dev/null | grep 200; then
-                        echo >&2 "Couldn't connect to GitHub: please check your internet connection and githubstatus.com"
-                        else echo >&2 "❌ Branch \"$1\" does not exist"
-                    fi
+
+                HTTPCODE=$(curl -ILs -w "%{http_code}" -o /dev/null https://api.github.com/repos/ExchangeUnion/xud-docker/git/refs/heads/$1)
+                if [ $HTTPCODE -eq 404 ]; then
+                    echo >&2 "❌ Branch \"$1\" does not exist"
+                    exit 1
+                elif [ $HTTPCODE -eq 000 ]; then
+                    echo >&2 "Timeout error: Couldn't connect to GitHub: please check your internet connection and githubstatus.com"
+                    exit 1
+                elif [ $HTTPCODE -ne 200 ]; then
+                    echo >&2 "Something went wrong: got "$HTTPCODE" response code from GitHub. Please check githubstatus.com"
                     exit 1
                 fi
+
                 VALUE=$1
             fi
             BRANCH=$VALUE
