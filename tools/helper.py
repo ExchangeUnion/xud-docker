@@ -172,6 +172,36 @@ class Image:
         r = urlopen("https://auth.docker.io/token?service=registry.docker.io&scope=repository:{}:pull".format(name))
         return json.loads(r.read().decode())["token"]
 
+    def get_github_tag(self, repo, tag):
+        try:
+            r = urlopen(f"https://api.github.com/repos/{repo}/tags")
+            target = [t for t in json.loads(r.read().decode()) if t["name"] == tag]
+            if len(target) == 0:
+                return None
+            else:
+                return target[0]["commit"]["sha"]
+        except Exception as e:
+            raise RuntimeError(e, "Failed to get GitHub repository {} tag {}".format(repo, tag))
+
+    def get_github_branch_revision(self, repo, branch):
+        try:
+            r = urlopen(f"https://api.github.com/repos/{repo}/git/refs/heads/{branch}")
+            return json.loads(r.read().decode())["object"]["sha"]
+        except Exception as e:
+            raise RuntimeError(e, "Failed to get GitHub repository {} branch {} revision".format(repo, branch))
+
+    def get_github_revision(self, name, branch):
+        if name == "xud":
+            repo = "ExchangeUnion/xud"
+        else:
+            return None
+
+        tag = self.get_github_tag(repo, branch)
+        if tag:
+            return tag
+        else:
+            return self.get_github_branch_revision(repo, branch)
+
     def existed_in_registry_and_up_to_date(self, registry):
         name = "{}/{}".format(self.group, self.name)
         tag = self.get_tag()
@@ -190,14 +220,26 @@ class Image:
                     time.sleep(1)
 
             if payload["schemaVersion"] == 1:
-                r1 = json.loads(payload["history"][0]["v1Compatibility"])["config"]["Labels"]["com.exchangeunion.image.revision"]
+                labels = json.loads(payload["history"][0]["v1Compatibility"])["config"]["Labels"]
+                r1 = labels["com.exchangeunion.image.revision"]
                 print("- Registry image revision: {}".format(r1))
                 print("- Unmodified history: {}".format(self.unmodified_history))
                 if r1.endswith("-dirty"):
                     return False
                 else:
                     if r1 in self.unmodified_history:
-                        return True
+                        if "com.exchangeunion.application.revision" in labels:
+                            r2 = labels["com.exchangeunion.application.revision"]
+                            _branch = labels["com.exchangeunion.application.branch"]
+                            gr = self.get_github_revision(self.name, _branch)
+                            print("- Registry image application: {} ({})".format(r2, _branch))
+                            print("- Latest application revision: {}".format(gr))
+                            if r2 == gr:
+                                return True
+                            else:
+                                return False
+                        else:
+                            return False
                     else:
                         return False
             else:
@@ -270,6 +312,31 @@ class Image:
             else:
                 return self.get_existed_dockerfile(f)
 
+    def get_app_branch_revision(self, build_tag):
+        branch = None
+        ref = None
+        revision = None
+        if self.name == "xud":
+            try:
+                output = check_output(f"docker run -i --rm --entrypoint cat {build_tag} /app/.git/HEAD", shell=True, stderr=PIPE)
+                output = output.decode().strip()
+                p = re.compile("^ref: (refs/heads/(.+))$")
+                m = p.match(output)
+                if m:
+                    ref = m.group(1)
+                    branch = m.group(2)
+            except Exception as e:
+                raise RuntimeError(e, "Failed to get application branch from {}".format(build_tag))
+
+            try:
+                output = check_output(f"docker run -i --rm --entrypoint cat {build_tag} /app/.git/{ref}", shell=True, stderr=PIPE)
+                output = output.decode().strip()
+                revision = output
+            except Exception as e:
+                raise RuntimeError(e, "Failed to get application revision from {}".format(build_tag))
+
+        return branch, revision
+
     def build(self, args):
         if self.arch != arch and not cross_build:
             return False
@@ -310,6 +377,11 @@ class Image:
             if self.arch == arch:
                 cmd = "docker build -f {} -t {} {} {}".format(dockerfile, build_tag, " ".join(args), build_dir)
                 run_command(cmd, "Failed to build {}".format(build_tag))
+
+                app_branch, app_revision = self.get_app_branch_revision(build_tag)
+                cmd = f"echo FROM {build_tag} | docker build --label com.exchangeunion.application.revision={app_revision} --label com.exchangeunion.application.branch={app_branch} -t {build_tag} -"
+                run_command(cmd, "Failed to append application branch and revision labels to the image: {}".format(build_tag))
+
                 build_tag_without_arch = self.get_build_tag_without_arch()
                 run_command("docker tag {} {}".format(build_tag, build_tag_without_arch), "Failed to tag {}".format(build_tag_without_arch))
                 return True
@@ -323,6 +395,11 @@ class Image:
                 cmd = "docker buildx build --platform {} --progress plain --load -f {} -t {} {} {}".format(
                     buildx_platform, dockerfile, build_tag, " ".join(args), build_dir)
                 run_command(cmd, "Failed to build {}".format(build_tag))
+
+                app_branch, app_revision = self.get_app_branch_revision(build_tag)
+                cmd = f"echo FROM {build_tag} | docker buildx build --label com.exchangeunion.application.revision={app_revision} --label com.exchangeunion.application.branch={app_branch} -t {build_tag} -"
+                run_command(cmd, "Failed to append application branch and revision labels to the image: {}".format(build_tag))
+
                 return True
         finally:
             for f in shared_files:
