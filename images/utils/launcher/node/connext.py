@@ -24,8 +24,8 @@ class Connext(Node):
 
         if self.network == "simnet":
             environment = [
-                "CONNEXT_ETH_PROVIDER_URL=http://130.211.223.61:8545",
-                "CONNEXT_NODE_URL=http://130.211.223.61:8080",
+                "CONNEXT_ETH_PROVIDER_URL=http://35.246.174.136:8545",
+                "CONNEXT_NODE_URL=http://35.246.174.136:8080",
             ]
         else:
             environment = []
