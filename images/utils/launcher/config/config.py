@@ -93,7 +93,7 @@ networks = {
         },
         "connext": {
             "name": "connext",
-            "image": "exchangeunion/connext:1.0.0-beta.2-simnet",
+            "image": "exchangeunion/connext:6.3.8",
             "volumes": [
                 {
                     "host": "$data_dir/connext",
