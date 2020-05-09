@@ -18,19 +18,6 @@ function parse_arguments() {
                     echo >&2 "❌ Missing option value: $OPTION"
                     exit 1
                 fi
-
-                HTTPCODE=$(curl -ILs -w "%{http_code}" -o /dev/null https://api.github.com/repos/ExchangeUnion/xud-docker/git/refs/heads/$1)
-                if [ $HTTPCODE -eq 404 ]; then
-                    echo >&2 "❌ Branch \"$1\" does not exist"
-                    exit 1
-                elif [ $HTTPCODE -eq 000 ]; then
-                    echo >&2 "Timeout error: Couldn't connect to GitHub: please check your internet connection and githubstatus.com"
-                    exit 1
-                elif [ $HTTPCODE -ne 200 ]; then
-                    echo >&2 "Something went wrong: got "$HTTPCODE" response code from GitHub. Please check githubstatus.com"
-                    exit 1
-                fi
-
                 VALUE=$1
             fi
             BRANCH=$VALUE
@@ -43,4 +30,15 @@ function parse_arguments() {
 
 parse_arguments "$@"
 
-bash <(curl -sf "https://raw.githubusercontent.com/ExchangeUnion/xud-docker/$BRANCH/setup.sh") "$@"
+temp_file=$(mktemp)
+HTTPCODE=$(curl -Ls -w "%{http_code}" -o temp_file "https://raw.githubusercontent.com/ExchangeUnion/xud-docker/$BRANCH/setup.sh" || 
+           echo >&2 "Timeout error: Couldn't connect to GitHub: please check your internet connection and githubstatus.com")
+if [ $HTTPCODE -eq 404 ]; then
+    echo >&2 "❌ Branch \"$BRANCH\" does not exist"
+elif [ $HTTPCODE -ne 200 ]; then
+    echo >&2 "Something went wrong: got "$HTTPCODE" response code from GitHub. Please check githubstatus.com"
+else
+    bash temp_file "$@"
+    rm ${temp_file} && exit 0
+fi
+exit 1
