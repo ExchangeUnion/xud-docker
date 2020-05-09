@@ -44,7 +44,7 @@ class Btcd(Node):
                     return "Syncing %.2f (%d/%d)" % (current / total, current, total)
             except:
                 self._logger.exception("Failed to get advanced running status")
-                return "Container running"
+                return "Waiting for {} to come up...".format("ltcd" if self.litecoin else "btcd")
         else:
             return status
 

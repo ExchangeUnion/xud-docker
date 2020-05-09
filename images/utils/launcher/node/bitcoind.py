@@ -117,7 +117,7 @@ class Bitcoind(Node):
                 return str(e)
             except:
                 self._logger.exception("Failed to get advanced running status")
-                return "Container running"
+                return "Waiting for bitcoind to come up..."
         else:
             return status
 

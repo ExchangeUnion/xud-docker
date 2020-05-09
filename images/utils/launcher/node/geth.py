@@ -117,6 +117,6 @@ class Geth(Node):
                         return "Ready"
             except:
                 self._logger.exception("Failed to get advanced running status")
-                return "Container running"
+                return "Waiting for geth to come up..."
         else:
             return status
