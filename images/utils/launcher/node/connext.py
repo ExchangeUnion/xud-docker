@@ -73,6 +73,6 @@ class Connext(Node):
                 return str(e)
             except:
                 self._logger.exception("Failed to get advanced running status")
-                return "Container running"
+                return "Waiting for connext to come up..."
         else:
             return status
