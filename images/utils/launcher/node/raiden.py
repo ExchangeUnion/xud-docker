@@ -107,11 +107,11 @@ class Raiden(Node):
                         # Waiting for the ethereum node to synchronize. [Use ^C to exit]
                         return "Waiting for sync"
                     else:
-                        return "Container running"
+                        return "Waiting for raiden to come up..."
                 self._logger.exception("Failed to get advanced running status")
                 return str(e)
             except:
                 self._logger.exception("Failed to get advanced running status")
-                return "Container running"
+                return "Waiting for raiden to come up..."
         else:
             return status

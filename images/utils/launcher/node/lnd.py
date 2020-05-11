@@ -113,7 +113,7 @@ class Lnd(Node):
                     return "Wallet locked. Unlock with xucli unlock."
             except:
                 self._logger.exception("Failed to get advanced running status")
-            return "Container running"
+            return "Waiting for lnd ({}) to come up...".format(self.chain)
         else:
             return status
 

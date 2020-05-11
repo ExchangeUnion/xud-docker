@@ -374,6 +374,11 @@ class NodeManager:
 
         def status_wrapper(container, name, update_status):
             status = container.status()
+            if status.startswith("could not connect"):
+                update_status(name, "Waiting for xud...")
+                sleep(5)
+                status = container.status()
+
             update_status(name, status)
 
         class State:
