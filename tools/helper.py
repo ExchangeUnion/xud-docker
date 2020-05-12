@@ -234,10 +234,13 @@ class Image:
                             gr = self.get_github_revision(self.name, _branch)
                             print("- Registry image application: {} ({})".format(r2, _branch))
                             print("- Latest application revision: {}".format(gr))
-                            if r2 == gr:
-                                return True
+                            if gr:
+                                if r2 == gr:
+                                    return True
+                                else:
+                                    return False
                             else:
-                                return False
+                                return True
                         else:
                             return False
                     else:
