@@ -328,15 +328,42 @@ class Image:
                 if m:
                     ref = m.group(1)
                     branch = m.group(2)
-            except Exception as e:
-                raise RuntimeError(e, "Failed to get application branch from {}".format(build_tag))
+            except Exception:
+                pass
 
-            try:
-                output = check_output(f"docker run -i --rm --entrypoint cat {build_tag} /app/.git/{ref}", shell=True, stderr=PIPE)
-                output = output.decode().strip()
-                revision = output
-            except Exception as e:
-                raise RuntimeError(e, "Failed to get application revision from {}".format(build_tag))
+            if not ref:
+                try:
+                    output = check_output(f"docker run -i --rm --entrypoint cat {build_tag} /app/dist/Version.js | grep exports.default", shell=True, stderr=PIPE)
+                    # exports.default = '-c46bc2f';
+                    output = output.decode().strip()
+                    p = re.compile(r"^exports\.default = '-(.+)';")
+                    m = p.match(output)
+                    if m:
+                        revision = m.group(1)
+                except Exception as e:
+                    raise RuntimeError(e, "Failed to get application branch from {}".format(build_tag))
+
+            if not revision:
+                try:
+                    output = check_output(f"docker run -i --rm --entrypoint cat {build_tag} /app/.git/{ref}", shell=True, stderr=PIPE)
+                    output = output.decode().strip()
+                    revision = output
+                except Exception as e:
+                    raise RuntimeError(e, "Failed to get application revision from {}".format(build_tag))
+
+            if len(revision) == 7:
+                r = urlopen(f"https://api.github.com/repos/ExchangeUnion/xud/commits/{revision}")
+                j = json.loads(r.read().decode())
+                revision = j["sha"]
+                # try to get branches which contain the commit using GitHub undocumented API
+                r = urlopen(f"https://github.com/ExchangeUnion/xud/branch_commits/{revision}")
+                branches = []
+                p = re.compile(r"^.*\"branch\".*>([^<]+)<.*$")
+                for line in r.read().decode().splitlines():
+                    m = p.match(line)
+                    if m:
+                        branches.append(m.group(1))
+                branch = ",".join(branches)
 
         return branch, revision
 
