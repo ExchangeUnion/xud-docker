@@ -1,5 +1,5 @@
 FROM node:12-alpine3.11 AS builder
-ARG REPO=ConnextProject/rest-api-client
+ARG REPO=connext/rest-api-client
 ARG BRANCH=master
 # Use pure JS implemented secp256k1 bindings
 RUN apk add --no-cache git bash python3 make g++ python
