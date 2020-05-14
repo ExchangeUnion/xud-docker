@@ -1,6 +1,14 @@
 import demjson
+from urllib.request import urlopen, Request
+import json
+import logging
+from datetime import datetime, timedelta
+from concurrent.futures import ThreadPoolExecutor, wait
+
 from .base import Node, CliBackend
-import socket
+
+
+logger = logging.getLogger(__name__)
 
 
 class GethApi:
@@ -32,6 +40,16 @@ class Geth(Node):
                 "project_secret": self.node_config["infura_project_secret"],
             }
 
+        if self.mode == "light":
+            providers = self.config.eth_providers
+            eth_provider = self.get_fastest_provider(providers)
+            if not eth_provider:
+                raise RuntimeError("No valid ethereum provider")
+            self.node_config["eth_provider"] = eth_provider
+            self.light_config = {
+                "eth_provider": eth_provider
+            }
+
         self.container_spec.environment.extend(self.get_environment())
 
         if self.network == "testnet":
@@ -55,43 +73,89 @@ class Geth(Node):
                 return True
         return False
 
+    def check_eth_rpc(self, url):
+        data = {
+            "jsonrpc": "2.0",
+            "method": "web3_clientVersion",
+            "params": [],
+            "id": 1
+        }
+        data = json.dumps(data).encode()
+        try:
+            r = urlopen(Request(url, data=data))
+            j = json.load(r.read())
+            result = j["result"]
+            # Geth/v1.9.9-omnibus-e320ae4c-20191206/linux-amd64/go1.13.4
+            logger.info("The ethereum RPC %s client version is %s", url, result)
+            return True
+        except:
+            return False
+
+    def get_fastest_provider(self, providers):
+        timeout = 30
+        min_delay = timedelta(seconds=timeout)
+        provider = None
+        with ThreadPoolExecutor(max_workers=len(providers)) as executor:
+            fs = {executor.submit(self.get_provider_delay, p): p for p in providers}
+            done, not_done = wait(fs, timeout)
+            for f in done:
+                p = fs[p]
+                try:
+                    delay = f.result()
+                    if delay < min_delay:
+                        min_delay = delay
+                        provider = p
+                except:
+                    pass
+        return provider
+
+    def get_provider_delay(self, provider):
+        try:
+            t1 = datetime.now()
+            ok = self.check_eth_rpc(provider)
+            t2 = datetime.now()
+            if ok:
+                return t2 - t1
+        except:
+            logger.error("Failed to get provider %s delay", provider)
+        return None
+
     def get_external_status(self):
-        s = socket.socket()
         rpc_host = self.external_config["rpc_host"]
         rpc_port = self.external_config["rpc_port"]
-        try:
-            s.connect((rpc_host, rpc_port))
+        url = f"http://{rpc_host}:{rpc_port}"
+        if self.check_eth_rpc(url):
             return "Ready (Connected to external)"
-        except:
-            self._logger.exception(f"Failed to connect to external node {rpc_host}:{rpc_port}")
+        else:
             return "Unavailable (Connection to external failed)"
-        finally:
-            s.close()
 
     def get_infura_status(self):
-        s = socket.socket()
+        project_id = self.infura_config["project_id"]
         if self.network == "mainnet":
-            rpc_host = "mainnet.infura.io"
+            url = f"https://mainnet.infura.io/v3/{project_id}"
         elif self.network == "testnet":
-            rpc_host = "rinkeby.infura.io"
+            url = f"https://rinkeby.infura.io/v3/{project_id}"
         else:
             raise RuntimeError(f"{self.network} won't use Infura")
-        rpc_port = 443
-        try:
-            s.connect((rpc_host, rpc_port))
+        if self.check_eth_rpc(url):
             return "Ready (Connected to Infura)"
-        except:
-            self._logger.exception(f"Failed to connect to Infura node {rpc_host}:{rpc_port}")
+        else:
             return "Unavailable (Connection to Infura failed)"
-        finally:
-            s.close()
+
+    def get_light_status(self):
+        eth_provider = self.light_config["eth_provider"]
+        if self.check_eth_rpc(eth_provider):
+            return "Ready (Connected to Light)"
+        else:
+            return "Unavailable (Connection to Light failed)"
 
     def status(self):
         if self.mode == "external":
             return self.get_external_status()
-
-        if self.mode == "infura":
+        elif self.mode == "infura":
             return self.get_infura_status()
+        elif self.mode == "light":
+            return self.get_light_status()
 
         status = super().status()
         if status == "exited":

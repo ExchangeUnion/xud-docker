@@ -2,447 +2,14 @@ import argparse
 import logging
 from logging.handlers import TimedRotatingFileHandler
 import os
-from shutil import copyfile
 import re
 
 import toml
 
 from ..utils import normalize_path, get_hostfs_file, ArgumentParser, ArgumentError
 from ..errors import FatalError
-
-
-class PortPublish:
-    def __init__(self, value):
-        p1 = re.compile(r"^(\d+)$")  # 8080
-        p2 = re.compile(r"^(\d+):(\d+)$")  # 80:8080
-        p3 = re.compile(r"^(\d+):(\d+):(\d+)$")  # 127.0.0.1:80:8080
-
-        protocol = "tcp"
-        if "/" in value:
-            parts = value.split("/")
-            p = parts[0]
-            protocol = parts[1]
-            if protocol not in ["tcp", "udp", "sctp"]:
-                raise FatalError("Invalid protocol: {} ({})".format(protocol, p))
-
-        host = None
-        host_port = None
-        port = None
-
-        m = p1.match(value)
-        if m:
-            port = int(m.group(1))
-            host_port = port
-        else:
-            m = p2.match(value)
-            if m:
-                host_port = int(m.group(1))
-                port = int(m.group(2))
-            else:
-                m = p3.match(value)
-                if m:
-                    host = m.group(1)
-                    host_port = int(m.group(2))
-                    port = int(m.group(3))
-
-        self.protocol = protocol
-        self.host = host
-        self.host_port = host_port
-        self.port = port
-
-    def __eq__(self, other):
-        if not isinstance(other, PortPublish):
-            return False
-        if self.host != other.host:
-            return False
-        if self.host_port != other.host_port:
-            return False
-        if self.port != other.port:
-            return False
-        if self.protocol != other.protocol:
-            return False
-        return True
-
-
-networks = {
-    "simnet": {
-        "lndbtc": {
-            "name": "lndbtc",
-            "image": "exchangeunion/lnd:0.10.0-beta-simnet",
-            "volumes": [
-                {
-                    "host": "$data_dir/lndbtc",
-                    "container": "/root/.lnd",
-                },
-            ],
-            "ports": [],
-            "mode": "native",
-            "preserve_config": False,
-        },
-        "lndltc": {
-            "name": "lndltc",
-            "image": "exchangeunion/lnd:0.9.0-beta-ltc-simnet",
-            "volumes": [
-                {
-                    "host": "$data_dir/lndltc",
-                    "container": "/root/.lnd",
-                },
-            ],
-            "ports": [],
-            "mode": "native",
-            "preserve_config": False,
-        },
-        "connext": {
-            "name": "connext",
-            "image": "exchangeunion/connext:latest",
-            "volumes": [
-                {
-                    "host": "$data_dir/connext",
-                    "container": "/root/.connext",
-                },
-            ],
-            "ports": [],
-            "mode": "native",
-            "preserve_config": False,
-        },
-        "xud": {
-            "name": "xud",
-            "image": "exchangeunion/xud:latest",
-            "volumes": [
-                {
-                    "host": "$data_dir/xud",
-                    "container": "/root/.xud",
-                },
-                {
-                    "host": "$data_dir/lndbtc",
-                    "container": "/root/.lndbtc",
-                },
-                {
-                    "host": "$data_dir/lndltc",
-                    "container": "/root/.lndltc",
-                },
-                {
-                    "host": "/",
-                    "container": "/mnt/hostfs",
-                },
-            ],
-            "ports": [PortPublish("28885")],
-            "mode": "native",
-            "preserve_config": False,
-        }
-    },
-    "testnet": {
-        "bitcoind": {
-            "name": "bitcoind",
-            "image": "exchangeunion/bitcoind:0.19.1",
-            "volumes": [
-                {
-                    "host": "$data_dir/bitcoind",
-                    "container": "/root/.bitcoin",
-                }
-            ],
-            "ports": [],
-            "mode": "native",  # external, neutrino
-            "external_rpc_host": "127.0.0.1",
-            "external_rpc_port": 18332,
-            "external_rpc_user": "xu",
-            "external_rpc_password": "xu",
-            "external_zmqpubrawblock": "127.0.0.1:28332",
-            "external_zmqpubrawtx": "127.0.0.1:28333",
-            "preserve_config": False,
-        },
-        "litecoind": {
-            "name": "litecoind",
-            "image": "exchangeunion/litecoind:0.17.1",
-            "volumes": [
-                {
-                    "host": "$data_dir/litecoind",
-                    "container": "/root/.litecoin",
-                }
-            ],
-            "ports": [],
-            "mode": "native",  # external, neutrino
-            "external_rpc_host": "127.0.0.1",
-            "external_rpc_port": 19332,
-            "external_rpc_user": "xu",
-            "external_rpc_password": "xu",
-            "external_zmqpubrawblock": "127.0.0.1:29332",
-            "external_zmqpubrawtx": "127.0.0.1:29333",
-            "preserve_config": False,
-        },
-        "geth": {
-            "name": "geth",
-            "image": "exchangeunion/geth:1.9.14",
-            "volumes": [
-                {
-                    "host": "$data_dir/geth",
-                    "container": "/root/.ethereum",
-                }
-            ],
-            "ports": [],
-            "mode": "native",  # external, infura
-            "external_rpc_host": "127.0.0.1",
-            "external_rpc_port": 8545,
-            "infura_project_id": None,
-            "infura_project_secret": None,
-            "preserve_config": False,
-        },
-        "lndbtc": {
-            "name": "lndbtc",
-            "image": "exchangeunion/lnd:0.10.0-beta",
-            "volumes": [
-                {
-                    "host": "$data_dir/lndbtc",
-                    "container": "/root/.lnd",
-                },
-            ],
-            "ports": [],
-            "mode": "native",
-            "preserve_config": False,
-        },
-        "lndltc": {
-            "name": "lndltc",
-            "image": "exchangeunion/lnd:0.9.0-beta-ltc",
-            "volumes": [
-                {
-                    "host": "$data_dir/lndltc",
-                    "container": "/root/.lnd",
-                },
-            ],
-            "ports": [],
-            "mode": "native",
-            "preserve_config": False,
-        },
-        "raiden": {
-            "name": "raiden",
-            "image": "exchangeunion/raiden:0.100.5a1.dev162-2217bcb",
-            "volumes": [
-                {
-                    "host": "$data_dir/raiden",
-                    "container": "/root/.raiden",
-                },
-            ],
-            "ports": [],
-            "mode": "native",
-            "preserve_config": False,
-        },
-        "xud": {
-            "name": "xud",
-            "image": "exchangeunion/xud:latest",
-            "volumes": [
-                {
-                    "host": "$data_dir/xud",
-                    "container": "/root/.xud",
-                },
-                {
-                    "host": "$data_dir/lndbtc",
-                    "container": "/root/.lndbtc",
-                },
-                {
-                    "host": "$data_dir/lndltc",
-                    "container": "/root/.lndltc",
-                },
-                {
-                    "host": "$data_dir/raiden",
-                    "container": "/root/.raiden",
-                },
-                {
-                    "host": "/",
-                    "container": "/mnt/hostfs",
-                },
-            ],
-            "ports": [PortPublish("18885")],
-            "mode": "native",
-            "preserve_config": False,
-        }
-    },
-    "mainnet": {
-        "bitcoind": {
-            "name": "bitcoind",
-            "image": "exchangeunion/bitcoind:0.19.1",
-            "volumes": [
-                {
-                    "host": "$data_dir/bitcoind",
-                    "container": "/root/.bitcoin",
-                }
-            ],
-            "ports": [],
-            "mode": "native",  # external, neutrino
-            "external_rpc_host": "127.0.0.1",
-            "external_rpc_port": 8332,
-            "external_rpc_user": "xu",
-            "external_rpc_password": "xu",
-            "external_zmqpubrawblock": "127.0.0.1:28332",
-            "external_zmqpubrawtx": "127.0.0.1:28333",
-            "preserve_config": False,
-        },
-        "litecoind": {
-            "name": "litecoind",
-            "image": "exchangeunion/litecoind:0.17.1",
-            "volumes": [
-                {
-                    "host": "$data_dir/litecoind",
-                    "container": "/root/.litecoin",
-                }
-            ],
-            "ports": [],
-            "mode": "native",  # external, neutrino
-            "external_rpc_host": "127.0.0.1",
-            "external_rpc_port": 9332,
-            "external_rpc_user": "xu",
-            "external_rpc_password": "xu",
-            "external_zmqpubrawblock": "127.0.0.1:29332",
-            "external_zmqpubrawtx": "127.0.0.1:29333",
-            "preserve_config": False,
-        },
-        "geth": {
-            "name": "geth",
-            "image": "exchangeunion/geth:1.9.14",
-            "volumes": [
-                {
-                    "host": "$data_dir/geth",
-                    "container": "/root/.ethereum",
-                }
-            ],
-            "ports": [],
-            "mode": "native",  # external, infura
-            "external_rpc_host": "127.0.0.1",
-            "external_rpc_port": 8545,
-            "infura_project_id": None,
-            "infura_project_secret": None,
-            "preserve_config": False,
-        },
-        "lndbtc": {
-            "name": "lndbtc",
-            "image": "exchangeunion/lnd:0.10.0-beta",
-            "volumes": [
-                {
-                    "host": "$data_dir/lndbtc",
-                    "container": "/root/.lnd",
-                },
-            ],
-            "ports": [],
-            "mode": "native",
-            "preserve_config": False,
-        },
-        "lndltc": {
-            "name": "lndltc",
-            "image": "exchangeunion/lnd:0.9.0-beta-ltc",
-            "volumes": [
-                {
-                    "host": "$data_dir/lndltc",
-                    "container": "/root/.lnd",
-                },
-            ],
-            "ports": [],
-            "mode": "native",
-            "preserve_config": False,
-        },
-        "raiden": {
-            "name": "raiden",
-            "image": "exchangeunion/raiden:0.100.5a1.dev162-2217bcb",
-            "volumes": [
-                {
-                    "host": "$data_dir/raiden",
-                    "container": "/root/.raiden",
-                },
-            ],
-            "ports": [],
-            "mode": "native",
-            "preserve_config": False,
-        },
-        "xud": {
-            "name": "xud",
-            "image": "exchangeunion/xud:1.0.0-beta.2",
-            "volumes": [
-                {
-                    "host": "$data_dir/xud",
-                    "container": "/root/.xud",
-                },
-                {
-                    "host": "$data_dir/lndbtc",
-                    "container": "/root/.lndbtc",
-                },
-                {
-                    "host": "$data_dir/lndltc",
-                    "container": "/root/.lndltc",
-                },
-                {
-                    "host": "$data_dir/raiden",
-                    "container": "/root/.raiden",
-                },
-                {
-                    "host": "/",
-                    "container": "/mnt/hostfs",
-                },
-            ],
-            "ports": [PortPublish("8885")],
-            "mode": "native",
-            "preserve_config": False,
-        }
-    }
-}
-
-
-class ConfigLoader:
-    def load_general_config(self, home_dir):
-        config_file = get_hostfs_file(f"{home_dir}/xud-docker.conf")
-        sample_config_file = get_hostfs_file(f"{home_dir}/sample-xud-docker.conf")
-        copyfile(os.path.dirname(__file__) + "/xud-docker.conf", sample_config_file)
-        if not os.path.exists(config_file):
-            copyfile(os.path.dirname(__file__) + f"/xud-docker.conf", config_file)
-        with open(config_file) as f:
-            return f.read()
-
-    def load_network_config(self, network, network_dir):
-        config_file = get_hostfs_file(f"{network_dir}/{network}.conf")
-        sample_config_file = get_hostfs_file(f"{network_dir}/sample-{network}.conf")
-        copyfile(os.path.dirname(__file__) + f'/{network}.conf', sample_config_file)
-        if not os.path.exists(config_file):
-            copyfile(os.path.dirname(__file__) + f"/{network}.conf", config_file)
-        with open(config_file) as f:
-            return f.read()
-
-    def load_lndenv(self, network_dir):
-        lndenv = get_hostfs_file(f"{network_dir}/lnd.env")
-        try:
-            with open(lndenv) as f:
-                return f.read()
-        except FileNotFoundError:
-            return ""
-
-    def ensure_home_dir(self, host_home):
-        home_dir = host_home + "/.xud-docker"
-        hostfs_dir = get_hostfs_file(home_dir)
-        if os.path.exists(hostfs_dir):
-            if not os.path.isdir(hostfs_dir):
-                raise FatalError("{} is not a directory".format(home_dir))
-            else:
-                if not os.access(hostfs_dir, os.R_OK):
-                    raise FatalError("{} is not readable".format(home_dir))
-                if not os.access(hostfs_dir, os.W_OK):
-                    raise FatalError("{} is not writable".format(home_dir))
-        else:
-            os.mkdir(hostfs_dir)
-        return home_dir
-
-    def ensure_network_dir(self, network_dir):
-        network_dir = normalize_path(network_dir)
-        hostfs_dir = get_hostfs_file(network_dir)
-        if os.path.exists(hostfs_dir):
-            if not os.path.isdir(hostfs_dir):
-                raise FatalError("{} is not a directory".format(network_dir))
-            else:
-                if not os.access(hostfs_dir, os.R_OK):
-                    raise FatalError("{} is not readable".format(network_dir))
-                if not os.access(hostfs_dir, os.W_OK):
-                    raise FatalError("{} is not writable".format(network_dir))
-        else:
-            os.makedirs(hostfs_dir)
-
-        if not os.path.exists(hostfs_dir + "/logs"):
-            os.mkdir(hostfs_dir + "/logs")
-        return network_dir
+from .template import nodes_config, general_config, PortPublish
+from .loader import ConfigLoader
 
 
 class Config:
@@ -461,7 +28,9 @@ class Config:
         self.backup_dir = None
         self.restore_dir = None
 
-        self.nodes = networks[self.network]
+        self.eth_providers = general_config[self.network]["eth_providers"]
+
+        self.nodes = nodes_config[self.network]
 
         self.args = None
 
@@ -594,7 +163,7 @@ class Config:
 
         if "mode" in parsed:
             value = parsed["mode"]
-            if value not in ["native", "external", "neutrino"]:
+            if value not in ["native", "external", "neutrino", "light"]:
                 raise FatalError("Invalid value of option \"mode\": {}".format(value))
             node["mode"] = value
 
@@ -606,7 +175,7 @@ class Config:
         opt = "{}.mode".format(opt_prefix)
         if hasattr(self.args, opt):
             value = getattr(self.args, opt)
-            if value not in ["native", "external", "neutrino"]:
+            if value not in ["native", "external", "neutrino", "light"]:
                 raise FatalError("Invalid value of option \"--{}\": {}".format(opt, value))
             node["mode"] = value
 
@@ -723,7 +292,7 @@ class Config:
 
         if "mode" in parsed:
             value = parsed["mode"]
-            if value not in ["native", "external", "infura"]:
+            if value not in ["native", "external", "infura", "light"]:
                 raise FatalError("Invalid value of option \"mode\": {}" + value)
             node["mode"] = value
 

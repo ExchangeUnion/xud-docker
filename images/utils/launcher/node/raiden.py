@@ -82,6 +82,11 @@ class Raiden(Node):
                 environment.extend([
                     f'RPC_ENDPOINT=https://rinkeby.infura.io/v3/{project_id}'
                 ])
+        elif geth["mode"] == "light":
+            eth_provider = geth["eth_provider"]
+            environment.extend([
+                f'RPC_ENDPOINT={eth_provider}'
+            ])
         return environment
 
     def status(self):
