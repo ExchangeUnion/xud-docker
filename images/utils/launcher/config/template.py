@@ -177,6 +177,7 @@ nodes_config = {
             "infura_project_id": None,
             "infura_project_secret": None,
             "preserve_config": False,
+            "eth_provider": None
         },
         "lndbtc": {
             "name": "lndbtc",
