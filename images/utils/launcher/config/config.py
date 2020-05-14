@@ -179,7 +179,7 @@ networks = {
         },
         "geth": {
             "name": "geth",
-            "image": "exchangeunion/geth:1.9.13",
+            "image": "exchangeunion/geth:1.9.14",
             "volumes": [
                 {
                     "host": "$data_dir/geth",
@@ -304,7 +304,7 @@ networks = {
         },
         "geth": {
             "name": "geth",
-            "image": "exchangeunion/geth:1.9.13",
+            "image": "exchangeunion/geth:1.9.14",
             "volumes": [
                 {
                     "host": "$data_dir/geth",
