@@ -9,10 +9,10 @@ MAINNET_PEERS=/mainnet-peers.txt
 
 OPTS=(
   "--syncmode fast"
-  "--rpc"
-  "--rpcaddr 0.0.0.0"
-  "--rpcapi eth,net,web3,txpool,personal,admin"
-  "--rpcvhosts=*"
+  "--http"
+  "--http.addr 0.0.0.0"
+  "--http.api eth,net"
+  "--http.vhosts=*"
   "--cache=256"
   "--nousb"
 )
