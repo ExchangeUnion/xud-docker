@@ -1,6 +1,6 @@
 FROM node:12-alpine3.11 AS builder
 ARG REPO=ExchangeUnion/xud
-ARG BRANCH=fix/connext-minor-fixes
+ARG BRANCH=master
 RUN apk add --no-cache git rsync bash musl-dev go python3 make g++
 # This is a "hack" to automatically invalidate the cache in case there are new commits
 ADD https://api.github.com/repos/$REPO/commits/$BRANCH /dev/null
