@@ -196,11 +196,14 @@ class Image:
         else:
             return None
 
-        tag = self.get_github_tag(repo, branch)
-        if tag:
-            return tag
-        else:
-            return self.get_github_branch_revision(repo, branch)
+        try:
+            tag = self.get_github_tag(repo, branch)
+            if tag:
+                return tag
+            else:
+                return self.get_github_branch_revision(repo, branch)
+        except:
+            return None
 
     def existed_in_registry_and_up_to_date(self, registry):
         name = "{}/{}".format(self.group, self.name)
