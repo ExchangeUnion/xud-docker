@@ -10,10 +10,7 @@ XUD_CONF=$XUD_DIR/xud.conf
 TOR_DIR=$XUD_DIR/tor
 TOR_DATA_DIR=$XUD_DIR/tor-data
 LND_HOSTNAME="$TOR_DIR/hostname"
-KEYSTORE_DIR=$HOME/.raiden/keystore
 
-
-[[ -e $KEYSTORE_DIR ]] || mkdir -p "$KEYSTORE_DIR"
 
 case $NETWORK in
     mainnet)
@@ -55,15 +52,6 @@ done
 XUD_ADDRESS=$(cat "$LND_HOSTNAME")
 echo "[entrypoint] Onion address for xud is $XUD_ADDRESS"
 
-[[ $NETWORK == "simnet" ]] && while [[ ! -e "/root/.lndbtc/data/chain/bitcoin/$NETWORK/admin.macaroon" ]]; do
-    echo "[entrypoint] Waiting for lndbtc admin.macaroon"
-    sleep 3
-done
-
-[[ $NETWORK == "simnet" ]] && while ! [ -e "/root/.lndltc/data/chain/litecoin/$NETWORK/admin.macaroon" ]; do
-    echo "[entrypoint] Waiting for lndltc admin.macaroon"
-    sleep 3
-done
 
 echo '[entrypoint] Detecting localnet IP for lndbtc...'
 LNDBTC_IP=$(getent hosts lndbtc || echo '' | awk '{ print $1 }')
@@ -73,16 +61,27 @@ echo '[entrypoint] Detecting localnet IP for lndltc...'
 LNDLTC_IP=$(getent hosts lndltc || echo '' | awk '{ print $1 }')
 echo "[entrypoint] $LNDLTC_IP lndltc" >> /etc/hosts
 
-echo '[entrypoint] Detecting localnet IP for raiden...'
-RAIDEN_IP=$(getent hosts raiden || echo '' | awk '{ print $1 }')
-echo "[entrypoint] $RAIDEN_IP raiden" >> /etc/hosts
+echo '[entrypoint] Detecting localnet IP for connext...'
+CONNEXT_IP=$(getent hosts connext || echo '' | awk '{ print $1 }')
+echo "[entrypoint] $CONNEXT_IP connext" >> /etc/hosts
+
+
+while [[ ! -e /root/.lndbtc/tls.cert ]]; do
+    echo "[entrypoint] Waiting for /root/.lndbtc/tls.cert to be created..."
+    sleep 1
+done
+
+while [[ ! -e /root/.lndltc/tls.cert ]]; do
+    echo "[entrypoint] Waiting for /root/.lndltc/tls.cert to be created..."
+    sleep 1
+done
 
 
 [[ -e $XUD_CONF && $PRESERVE_CONFIG == "true" ]] || {
     cp /app/sample-xud.conf $XUD_CONF
 
     sed -i "s/network.*/network = \"$NETWORK\"/" $XUD_CONF
-    [[ $NETWORK != "simnet" ]] && sed -i 's/noencrypt.*/noencrypt = false/' $XUD_CONF
+    sed -i 's/noencrypt.*/noencrypt = false/' $XUD_CONF
     sed -i '/\[http/,/^$/s/host.*/host = "0.0.0.0"/' $XUD_CONF
     sed -i "/\[http/,/^$/s/port.*/port = $HTTP_PORT/" $XUD_CONF
     sed -i '/\[lnd\.BTC/,/^$/s/host.*/host = "lndbtc"/' $XUD_CONF
@@ -94,15 +93,20 @@ echo "[entrypoint] $RAIDEN_IP raiden" >> /etc/hosts
     sed -i "/\[p2p/,/^$/s/port.*/port = $P2P_PORT/" $XUD_CONF
     sed -i '/\[p2p/,/^$/s/tor = .*/tor = true/' $XUD_CONF
     sed -i '/\[p2p/,/^$/s/torport.*/torport = 9050/' $XUD_CONF
-    sed -i '/\[raiden/,/^$/s/host.*/host = "raiden"/' $XUD_CONF
-    sed -i "/\[raiden/,/^$/s|^$|keystorepath = \"$KEYSTORE_DIR\"\n|" $XUD_CONF
+    sed -i '/\[raiden/,/^$/s/disable.*/disable = true/' $XUD_CONF
     sed -i '/\[rpc/,/^$/s/host.*/host = "0.0.0.0"/' $XUD_CONF
     sed -i "/\[rpc/,/^$/s/port.*/port = $RPC_PORT/" $XUD_CONF
+    sed -i '/\[connext/,/^$/s/disable.*/disable = false/' $XUD_CONF
+    sed -i '/\[connext/,/^$/s/host.*/host = "connext"/' $XUD_CONF
+    sed -i '/\[connext/,/^$/s/port.*/port = 5040/' $XUD_CONF
+    sed -i '/\[connext/,/^$/s/webhookhost.*/webhookhost = "xud"/' $XUD_CONF
+    sed -i "/\[connext/,/^$/s/webhookport.*/webhookport = $HTTP_PORT/" $XUD_CONF
 }
 
 echo "[entrypoint] Launch with xud.conf:"
 cat $XUD_CONF
 
-[[ $NETWORK != "simnet" ]] && /xud-backup.sh &
+/xud-backup.sh &
 
-xud $@
+# use exec to properly respond to SIGINT
+exec xud $@

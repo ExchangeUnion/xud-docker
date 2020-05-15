@@ -17,7 +17,7 @@ RUN patch lnd.go /patches/lnd.patch
 RUN patch vendor/github.com/ltcsuite/neutrino/blockmanager.go /patches/neutrino.patch
 RUN sed -i.bak "s/\!w.isDevEnv/w.isDevEnv/" vendor/github.com/ltcsuite/ltcwallet/wallet/wallet.go
 # build
-RUN go install -v -mod=vendor -tags="invoicesrpc" -ldflags "-X github.com/lightningnetwork/lnd/build.Commit=$VERSION-patched" ./cmd/lnd ./cmd/lncli
+RUN go install -v -mod=vendor -tags="invoicesrpc" -ldflags "-X github.com/ltcsuite/lnd/build.Commit=$VERSION-ltc-patched" ./cmd/lnd ./cmd/lncli
 RUN strip /go/bin/lnd /go/bin/lncli
 
 
@@ -27,4 +27,4 @@ COPY --from=builder /go/bin/lnd /go/bin/lncli /usr/local/bin/
 COPY entrypoint.sh /
 ENTRYPOINT ["/entrypoint.sh"]
 VOLUME ["/root/.lnd"]
-EXPOSE 10009 8080 30375
+EXPOSE 10009 10010 8080 30735

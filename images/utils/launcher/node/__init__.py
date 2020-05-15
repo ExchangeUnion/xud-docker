@@ -15,7 +15,8 @@ from .btcd import Btcd, Ltcd
 from .geth import Geth
 from .lnd import Lndbtc, Lndltc
 from .raiden import Raiden
-from .xud import Xud
+from .xud import Xud, XudApiError
+from .connext import Connext
 from .image import Image, ImageManager
 
 from ..utils import parallel_execute, get_useful_error_message, get_hostfs_file

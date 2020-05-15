@@ -1,6 +1,6 @@
 FROM golang:1.13-alpine3.10 as builder
 RUN apk add --no-cache bash git make gcc musl-dev
-ARG VERSION=v0.9.2-beta
+ARG VERSION=v0.10.0-beta
 RUN wget https://github.com/lightningnetwork/lnd/releases/download/$VERSION/lnd-source-$VERSION.tar.gz
 RUN wget https://github.com/lightningnetwork/lnd/releases/download/$VERSION/vendor.tar.gz
 RUN mkdir -p $GOPATH/src/github.com/lightningnetwork/lnd
@@ -26,4 +26,4 @@ COPY --from=builder /go/bin/lnd /go/bin/lncli /usr/local/bin/
 COPY entrypoint.sh /
 ENTRYPOINT ["/entrypoint.sh"]
 VOLUME ["/root/.lnd"]
-EXPOSE 10009 8080 29375
+EXPOSE 10009 10010 8080 29735

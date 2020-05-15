@@ -54,16 +54,16 @@ class Xud(Node):
                 info = self.api.getinfo()
                 lndbtc_status = info["lndMap"][0][1]["status"]
                 lndltc_status = info["lndMap"][1][1]["status"]
-                raiden_status = info["raiden"]["status"]
+                connext_status = info["connext"]["status"]
 
                 if "has no active channels" in lndbtc_status \
                         or "has no active channels" in lndltc_status \
-                        or "has no active channels" in raiden_status:
+                        or "has no active channels" in connext_status:
                     return "Waiting for channels"
 
                 if "Ready" == lndbtc_status \
                         and "Ready" == lndltc_status \
-                        and "Ready" == raiden_status:
+                        and "Ready" == connext_status:
                     return "Ready"
                 else:
                     not_ready = []
@@ -71,14 +71,16 @@ class Xud(Node):
                         not_ready.append("lndbtc")
                     if lndltc_status != "Ready":
                         not_ready.append("lndltc")
-                    if raiden_status != "Ready":
-                        not_ready.append("raiden")
+                    if connext_status != "Ready":
+                        not_ready.append("connext")
                     return "Waiting for " + ", ".join(not_ready)
             except XudApiError as e:
                 if "xud is locked" in str(e):
                     return "Wallet locked. Unlock with xucli unlock."
                 elif "no such file or directory, open '/root/.xud/tls.cert'" in str(e):
-                    return "Starting"
+                    return "starting..."
+                elif "xud is starting" in str(e):
+                    return "starting..."
                 else:
                     return str(e)
             except:
@@ -102,7 +104,7 @@ class Xud(Node):
             elif "it is your ONLY backup in case of data loss" in output:
                 return None
             else:
-                return Exception("Unexpected xucli create error happens")
+                return Exception("Unexpected xucli create error: " + output.strip())
         elif cmd.startswith("restore"):
             if "Password must be at least 8 characters" in output:
                 return InvalidPassword()
@@ -113,4 +115,11 @@ class Xud(Node):
             elif "The following wallets were restored" in output:
                 return None
             else:
-                return Exception("Unexpected xucli restore error")
+                return Exception("Unexpected xucli restore error: " + output.strip())
+        elif cmd.startswith("unlock"):
+            if "xud was unlocked succesfully" in output:
+                return None
+            elif output == "Enter master xud password: ":
+                return KeyboardInterrupt()
+            else:
+                return Exception("Unexpected xucli unlock error: " + output.strip())

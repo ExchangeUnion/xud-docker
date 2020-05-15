@@ -67,7 +67,7 @@ networks = {
     "simnet": {
         "lndbtc": {
             "name": "lndbtc",
-            "image": "exchangeunion/lnd:0.9.2-beta-patched",
+            "image": "exchangeunion/lnd:0.10.0-beta-patched",
             "volumes": [
                 {
                     "host": "$data_dir/lndbtc",
@@ -86,22 +86,18 @@ networks = {
                     "host": "$data_dir/lndltc",
                     "container": "/root/.lnd",
                 },
-                {
-                    "host": "$data_dir/ltcd",
-                    "container": "/root/.ltcd",
-                }
             ],
             "ports": [],
             "mode": "native",
             "preserve_config": False,
         },
-        "raiden": {
-            "name": "raiden",
-            "image": "exchangeunion/raiden:develop",
+        "connext": {
+            "name": "connext",
+            "image": "exchangeunion/connext:latest",
             "volumes": [
                 {
-                    "host": "$data_dir/raiden",
-                    "container": "/root/.raiden",
+                    "host": "$data_dir/connext",
+                    "container": "/root/.connext",
                 },
             ],
             "ports": [],
@@ -123,10 +119,6 @@ networks = {
                 {
                     "host": "$data_dir/lndltc",
                     "container": "/root/.lndltc",
-                },
-                {
-                    "host": "$data_dir/raiden",
-                    "container": "/root/.raiden",
                 },
                 {
                     "host": "/",
@@ -703,10 +695,19 @@ class Config:
         node = self.nodes["lndltc"]
         self.update_ports(node, parsed)
 
+    def update_connext(self, parsed):
+        """Update Connext related configurations from parsed TOML raiden section
+        :param parsed: Parsed raiden TOML section
+        """
+        node = self.nodes["connext"]
+        self.update_ports(node, parsed)
+
     def update_raiden(self, parsed):
         """Update raiden related configurations from parsed TOML raiden section
         :param parsed: Parsed raiden TOML section
         """
+        if self.network == "simnet":
+            return
         node = self.nodes["raiden"]
         self.update_ports(node, parsed)
 
@@ -749,6 +750,9 @@ class Config:
 
         if "raiden" in parsed:
             self.update_raiden(parsed["raiden"])
+
+        if "connext" in parsed:
+            self.update_connext(parsed["connext"])
 
         if "xud" in parsed:
             self.update_xud(parsed["xud"])
