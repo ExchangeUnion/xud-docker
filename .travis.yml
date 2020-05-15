@@ -14,7 +14,5 @@ before_script:
 script: tools/push --no-manifest-list
 jobs:
   include:
-    - stage: Create and push manifest lists
-      script: tools/push --manifest-list
     - stage: Test common cases
       script: tools/test

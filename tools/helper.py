@@ -439,6 +439,31 @@ class Image:
         if self.build([]):
             tag = self.get_build_tag()
             run_command("docker push {}".format(tag), "Failed to push {}".format(tag))
+
+            os.environ["DOCKER_CLI_EXPERIMENTAL"] = "enabled"
+
+            if tag.endswith("x86_64"):
+                t0 = tag.replace("__x86_64", "")
+                t1 = tag
+                t2 = tag.replace("x86_64", "aarch64")
+            else:
+                t0 = tag.replace("__aarch64", "")
+                t1 = tag
+                t2 = tag.replace("aarch64", "x86_64")
+
+            try:
+                check_output(f"docker manifest create {t0} --amend {t1} --amend {t2}", shell=True, stderr=PIPE)
+            except:
+                try:
+                    check_output(f"docker manifest create {t0} --amend {t1}", shell=True, stderr=PIPE)
+                except:
+                    raise RuntimeError(f"Failed to create manifest: {t0}, {t1}, {t2}")
+
+            try:
+                check_output(f"docker manifest push {t0}", shell=True, stderr=PIPE)
+            except:
+                raise RuntimeError(f"Failed to push manifest: {t0}")
+
             return True
 
         return False
