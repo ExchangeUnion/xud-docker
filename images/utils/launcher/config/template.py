@@ -59,7 +59,7 @@ nodes_config = {
     "simnet": {
         "lndbtc": {
             "name": "lndbtc",
-            "image": "exchangeunion/lnd:0.9.2-beta-patched",
+            "image": "exchangeunion/lnd:0.10.0-beta-patched",
             "volumes": [
                 {
                     "host": "$data_dir/lndbtc",
@@ -78,22 +78,18 @@ nodes_config = {
                     "host": "$data_dir/lndltc",
                     "container": "/root/.lnd",
                 },
-                {
-                    "host": "$data_dir/ltcd",
-                    "container": "/root/.ltcd",
-                }
             ],
             "ports": [],
             "mode": "native",
             "preserve_config": False,
         },
-        "raiden": {
-            "name": "raiden",
-            "image": "exchangeunion/raiden:develop",
+        "connext": {
+            "name": "connext",
+            "image": "exchangeunion/connext:latest",
             "volumes": [
                 {
-                    "host": "$data_dir/raiden",
-                    "container": "/root/.raiden",
+                    "host": "$data_dir/connext",
+                    "container": "/root/.connext",
                 },
             ],
             "ports": [],
@@ -115,10 +111,6 @@ nodes_config = {
                 {
                     "host": "$data_dir/lndltc",
                     "container": "/root/.lndltc",
-                },
-                {
-                    "host": "$data_dir/raiden",
-                    "container": "/root/.raiden",
                 },
                 {
                     "host": "/",
@@ -171,7 +163,7 @@ nodes_config = {
         },
         "geth": {
             "name": "geth",
-            "image": "exchangeunion/geth:1.9.13",
+            "image": "exchangeunion/geth:1.9.14",
             "volumes": [
                 {
                     "host": "$data_dir/geth",
@@ -297,7 +289,7 @@ nodes_config = {
         },
         "geth": {
             "name": "geth",
-            "image": "exchangeunion/geth:1.9.13",
+            "image": "exchangeunion/geth:1.9.14",
             "volumes": [
                 {
                     "host": "$data_dir/geth",
@@ -386,12 +378,19 @@ nodes_config = {
 
 general_config = {
     "simnet": {
-        "eth_providers": []
+        "eth_providers": [
+
+        ]
     },
     "testnet": {
-        "eth_providers": []
+        "eth_providers": [
+            "http://eth.kilrau.com:52041",
+            "http://gethxudxv2k4pv5t5a5lswq2hcv3icmj3uwg7m2n2vuykiyv77legiad.onion:8545",
+        ]
     },
     "mainnet": {
-        "eth_providers": []
+        "eth_providers": [
+            "http://eth.kilrau.com:41007",
+        ]
     }
 }

@@ -5,7 +5,6 @@ from .errors import InvalidHomeDir, InvalidNetworkDir
 from ..utils import normalize_path, get_hostfs_file
 
 
-
 class ConfigLoader:
     def load_general_config(self, home_dir):
         config_file = get_hostfs_file(f"{home_dir}/xud-docker.conf")

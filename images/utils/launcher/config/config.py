@@ -298,7 +298,7 @@ class Config:
 
         if hasattr(self.args, "geth.mode"):
             value = getattr(self.args, "geth.mode")
-            if value not in ["native", "external", "infura"]:
+            if value not in ["native", "external", "infura", "light"]:
                 raise FatalError("Invalid value of option \"--geth.mode\": {}".format(value))
             node["mode"] = value
 
