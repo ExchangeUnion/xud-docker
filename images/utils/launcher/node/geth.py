@@ -76,17 +76,19 @@ class Geth(Node):
     def check_eth_rpc(self, url):
         data = {
             "jsonrpc": "2.0",
-            "method": "web3_clientVersion",
+            "method": "net_version",
             "params": [],
             "id": 1
         }
         data = json.dumps(data).encode()
         try:
-            r = urlopen(Request(url, data=data))
-            j = json.load(r.read())
+            r = urlopen(Request(url, data=data, headers={
+                "Content-Type": "application/json"
+            }))
+            j = json.loads(r.read().decode())
             result = j["result"]
             # Geth/v1.9.9-omnibus-e320ae4c-20191206/linux-amd64/go1.13.4
-            logger.info("The ethereum RPC %s client version is %s", url, result)
+            logger.info("The ethereum RPC %s net version is %s", url, result)
             return True
         except:
             return False
@@ -99,7 +101,7 @@ class Geth(Node):
             fs = {executor.submit(self.get_provider_delay, p): p for p in providers}
             done, not_done = wait(fs, timeout)
             for f in done:
-                p = fs[p]
+                p = fs[f]
                 try:
                     delay = f.result()
                     if delay < min_delay:
