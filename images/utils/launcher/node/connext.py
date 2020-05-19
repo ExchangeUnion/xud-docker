@@ -49,6 +49,11 @@ class Connext(Node):
                     environment.extend([
                         f'CONNEXT_ETH_PROVIDER_URL=https://ropsten.infura.io/v3/{project_id}'
                     ])
+            elif geth["mode"] == "light":
+                eth_provider = geth["eth_provider"]
+                environment.extend([
+                    f'CONNEXT_ETH_PROVIDER_URL={eth_provider}'
+                ])
 
         self.container_spec.environment.extend(environment)
 

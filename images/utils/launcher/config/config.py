@@ -370,7 +370,7 @@ class Config:
         """Update raiden related configurations from parsed TOML raiden section
         :param parsed: Parsed raiden TOML section
         """
-        if self.network == "simnet":
+        if self.network in ["simnet", "testnet", "mainnet"]:
             return
         node = self.nodes["raiden"]
         self.update_ports(node, parsed)
