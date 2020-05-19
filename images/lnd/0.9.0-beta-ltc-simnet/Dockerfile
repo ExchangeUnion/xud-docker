@@ -17,7 +17,7 @@ RUN patch lnd.go /patches/lnd.patch
 RUN patch vendor/github.com/ltcsuite/neutrino/blockmanager.go /patches/neutrino.patch
 RUN sed -i.bak "s/\!w.isDevEnv/w.isDevEnv/" vendor/github.com/ltcsuite/ltcwallet/wallet/wallet.go
 # build
-RUN go install -v -mod=vendor -tags="autopilotrpc chainrpc experimental invoicesrpc routerrpc signrpc walletrpc watchtowerrpc wtclientrpc" -ldflags "-X github.com/ltcsuite/lnd/build.Commit=$VERSION-ltc-patched" ./cmd/lnd ./cmd/lncli
+RUN go install -v -mod=vendor -tags="autopilotrpc chainrpc experimental invoicesrpc routerrpc signrpc walletrpc watchtowerrpc wtclientrpc" -ldflags "-X github.com/ltcsuite/lnd/build.Commit=$VERSION-ltc-simnet" ./cmd/lnd ./cmd/lncli
 RUN strip /go/bin/lnd /go/bin/lncli
 
 
