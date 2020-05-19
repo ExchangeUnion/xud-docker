@@ -53,6 +53,7 @@ class Lnd(Node):
                 "--bitcoin.node=neutrino",
                 "--bitcoin.defaultchanconfs=6",
                 "--neutrino.connect=35.231.222.142:38555",
+                "--routing.assumechanvalid",
                 "--chan-enable-timeout=0m10s",
                 "--max-cltv-expiry=5000",
             ]
@@ -68,6 +69,7 @@ class Lnd(Node):
                 "--litecoin.node=neutrino",
                 "--litecoin.defaultchanconfs=6",
                 "--neutrino.connect=35.231.222.142:39555",
+                "--routing.assumechanvalid",
                 "--chan-enable-timeout=0m10s",
                 "--max-cltv-expiry=20000",
             ]

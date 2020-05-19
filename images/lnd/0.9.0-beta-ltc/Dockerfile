@@ -5,10 +5,10 @@ WORKDIR $GOPATH/src/github.com/ltcsuite/lnd
 ADD patches /tmp/patches/
 RUN go mod vendor
 RUN patch vendor/github.com/ltcsuite/neutrino/chainsync/filtercontrol.go /tmp/patches/checkpoints.patch
-RUN go install -v -mod=vendor -tags="invoicesrpc" ./cmd/lnd ./cmd/lncli
+RUN go install -v -mod=vendor -tags="autopilotrpc chainrpc experimental invoicesrpc routerrpc signrpc walletrpc watchtowerrpc wtclientrpc" ./cmd/lnd ./cmd/lncli
 
 # Final stage
-FROM alpine:3.11.5
+FROM alpine:3.11
 RUN apk add --no-cache bash expect supervisor tor
 COPY --from=builder /go/bin/lnd /go/bin/lncli /usr/local/bin/
 COPY entrypoint.sh wait-file.sh start_tor.sh /
