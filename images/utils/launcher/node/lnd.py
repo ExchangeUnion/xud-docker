@@ -42,7 +42,7 @@ class Lnd(Node):
             return []
         if self.chain == "bitcoin":
             # TODO better to have --alias
-            # nohup lnd-btc --noseedbackup --rpclisten=127.0.0.1:10002 --listen=127.0.0.1:10012 --restlisten=8002 --datadir=./data --logdir=./logs  --nobootstrap --no-macaroons --bitcoin.active --bitcoin.simnet  --btcd.rpcuser=xu --btcd.rpcpass=xu --debuglevel=debug --alias="BTC@$xname" --btcd.rpchost=127.0.0.1:18556  --btcd.rpccert=$cert --bitcoin.node neutrino  --neutrino.connect 35.231.222.142:38555 --chan-enable-timeout=0m10s --max-cltv-expiry=5000 > /dev/null 2>&1 &
+            # nohup lnd-btc --noseedbackup --rpclisten=127.0.0.1:10002 --listen=127.0.0.1:10012 --restlisten=8002 --datadir=./data --logdir=./logs  --nobootstrap --no-macaroons --bitcoin.active --bitcoin.simnet  --btcd.rpcuser=xu --btcd.rpcpass=xu --debuglevel=debug --alias="BTC@$xname" --btcd.rpchost=127.0.0.1:18556  --btcd.rpccert=$cert --bitcoin.node neutrino  --neutrino.connect btcd.simnet.exchangeunion.com:38555 --chan-enable-timeout=0m10s --max-cltv-expiry=5000 > /dev/null 2>&1 &
             return [
                 "--debuglevel=debug",
                 "--nobootstrap",
@@ -52,13 +52,13 @@ class Lnd(Node):
                 "--bitcoin.simnet",
                 "--bitcoin.node=neutrino",
                 "--bitcoin.defaultchanconfs=6",
-                "--neutrino.connect=35.231.222.142:38555",
                 "--routing.assumechanvalid",
+                "--neutrino.connect=btcd.simnet.exchangeunion.com:38555",
                 "--chan-enable-timeout=0m10s",
                 "--max-cltv-expiry=5000",
             ]
         if self.chain == "litecoin":
-            # nohup lnd-ltc --noseedbackup --rpclisten=127.0.0.1:10001 --listen=127.0.0.1:10011 --restlisten=8001 --datadir=./data --logdir=./logs --nobootstrap --no-macaroons --litecoin.active --litecoin.simnet --debuglevel=debug --alias="LTC@$xname" --litecoin.node neutrino --neutrino.connect 35.231.222.142:39555 --chan-enable-timeout=0m10s --max-cltv-expiry=20000 > /dev/null 2>&1 &
+            # nohup lnd-ltc --noseedbackup --rpclisten=127.0.0.1:10001 --listen=127.0.0.1:10011 --restlisten=8001 --datadir=./data --logdir=./logs --nobootstrap --no-macaroons --litecoin.active --litecoin.simnet --debuglevel=debug --alias="LTC@$xname" --litecoin.node neutrino --neutrino.connect btcd.simnet.exchangeunion.com:39555 --chan-enable-timeout=0m10s --max-cltv-expiry=20000 > /dev/null 2>&1 &
             return [
                 "--debuglevel=debug",
                 "--nobootstrap",
@@ -68,8 +68,8 @@ class Lnd(Node):
                 "--litecoin.simnet",
                 "--litecoin.node=neutrino",
                 "--litecoin.defaultchanconfs=6",
-                "--neutrino.connect=35.231.222.142:39555",
                 "--routing.assumechanvalid",
+                "--neutrino.connect=btcd.simnet.exchangeunion.com:39555",
                 "--chan-enable-timeout=0m10s",
                 "--max-cltv-expiry=20000",
             ]
