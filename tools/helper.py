@@ -443,6 +443,9 @@ class Image:
             tag = self.get_build_tag()
             run_command("docker push {}".format(tag), "Failed to push {}".format(tag))
 
+            # sleep 5 seconds to let dockerhub sync with the newly pushed image
+            time.sleep(5)
+
             os.environ["DOCKER_CLI_EXPERIMENTAL"] = "enabled"
 
             if tag.endswith("x86_64"):

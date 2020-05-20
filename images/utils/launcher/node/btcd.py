@@ -14,7 +14,7 @@ class Btcd(Node):
             "--rpcpass=xu",
             "--rpclisten=:18556",
             "--nolisten",
-            "--addpeer=35.231.222.142:39555",
+            "--addpeer=btcd.simnet.exchangeunion.com:39555",
         ]
 
         self.container_spec.command.extend(command)

@@ -40,14 +40,14 @@ class Raiden(Node):
         user_deposit = "0x19f8B656fBf17a83a5023eEbd675B1Ae5Bb5dF50"
         monitoring_service = "0x3B26A3d3D0c262359d1807863aE0D0FB6831D081"
         one_to_n = "0x7337e831cF5BD75B0045050E6C6549cf914A923D"
-        #raiden --datadir $datadir --keystore-path $keystore  --network-id 4321 --accept-disclaimer --address $address --rpc --api-address 0.0.0.0:5001 --environment-type $env  --password-file $passwd_file --no-sync-check --accept-disclaimer --tokennetwork-registry-contract-address $TokenNetworkRegistry --secret-registry-contract-address $SecretRegistry  --gas-price 10000000000 --eth-rpc-endpoint 35.231.222.142:8546  --matrix-server https://raidentransport.exchangeunion.com --resolver-endpoint http://localhost:8887/resolveraiden --service-registry-contract-address $ServiceRegistry --one-to-n-contract-address $OneToN --user-deposit-contract-address $UserDeposit --monitoring-service-contract-address $MonitoringService --routing-mode private
+        #raiden --datadir $datadir --keystore-path $keystore  --network-id 4321 --accept-disclaimer --address $address --rpc --api-address 0.0.0.0:5001 --environment-type $env  --password-file $passwd_file --no-sync-check --accept-disclaimer --tokennetwork-registry-contract-address $TokenNetworkRegistry --secret-registry-contract-address $SecretRegistry  --gas-price 10000000000 --eth-rpc-endpoint btcd.simnet.exchangeunion.com:8546  --matrix-server https://raidentransport.exchangeunion.com --resolver-endpoint http://localhost:8887/resolveraiden --service-registry-contract-address $ServiceRegistry --one-to-n-contract-address $OneToN --user-deposit-contract-address $UserDeposit --monitoring-service-contract-address $MonitoringService --routing-mode private
         command = [
             "--environment-type development",
             "--routing-mode private",
             "--network-id 4321",
             "--no-sync-check",
             "--gas-price 10000000000",
-            "--eth-rpc-endpoint 35.231.222.142:8546",
+            "--eth-rpc-endpoint btcd.simnet.exchangeunion.com:8546",
             "--tokennetwork-registry-contract-address {}".format(token_network_registry),
             "--secret-registry-contract-address {}".format(secret_registry),
             "--matrix-server https://raidentransport.exchangeunion.com",
