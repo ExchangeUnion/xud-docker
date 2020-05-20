@@ -207,11 +207,23 @@ function ensure_utils_image() {
     fi
 
     case $STATUS in
-        missing|outdated)
+        missing)
             if [[ -n $P_IMG ]]; then
                 pull_image "$P_IMG"
                 if [[ $BRANCH != "master" && ! $P_IMG =~ __ ]]; then
                     echo "Warning: Branch image $B_IMG not found. Fallback to $P_IMG"
+                fi
+            fi
+            ;;
+        outdated)
+            if [[ -n $P_IMG ]]; then
+                read -p "The utils image is outdated. Would you like to pull the new image? [Y/n]" -n 1 -r
+                echo  # move to a new line
+                if [[ $REPLY =~ ^[Yy]$ ]]; then
+                    pull_image "$P_IMG"
+                    if [[ $BRANCH != "master" && ! $P_IMG =~ __ ]]; then
+                        echo "Warning: Branch image $B_IMG not found. Fallback to $P_IMG"
+                    fi
                 fi
             fi
             ;;
