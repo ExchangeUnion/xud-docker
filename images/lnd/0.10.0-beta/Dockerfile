@@ -1,11 +1,11 @@
 FROM golang:1.14-alpine3.11 as builder
 RUN apk add --no-cache bash git make gcc musl-dev
-RUN git clone -b v0.9.2-beta https://github.com/lightningnetwork/lnd $GOPATH/src/github.com/lightningnetwork/lnd
+RUN git clone -b v0.10.0-beta https://github.com/lightningnetwork/lnd $GOPATH/src/github.com/lightningnetwork/lnd
 WORKDIR $GOPATH/src/github.com/lightningnetwork/lnd
-RUN make tags="invoicesrpc" install
+RUN make tags="autopilotrpc chainrpc experimental invoicesrpc routerrpc signrpc walletrpc watchtowerrpc wtclientrpc" install
 
 # Final stage
-FROM alpine:3.11.5
+FROM alpine:3.11
 RUN apk add --no-cache bash expect supervisor tor
 COPY --from=builder /go/bin/lnd /go/bin/lncli /usr/local/bin/
 COPY entrypoint.sh wait-file.sh start_tor.sh /

@@ -44,10 +44,10 @@ if [ ! -z ${NEUTRINO} ]; then
   echo "[DEBUG] Enabling neutrino"
   case $CHAIN in
     bitcoin)
-      sed -i "s/bitcoin.node=bitcoind/bitcoin.node=neutrino\n\n${PEERS}/g" $LND_DIR/lnd.conf
+      sed -i "s/bitcoin.node=bitcoind/bitcoin.node=neutrino\n\n${PEERS}\n\n[routing]\nrouting.assumechanvalid=1/g" $LND_DIR/lnd.conf
       ;;
     litecoin)
-      sed -i "s/litecoin.node=litecoind/litecoin.node=neutrino\n\n${PEERS}/g" $LND_DIR/lnd.conf
+      sed -i "s/litecoin.node=litecoind/litecoin.node=neutrino\n\n${PEERS}\n\n[routing]\nrouting.assumechanvalid=1/g" $LND_DIR/lnd.conf
       ;;
   esac
 fi
