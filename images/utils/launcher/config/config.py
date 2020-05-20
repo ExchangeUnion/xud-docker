@@ -188,7 +188,7 @@ networks = {
         },
         "lndbtc": {
             "name": "lndbtc",
-            "image": "exchangeunion/lnd:0.9.2-beta",
+            "image": "exchangeunion/lnd:0.10.0-beta",
             "volumes": [
                 {
                     "host": "$data_dir/lndbtc",
@@ -313,7 +313,7 @@ networks = {
         },
         "lndbtc": {
             "name": "lndbtc",
-            "image": "exchangeunion/lnd:0.9.2-beta",
+            "image": "exchangeunion/lnd:0.10.0-beta",
             "volumes": [
                 {
                     "host": "$data_dir/lndbtc",
