@@ -1,4 +1,4 @@
-FROM golang:1.14-alpine3.11 as builder
+FROM golang:1.13-alpine3.11 as builder
 RUN apk add --no-cache bash git make gcc musl-dev
 ARG VERSION=v0.10.0-beta
 RUN wget https://github.com/lightningnetwork/lnd/releases/download/$VERSION/lnd-source-$VERSION.tar.gz
