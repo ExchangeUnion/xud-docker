@@ -8,6 +8,8 @@ from shutil import copyfile
 from subprocess import check_output, CalledProcessError, PIPE
 import sys
 
+from .utils import simulate_tty
+
 
 def cleanup_containers(network):
     client = docker.from_env()
@@ -94,60 +96,6 @@ def check_containers():
     if utils:
         exit_code, output = utils.exec_run("cat /var/log/launcher.log")
         print(output.decode())
-
-
-def simulate_tty(data):
-    lines = [" "*80]
-    x = 0
-    y = 0
-
-    i = 0
-    n = len(data)
-    while i < n:
-        if data[i] == '\033':
-            if data[i + 1] == '[':
-                j = i + 2
-                while j < n:
-                    if not data[j].isdigit():
-                        break
-                    j = j + 1
-                if j == i + 2:
-                    # not followed by numbers
-                    if data[j] == 'K':
-                        lines[y] = " " * 80
-                        x = 0
-                        i = j + 1
-                    else:
-                        raise RuntimeError("should be K at {}".format(j))
-                else:
-                    m = int(data[i + 2:j])
-                    if data[j] == 'A':
-                        y = y - m
-                        i = j + 1
-                    else:
-                        raise RuntimeError("should be A at {}".format(j))
-            else:
-                raise RuntimeError("should be [ at {}".format(i + 1))
-        elif data[i] == '\r':
-            x = 0
-            i = i + 1
-        elif data[i] == '\n':
-            y = y + 1
-            i = i + 1
-            if y >= len(lines):
-                for j in range(len(lines), y+1):
-                    lines.append(" " * 80)
-        else:
-            if y >= len(lines):
-                for j in range(len(lines), y+1):
-                    lines.append(" " * 80)
-            line = lines[y]
-            line = line[:x] + data[i] + line[x+1:]
-            lines[y] = line
-            x = x + 1
-            i = i + 1
-
-    return lines
 
 
 def create_wallet(child, retry=0):
@@ -285,6 +233,16 @@ def simple_flow(child):
     print("/tmp/xud-testnet-backup")
 
     child.expect("Checking backup location... (.*).")
+    print(child.before, end="")
+    print(child.match.group(0), end="")
+    sys.stdout.flush()
+
+    child.expect("Client restart required. This could take up to 3 minutes and you will be prompted to re-enter your password. Restarting...")
+    print(child.before, end="")
+    print(child.match.group(0), end="")
+    sys.stdout.flush()
+
+    child.expect(" Done.", timeout=180)
     print(child.before, end="")
     print(child.match.group(0), end="")
     sys.stdout.flush()

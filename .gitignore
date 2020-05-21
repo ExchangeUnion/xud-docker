@@ -16,3 +16,6 @@ tools/logs
 
 # pytest
 .pytest_cache/
+
+# dotenv
+.env
