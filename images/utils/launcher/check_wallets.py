@@ -5,7 +5,7 @@ from subprocess import check_output
 import toml
 import docker
 import time
-import threading
+from concurrent.futures import ThreadPoolExecutor
 
 from .node import NodeManager
 from .node.xud import PasswordNotMatch, InvalidPassword, MnemonicNot24Words
@@ -72,23 +72,31 @@ class Action:
             for i in range(10):
                 exit_code, output = c.exec_run(f"lncli -n {network} -c {chain} getinfo")
                 result = output.decode()
-                if exit_code == 0:
+                if exit_code == 0 or "Wallet is encrypted" in result:
                     return
                 time.sleep(10)
 
             raise RuntimeError("Restarted lnd should be locked")
 
-        t1 = threading.Thread(target=lnd_restart, args=("bitcoin",))
-        t2 = threading.Thread(target=lnd_restart, args=("litecoin",))
-        t3 = threading.Thread(target=xud_restart)
+        with ThreadPoolExecutor(max_workers=3) as executor:
+            f1 = executor.submit(lnd_restart, "bitcoin")
+            f2 = executor.submit(lnd_restart, "litecoin")
+            f3 = executor.submit(xud_restart)
 
-        t1.start()
-        t2.start()
-        t1.join()
-        t2.join()
+            try:
+                f1.result()
+            except:
+                raise RuntimeError("Failed to restart lndbtc")
 
-        t3.start()
-        t3.join()
+            try:
+                f2.result()
+            except:
+                raise RuntimeError("Failed to restart lndltc")
+
+            try:
+                f3.result()
+            except:
+                raise RuntimeError("Failed to restart xud")
 
     def xucli_create_wrapper(self, xud):
         counter = 0
@@ -333,8 +341,8 @@ class Action:
                     self.restart_lnds(self.node_manager.config.network)
                     print(" Done.")
                 except:
+                    self.logger.exception("Failed to do restaring logic here")
                     print(" Failed.")
-                    raise RuntimeError("Failed to restart lnds and xud after xucli create")
         else:
             if not self.is_backup_available():
                 print("Backup location not available.")

@@ -242,7 +242,7 @@ def simple_flow(child):
     print(child.match.group(0), end="")
     sys.stdout.flush()
 
-    child.expect(" Done.", timeout=180)
+    child.expect([" Done.\r\n", " Failed.\r\n"], timeout=180)
     print(child.before, end="")
     print(child.match.group(0), end="")
     sys.stdout.flush()
