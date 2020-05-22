@@ -14,7 +14,7 @@ from .errors import NetworkConfigFileSyntaxError, NetworkConfigFileValueError, C
 from .check_wallets import Action as CheckWalletsAction, BackupDirNotAvailable
 from .close_other_utils import Action as CloseOtherUtilsAction
 from .auto_unlock import Action as AutoUnlockAction
-
+from .warm_up import Action as WarmUpAction
 
 
 def init_logging():
@@ -111,10 +111,13 @@ your issue.""")
     def close_other_utils(self):
         CloseOtherUtilsAction(self.config.network, self.shell).execute()
 
+    def warm_up(self):
+        WarmUpAction(self.node_manager).execute()
+
     def pre_start(self):
         if self.config.network in ["simnet", "testnet", "mainnet"]:
             print("\n🏃 Warming up...\n")
-            time.sleep(5)  # cool down 5 seconds in case lnd unlock stuck
+            self.warm_up()
             self.check_wallets()
         if self.config.network == "simnet":
             self.wait_for_channels()

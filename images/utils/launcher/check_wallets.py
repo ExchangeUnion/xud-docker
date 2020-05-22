@@ -6,11 +6,13 @@ import toml
 import docker
 import time
 from concurrent.futures import ThreadPoolExecutor
+from docker.models.containers import Container
 
 from .node import NodeManager
 from .node.xud import PasswordNotMatch, InvalidPassword, MnemonicNot24Words
 from .utils import normalize_path, get_hostfs_file
-from .errors import NetworkConfigFileSyntaxError
+from .errors import NetworkConfigFileSyntaxError, FatalError
+from .types import LndChain
 
 
 class BackupDirNotAvailable(Exception):
@@ -61,16 +63,22 @@ class Action:
                 name = f"{network}_lndltc_1"
 
             client = docker.from_env()
-            c = client.containers.get(name)
-            exit_code, output = c.exec_run(f"lncli -n {network} -c {chain} getinfo")
+            c: Container = client.containers.get(name)
+            cmd = f"lncli -n {network} -c {chain} getinfo"
+            exit_code, output = c.exec_run(cmd)
+            self.logger.debug("[Execute] %s: exit_code=%s, output=%s", cmd, exit_code, output)
+
             if exit_code == 0:
+                self.logger.debug("Skip restarting %s", name)
                 return
 
             c = restart(name)
+            self.logger.debug("Restarted %s", name)
 
             # [lncli] Wallet is encrypted. Please unlock using 'lncli unlock', or set password using 'lncli create' if this is the first time starting lnd.
-            for i in range(10):
-                exit_code, output = c.exec_run(f"lncli -n {network} -c {chain} getinfo")
+            for i in range(1000):
+                exit_code, output = c.exec_run(cmd)
+                self.logger.debug("[Execute] %s: exit_code=%s, output=%s", cmd, exit_code, output)
                 result = output.decode()
                 if exit_code == 0 or "Wallet is encrypted" in result:
                     return
@@ -81,22 +89,65 @@ class Action:
         with ThreadPoolExecutor(max_workers=3) as executor:
             f1 = executor.submit(lnd_restart, "bitcoin")
             f2 = executor.submit(lnd_restart, "litecoin")
-            f3 = executor.submit(xud_restart)
 
             try:
                 f1.result()
-            except:
-                raise RuntimeError("Failed to restart lndbtc")
+            except Exception as e:
+                raise RuntimeError("Failed to restart lndbtc") from e
 
             try:
                 f2.result()
-            except:
-                raise RuntimeError("Failed to restart lndltc")
+            except Exception as e:
+                raise RuntimeError("Failed to restart lndltc") from e
+
+            f3 = executor.submit(xud_restart)
 
             try:
                 f3.result()
-            except:
-                raise RuntimeError("Failed to restart xud")
+            except Exception as e:
+                raise RuntimeError("Failed to restart xud") from e
+
+    def lnd_ready(self, chain: LndChain) -> bool:
+        network = self.node_manager.config.network
+        client = docker.from_env()
+        if chain == "bitcoin":
+            name = f"{network}_lndbtc_1"
+        else:
+            name = f"{network}_lndltc_1"
+        lnd: Container = client.containers.get(name)
+        cmd = f"lncli -n {network} -c {chain} getinfo"
+        exit_code, output = lnd.exec_run(cmd)
+        self.logger.debug("[Execute] %s: exit_code=%s, output=%s", cmd, exit_code, output)
+        # [lncli] open /root/.lnd/tls.cert: no such file or directory
+        # [lncli] unable to read macaroon path (check the network setting!): open /root/.lnd/data/chain/bitcoin/testnet/admin.macaroon: no such file or directory
+        return exit_code == 1 and "unable to read macaroon path" in output.decode()
+
+    def ensure_lnd_ready(self, chain: LndChain) -> None:
+        if chain == "bitcoin":
+            name = f"lndbtc"
+        else:
+            name = f"lndltc"
+        for i in range(10):
+            if self.lnd_ready(chain):
+                self.logger.debug(f"{name.capitalize()} is ready")
+                return
+            time.sleep(1)
+        raise RuntimeError(f"{name.capitalize()} took too long to be ready")
+
+    def ensure_layer2_ready(self) -> None:
+        with ThreadPoolExecutor(max_workers=2) as executor:
+            f1 = executor.submit(self.ensure_lnd_ready, "bitcoin")
+            f2 = executor.submit(self.ensure_lnd_ready, "litecoin")
+
+            try:
+                f1.result()
+            except Exception as e:
+                raise FatalError("Failed to ensure lndbtc ready") from e
+
+            try:
+                f2.result()
+            except Exception as e:
+                raise FatalError("Failed to ensure lndltc ready") from e
 
     def xucli_create_wrapper(self, xud):
         counter = 0
@@ -240,7 +291,6 @@ class Action:
 
         return True
 
-
     def setup_restore_dir(self) -> None:
         """This function will try to interactively setting up restore_dir. And
         store it in self._config.restore_dir
@@ -294,6 +344,7 @@ class Action:
 
     def execute(self):
         xud = self.node_manager.get_node("xud")
+        self.ensure_layer2_ready()
         if self.node_manager.newly_installed:
             while True:
                 print("Do you want to create a new xud environment or restore an existing one?")

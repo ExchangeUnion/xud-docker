@@ -196,37 +196,6 @@ class NodeManager:
         print(f"Removing network {self.network_name}")
         self.docker_network.remove()
 
-    def pretty_image_check_result(self, images):
-        result = []
-
-        def get_metadata_str(m):
-            if not m:
-                return ""
-            return "{}\n  * digest: {}\n  * branch: {}\n  * revision: {}\n  * created at: {}".format(m.name, m.digest, m.branch, m.revision, m.created)
-
-        for image in images:
-            status = "  Status: {}\n".format(image.status)
-            pull = "  Pull: {}\n".format(image.pull_image)
-            local = "  Local: {}\n".format(get_metadata_str(image.local_metadata))
-            cloud = "  Cloud: {}\n".format(get_metadata_str(image.cloud_metadata))
-            use = "  Use: {}\n".format(image.use_image)
-            result.append("- {}\n{}{}{}{}{}".format(image.name, status, pull, local, cloud, use))
-        return "\n".join(result)
-
-    def pretty_container_check_result(self, container_check_result):
-        result = []
-        for key, value in container_check_result.items():
-            status, details = value
-
-            if details:
-                details_str = "\n"
-                for key2, value in details.items():
-                    details_str += "  * {}: {}\n    old: {}\n    new: {}\n".format(key2, value.message, value.old, value.new)
-            else:
-                details_str = "\n    (None)"
-            result.append("- {}\n  Status: {}\n  Details: {}".format(key, status, details_str))
-        return "\n".join(result)
-
     def _display_container_status_text(self, status):
         if status == "missing":
             return "missing"
@@ -245,7 +214,7 @@ class NodeManager:
         print("🌍 Checking for updates...")
         images = self.image_manager.check_for_updates()
 
-        self.logger.info("Image update checking result:\n{}".format(self.pretty_image_check_result(images)))
+        self.logger.debug("[Update] Image checking result: %r", images)
 
         # TODO handle image local status. Print a warning or give users a choice
         for image in images:
@@ -275,7 +244,7 @@ class NodeManager:
 
         parallel_execute(containers, lambda c: c.check_for_updates(), 60, print_failed, try_again, handle_result)
 
-        self.logger.info("Container update checking result:\n{}".format(self.pretty_container_check_result(container_check_result)))
+        self.logger.debug("[Update] Container checking result: %r", container_check_result)
 
         for container, result in container_check_result.items():
             status, details = result

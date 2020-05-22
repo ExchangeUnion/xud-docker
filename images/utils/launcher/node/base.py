@@ -217,8 +217,8 @@ class Node:
     def cli(self, cmd, shell):
         if self.mode != "native":
             return
-        self._logger.debug("cli: %s", cmd)
         full_cmd = "%s %s" % (self._cli, cmd)
+        self._logger.debug("[Execute] %s", full_cmd)
         _, socket = self._container.exec_run(full_cmd, stdin=True, tty=True, socket=True)
 
         shell.redirect_stdin(socket._sock)
@@ -503,7 +503,7 @@ class CliBackend:
             full_cmd = "%s %s" % (self.cli, cmd)
             exit_code, output = self.get_container().exec_run(full_cmd)
             text: str = output.decode()
-            self.logger.debug("%s (exit_code=%d)\n%s", full_cmd, exit_code, text.rstrip())
+            self.logger.debug("[Execute] %s: exit_code=%s, output=%s", full_cmd, exit_code, output)
             if exit_code != 0:
                 raise CliError(exit_code, text)
             return text

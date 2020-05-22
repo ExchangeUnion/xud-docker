@@ -40,3 +40,7 @@ class CommandLineArgumentValueError(ValueError):
 class InvalidImageName(Exception):
     def __init__(self, name):
         super().__init__(name)
+
+
+class FatalError(Exception):
+    pass

@@ -1,5 +1,6 @@
 import argparse
 import logging
+from logging.handlers import TimedRotatingFileHandler
 import os
 from shutil import copyfile
 import re
@@ -529,6 +530,15 @@ class Config:
             self.network_dir = parsed[key]
         if hasattr(self.args, f"{self.network}_dir"):
             self.network_dir = getattr(self.args, f"{self.network}_dir")
+
+        logs_dir = get_hostfs_file(f"{self.network_dir}/logs")
+        if not os.path.exists(logs_dir):
+            os.makedirs(logs_dir, exist_ok=True)
+        logfile = f"{logs_dir}/{self.network}.log"
+        fh = TimedRotatingFileHandler(logfile, when="d", interval=1, backupCount=7)
+        fmt = "%(asctime)s %(levelname)s %(process)d --- [%(threadName)s] %(name)s: %(message)s"
+        fh.setFormatter(logging.Formatter(fmt=fmt))
+        logging.getLogger().addHandler(fh)
 
         if hasattr(self.args, "branch"):
             self.branch = self.args.branch
