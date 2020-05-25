@@ -115,14 +115,15 @@ your issue.""")
         WarmUpAction(self.node_manager).execute()
 
     def pre_start(self):
-        if self.config.network in ["simnet", "testnet", "mainnet"]:
-            print("\n🏃 Warming up...\n")
-            self.warm_up()
-            self.check_wallets()
+        print("\n🏃 Warming up...\n")
+        self.warm_up()
+        self.check_wallets()
+
         if self.config.network == "simnet":
             self.wait_for_channels()
-        if self.config.network in ["simnet", "testnet", "mainnet"]:
-            self.auto_unlock()
+
+        self.auto_unlock()
+
         self.close_other_utils()
 
     def start(self):
