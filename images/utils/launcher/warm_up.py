@@ -9,4 +9,4 @@ class Action:
         self.node_manager = node_manager
 
     def execute(self):
-        pass
+        print("\n🏃 Warming up...\n")

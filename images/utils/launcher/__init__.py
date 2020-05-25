@@ -115,7 +115,6 @@ your issue.""")
         WarmUpAction(self.node_manager).execute()
 
     def pre_start(self):
-        print("\n🏃 Warming up...\n")
         self.warm_up()
         self.check_wallets()
 
