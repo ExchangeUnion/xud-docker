@@ -486,7 +486,7 @@ class CliError(Exception):
 
 class CliBackend:
     def __init__(self, client: DockerClient, container_name, logger, cli):
-        self.client = docker.from_env(timeout=999999999)
+        self.client = docker.from_env(timeout=20)
         self.container_name = container_name
         self.logger = logger
         self.cli = cli
