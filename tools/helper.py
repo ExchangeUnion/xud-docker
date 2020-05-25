@@ -14,6 +14,10 @@ from urllib.error import HTTPError
 from urllib.request import urlopen, Request
 import http.client
 import time
+from traceback import print_exc
+
+from .registry_client import RegistryClient
+from .errors import FatalError
 
 
 def check_buildx():
@@ -438,37 +442,51 @@ class Image:
             for f in shared_files:
                 os.remove("{}/{}".format(build_dir, f))
 
+    def push_manifest_list(self, tag):
+        os.environ["DOCKER_CLI_EXPERIMENTAL"] = "enabled"
+
+        if tag.endswith("x86_64"):
+            t0 = tag.replace("__x86_64", "")
+            t1 = tag
+            t2 = tag.replace("x86_64", "aarch64")
+        else:
+            t0 = tag.replace("__aarch64", "")
+            t1 = tag
+            t2 = tag.replace("aarch64", "x86_64")
+
+        try:
+            check_output(f"docker manifest create {t0} --amend {t1} --amend {t2}", shell=True, stderr=PIPE)
+        except:
+            try:
+                check_output(f"docker manifest create {t0} --amend {t1}", shell=True, stderr=PIPE)
+            except Exception as e:
+                raise FatalError(f"Failed to create manifest: {t0}, {t1}, {t2}") from e
+
+        try:
+            check_output(f"docker manifest push {t0}", shell=True, stderr=PIPE)
+        except Exception as e:
+            raise RuntimeError(f"Failed to push manifest: {t0}") from e
+
+    def ensure_manifest_pushed(self, tag):
+        client = RegistryClient(auth_url="https://auth.docker.io", registry_url="https://registry-1.docker.io")
+        repo, tag = tag.split(":")
+        while True:
+            try:
+                manifest = client.get_manifest(repo, tag)
+                print(manifest)
+                break
+            except:
+                print("Failed to get manifest {}:{} on registry")
+                print_exc()
+            time.sleep(3)
+
     def push(self):
         if self.build([]):
             tag = self.get_build_tag()
             run_command("docker push {}".format(tag), "Failed to push {}".format(tag))
 
-            # sleep 5 seconds to let dockerhub sync with the newly pushed image
-            time.sleep(5)
-
-            os.environ["DOCKER_CLI_EXPERIMENTAL"] = "enabled"
-
-            if tag.endswith("x86_64"):
-                t0 = tag.replace("__x86_64", "")
-                t1 = tag
-                t2 = tag.replace("x86_64", "aarch64")
-            else:
-                t0 = tag.replace("__aarch64", "")
-                t1 = tag
-                t2 = tag.replace("aarch64", "x86_64")
-
-            try:
-                check_output(f"docker manifest create {t0} --amend {t1} --amend {t2}", shell=True, stderr=PIPE)
-            except:
-                try:
-                    check_output(f"docker manifest create {t0} --amend {t1}", shell=True, stderr=PIPE)
-                except:
-                    raise RuntimeError(f"Failed to create manifest: {t0}, {t1}, {t2}")
-
-            try:
-                check_output(f"docker manifest push {t0}", shell=True, stderr=PIPE)
-            except:
-                raise RuntimeError(f"Failed to push manifest: {t0}")
+            self.ensure_manifest_pushed(tag)
+            self.push_manifest_list(tag)
 
             return True
 
