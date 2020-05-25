@@ -11,8 +11,8 @@ from docker.models.containers import Container
 from .node import NodeManager
 from .node.xud import PasswordNotMatch, InvalidPassword, MnemonicNot24Words
 from .utils import normalize_path, get_hostfs_file
-from .errors import NetworkConfigFileSyntaxError, FatalError
-from .types import LndChain
+from .errors import FatalError
+from .types import LndChain, XudNetwork
 
 
 class BackupDirNotAvailable(Exception):
@@ -32,7 +32,11 @@ class Action:
     def config(self):
         return self.node_manager.config
 
-    def restart_lnds(self, network):
+    @property
+    def network(self) -> XudNetwork:
+        return self.config.network
+
+    def restart_lnds(self, network: XudNetwork):
         """
         This is temporary solution for lnd unlock stuck problem
         TODO remove it later
@@ -120,7 +124,11 @@ class Action:
         self.logger.debug("[Execute] %s: exit_code=%s, output=%s", cmd, exit_code, output)
         # [lncli] open /root/.lnd/tls.cert: no such file or directory
         # [lncli] unable to read macaroon path (check the network setting!): open /root/.lnd/data/chain/bitcoin/testnet/admin.macaroon: no such file or directory
-        return exit_code == 1 and "unable to read macaroon path" in output.decode()
+        # [lncli] Wallet is encrypted. Please unlock using 'lncli unlock', or set password using 'lncli create' if this is the first time starting lnd.
+        return exit_code == 1 and (
+                "unable to read macaroon path" in output.decode() or
+                "Wallet is encrypted" in output.decode()
+        )
 
     def ensure_lnd_ready(self, chain: LndChain) -> None:
         if chain == "bitcoin":
@@ -148,6 +156,20 @@ class Action:
                 f2.result()
             except Exception as e:
                 raise FatalError("Failed to ensure lndltc ready") from e
+
+        client = docker.from_env()
+        xud: Container = client.containers.get(f"{self.network}_xud_1")
+        cmd = "xucli getinfo -j"
+
+        # Error: ENOENT: no such file or directory, open '/root/.xud/tls.cert'
+        # xud is starting... try again in a few seconds
+        # xud is locked, run 'xucli unlock', 'xucli create', or 'xucli restore' then try again
+        while True:
+            exit_code, output = xud.exec_run(cmd)
+            self.logger.debug("[Execute] %s: exit_code=%s, output=%s", cmd, exit_code, output)
+            if exit_code == 1 and "xud is locked" in output.decode():
+                break
+            time.sleep(3)
 
     def xucli_create_wrapper(self, xud):
         counter = 0
@@ -235,7 +257,7 @@ class Action:
             except:
                 raise RuntimeError(f"Failed to update backup-dir value in {config_file}")
             if "backup-dir" not in parsed:
-                raise NetworkConfigFileSyntaxError(f"The field \"backup-dir\" is in a wrong section of {network}.conf.")
+                raise FatalError(f"The field \"backup-dir\" is in a wrong section of {network}.conf.")
             if parsed["backup-dir"] != backup_dir:
                 raise RuntimeError(f"Failed to update backup-dir value in {config_file}")
         else:
@@ -385,11 +407,11 @@ class Action:
                 self.config.backup_dir = None
                 self.setup_backup_dir()
 
-            if self.node_manager.config.network in ["simnet", "testnet", "mainnet"]:
+            if self.network in ["simnet", "testnet", "mainnet"]:
                 print("\nClient restart required. This could take up to 3 minutes and you will be prompted to re-enter your password. Restarting...", end="")
                 sys.stdout.flush()
                 try:
-                    self.restart_lnds(self.node_manager.config.network)
+                    self.restart_lnds(self.network)
                     print(" Done.")
                 except:
                     self.logger.exception("Failed to do restaring logic here")

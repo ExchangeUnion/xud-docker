@@ -176,9 +176,7 @@ class Launcher:
         except:
             self.logger.exception("Failed to launch")
             if config and config.logfile:
-                copyfile("/var/log/launcher.log", get_hostfs_file(config.logfile))
                 print(f"❌ Failed to launch {config.network} environment. For more details, see {config.logfile}")
-                traceback.print_exc()
             else:
                 traceback.print_exc()
             exit_code = 1

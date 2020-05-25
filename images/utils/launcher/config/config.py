@@ -829,6 +829,5 @@ class Config:
     def logfile(self):
         if self.network_dir:
             network = self.network
-            suffix = os.environ["LOG_TIMESTAMP"]
-            return f"{self.network_dir}/logs/{network}-{suffix}.log"
+            return f"{self.network_dir}/logs/{network}.log"
         return None

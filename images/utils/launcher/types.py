@@ -1,4 +1,4 @@
 from typing import Literal, NewType
 
-XudNetwork = NewType("XudNetwork", Literal["simnet", "testnet", "mainnet"])
-LndChain = NewType("LndChain", Literal["bitcoin", "litecoin"])
+XudNetwork = Literal["simnet", "testnet", "mainnet"]
+LndChain = Literal["bitcoin", "litecoin"]
