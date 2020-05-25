@@ -121,6 +121,7 @@ your issue.""")
             self.check_wallets()
         if self.config.network == "simnet":
             self.wait_for_channels()
+        if self.config.network in ["simnet", "testnet", "mainnet"]:
             self.auto_unlock()
         self.close_other_utils()
 
