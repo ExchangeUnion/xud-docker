@@ -4,7 +4,7 @@ from urllib.error import HTTPError
 import http.client
 import time
 
-from .errors import FatalError
+from errors import FatalError
 
 
 class RegistryClient:

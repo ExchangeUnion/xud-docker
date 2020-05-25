@@ -1,3 +1,5 @@
 #!/bin/bash
 
+set -euo pipefail
+
 $(dirname $0)/helper.py push "$@"

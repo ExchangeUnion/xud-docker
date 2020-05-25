@@ -16,8 +16,8 @@ import http.client
 import time
 from traceback import print_exc
 
-from .registry_client import RegistryClient
-from .errors import FatalError
+from registry_client import RegistryClient
+from errors import FatalError
 
 
 def check_buildx():
