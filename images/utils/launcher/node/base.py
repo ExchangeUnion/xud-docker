@@ -486,7 +486,7 @@ class CliError(Exception):
 
 class CliBackend:
     def __init__(self, client: DockerClient, container_name, logger, cli):
-        self.client = docker.from_env(timeout=20)
+        self.client = docker.from_env()
         self.container_name = container_name
         self.logger = logger
         self.cli = cli
@@ -501,6 +501,10 @@ class CliBackend:
             else:
                 cmd = item
             full_cmd = "%s %s" % (self.cli, cmd)
+            if "create" in cmd or "restore" in cmd:
+                self.client = docker.from_env(timeout=999999999)
+            else:
+                self.client = docker.from_env(timeout=20)
             exit_code, output = self.get_container().exec_run(full_cmd)
             text: str = output.decode()
             self.logger.debug("%s (exit_code=%d)\n%s", full_cmd, exit_code, text.rstrip())
