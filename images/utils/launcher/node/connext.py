@@ -21,13 +21,21 @@ class Connext(Node):
     def __init__(self, name, ctx):
         super().__init__(name, ctx)
 
+        environment = []
+
         if self.network == "simnet":
             environment = [
                 "CONNEXT_ETH_PROVIDER_URL=http://connext.simnet.exchangeunion.com:8545",
                 "CONNEXT_NODE_URL=https://connext.simnet.exchangeunion.com/api",
             ]
-        else:
-            environment = []
+        elif self.network == "testnet":
+            environment = [
+                "CONNEXT_NODE_URL=https://connext.testnet.odex.dev/api",
+            ]
+        elif self.network == "mainnet":
+            environment = [
+                "CONNEXT_NODE_URL=https://connext.mainnet.odex.dev/api",
+            ]
 
         if self.network in ["testnet", "mainnet"]:
             geth = self.config.nodes["geth"]
