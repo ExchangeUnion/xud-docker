@@ -1,5 +1,5 @@
 import re
-from .errors import NetworkConfigFileValueError
+from ..errors import FatalError
 
 
 class PortPublish:
@@ -14,7 +14,7 @@ class PortPublish:
             p = parts[0]
             protocol = parts[1]
             if protocol not in ["tcp", "udp", "sctp"]:
-                raise NetworkConfigFileValueError("Invalid protocol: {} ({})".format(protocol, p))
+                raise FatalError("Invalid protocol: {} ({})".format(protocol, p))
 
         host = None
         host_port = None
