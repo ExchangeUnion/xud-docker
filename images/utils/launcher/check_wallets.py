@@ -44,13 +44,18 @@ class Action:
             return c
 
         def xud_restart():
-            c = restart(f"{network}_xud_1")
+            name = f"{network}_xud_1"
+
+            self.logger.debug("Restarting %s", name)
+            c = restart(name)
+            self.logger.debug("Restarted %s", name)
 
             # xud is locked, run 'xucli unlock', 'xucli create', or 'xucli restore' then try again
             for i in range(10):
                 exit_code, output = c.exec_run("xucli getinfo")
                 result = output.decode()
                 if "xud is locked" in result:
+                    self.logger.debug("Xud is locked")
                     return
                 time.sleep(10)
 
@@ -59,8 +64,10 @@ class Action:
         def lnd_restart(chain):
             if chain == "bitcoin":
                 name = f"{network}_lndbtc_1"
+                short_name = "lndbtc"
             else:
                 name = f"{network}_lndltc_1"
+                short_name = "lndltc"
 
             client = docker.from_env()
             c: Container = client.containers.get(name)
@@ -72,6 +79,7 @@ class Action:
                 self.logger.debug("Skip restarting %s", name)
                 return
 
+            self.logger.debug("Restarting %s", name)
             c = restart(name)
             self.logger.debug("Restarted %s", name)
 
@@ -81,6 +89,7 @@ class Action:
                 self.logger.debug("[Execute] %s: exit_code=%s, output=%s", cmd, exit_code, output)
                 result = output.decode()
                 if exit_code == 0 or "Wallet is encrypted" in result:
+                    self.logger.debug("%s is locked", short_name.capitalize())
                     return
                 time.sleep(10)
 
@@ -166,6 +175,7 @@ class Action:
             if exit_code == 1 and "xud is locked" in output.decode():
                 break
             time.sleep(3)
+        self.logger.debug("Xud is ready")
 
     def xucli_create_wrapper(self, xud):
         counter = 0
