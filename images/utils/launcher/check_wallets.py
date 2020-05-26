@@ -7,6 +7,7 @@ import docker
 import time
 from concurrent.futures import ThreadPoolExecutor
 from docker.models.containers import Container
+from datetime import datetime
 
 from .node import NodeManager
 from .node.xud import PasswordNotMatch, InvalidPassword, MnemonicNot24Words
@@ -32,6 +33,9 @@ class Action:
     def network(self) -> XudNetwork:
         return self.config.network
 
+    def lnd_has_unlock_log_line(self, c):
+        pass
+
     def restart_lnds(self, network: XudNetwork):
         """
         This is temporary solution for lnd unlock stuck problem
@@ -41,6 +45,18 @@ class Action:
             client = docker.from_env()
             c = client.containers.get(name)
             c.restart()
+            return c
+
+        def stop(name):
+            client = docker.from_env()
+            c = client.containers.get(name)
+            c.stop()
+            return c
+
+        def start(name):
+            client = docker.from_env()
+            c = client.containers.get(name)
+            c.start()
             return c
 
         def xud_restart():
@@ -80,22 +96,17 @@ class Action:
                 return
 
             self.logger.debug("Restarting %s", name)
-            c = restart(name)
+            c = stop(name)
+            t1 = datetime.now()
+            c = start(name)
             self.logger.debug("Restarted %s", name)
 
-            # [lncli] Wallet is encrypted. Please unlock using 'lncli unlock', or set password using 'lncli create' if this is the first time starting lnd.
-            for i in range(10):
-                exit_code, output = c.exec_run(cmd)
-                self.logger.debug("[Execute] %s: exit_code=%s, output=%s", cmd, exit_code, output)
-                result = output.decode()
-                if exit_code == 0 or \
-                        "Wallet is encrypted" in result or \
-                        "unable to read macaroon path" in result:
-                    self.logger.debug("%s is locked", short_name.capitalize())
-                    return
-                time.sleep(10)
-
-            raise RuntimeError("Restarted lnd should be locked")
+            # [INF] LTND: Waiting for wallet encryption password. Use `lncli create` to create a wallet, `lncli unlock` to unlock an existing wallet, or `lncli changepassword` to change the password of an existing wallet and unlock it.
+            for line in c.logs(stream=True, follow=True, since=t1):
+                line = line.decode().strip()
+                self.logger.debug("<%s> %s", short_name, line)
+                if "Waiting for wallet encryption password" in line:
+                    break
 
         with ThreadPoolExecutor(max_workers=3) as executor:
             f1 = executor.submit(lnd_restart, "bitcoin")
