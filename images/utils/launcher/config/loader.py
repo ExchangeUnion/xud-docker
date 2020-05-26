@@ -1,7 +1,7 @@
 from shutil import copyfile
 import os
 
-from .errors import InvalidHomeDir, InvalidNetworkDir
+from ..errors import FatalError
 from ..utils import normalize_path, get_hostfs_file
 
 
@@ -37,12 +37,12 @@ class ConfigLoader:
         hostfs_dir = get_hostfs_file(home_dir)
         if os.path.exists(hostfs_dir):
             if not os.path.isdir(hostfs_dir):
-                raise InvalidHomeDir("{} is not a directory".format(home_dir))
+                raise FatalError("{} is not a directory".format(home_dir))
             else:
                 if not os.access(hostfs_dir, os.R_OK):
-                    raise InvalidHomeDir("{} is not readable".format(home_dir))
+                    raise FatalError("{} is not readable".format(home_dir))
                 if not os.access(hostfs_dir, os.W_OK):
-                    raise InvalidHomeDir("{} is not writable".format(home_dir))
+                    raise FatalError("{} is not writable".format(home_dir))
         else:
             os.mkdir(hostfs_dir)
         return home_dir
@@ -52,12 +52,12 @@ class ConfigLoader:
         hostfs_dir = get_hostfs_file(network_dir)
         if os.path.exists(hostfs_dir):
             if not os.path.isdir(hostfs_dir):
-                raise InvalidNetworkDir("{} is not a directory".format(network_dir))
+                raise FatalError("{} is not a directory".format(network_dir))
             else:
                 if not os.access(hostfs_dir, os.R_OK):
-                    raise InvalidNetworkDir("{} is not readable".format(network_dir))
+                    raise FatalError("{} is not readable".format(network_dir))
                 if not os.access(hostfs_dir, os.W_OK):
-                    raise InvalidNetworkDir("{} is not writable".format(network_dir))
+                    raise FatalError("{} is not writable".format(network_dir))
         else:
             os.makedirs(hostfs_dir)
 
