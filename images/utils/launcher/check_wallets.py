@@ -143,7 +143,7 @@ class Action:
         # [lncli] open /root/.lnd/tls.cert: no such file or directory
         # [lncli] unable to read macaroon path (check the network setting!): open /root/.lnd/data/chain/bitcoin/testnet/admin.macaroon: no such file or directory
         # [lncli] Wallet is encrypted. Please unlock using 'lncli unlock', or set password using 'lncli create' if this is the first time starting lnd.
-        return exit_code == 1 and (
+        return exit_code == 0 or exit_code == 1 and (
                 "unable to read macaroon path" in output.decode() or
                 "Wallet is encrypted" in output.decode()
         )
