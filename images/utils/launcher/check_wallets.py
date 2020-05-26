@@ -5,16 +5,15 @@ from subprocess import check_output
 import toml
 import docker
 import time
-import threading
+from concurrent.futures import ThreadPoolExecutor
+from docker.models.containers import Container
+from datetime import datetime
 
 from .node import NodeManager
 from .node.xud import PasswordNotMatch, InvalidPassword, MnemonicNot24Words
 from .utils import normalize_path, get_hostfs_file
-from .errors import NetworkConfigFileSyntaxError
-
-
-class BackupDirNotAvailable(Exception):
-    pass
+from .errors import FatalError
+from .types import LndChain, XudNetwork
 
 
 class Action:
@@ -30,7 +29,14 @@ class Action:
     def config(self):
         return self.node_manager.config
 
-    def restart_lnds(self):
+    @property
+    def network(self) -> XudNetwork:
+        return self.config.network
+
+    def lnd_has_unlock_log_line(self, c):
+        pass
+
+    def restart_lnds(self, network: XudNetwork):
         """
         This is temporary solution for lnd unlock stuck problem
         TODO remove it later
@@ -41,14 +47,31 @@ class Action:
             c.restart()
             return c
 
+        def stop(name):
+            client = docker.from_env()
+            c = client.containers.get(name)
+            c.stop()
+            return c
+
+        def start(name):
+            client = docker.from_env()
+            c = client.containers.get(name)
+            c.start()
+            return c
+
         def xud_restart():
-            c = restart("simnet_xud_1")
+            name = f"{network}_xud_1"
+
+            self.logger.debug("Restarting %s", name)
+            c = restart(name)
+            self.logger.debug("Restarted %s", name)
 
             # xud is locked, run 'xucli unlock', 'xucli create', or 'xucli restore' then try again
             for i in range(10):
                 exit_code, output = c.exec_run("xucli getinfo")
                 result = output.decode()
                 if "xud is locked" in result:
+                    self.logger.debug("Xud is locked")
                     return
                 time.sleep(10)
 
@@ -56,39 +79,119 @@ class Action:
 
         def lnd_restart(chain):
             if chain == "bitcoin":
-                name = "simnet_lndbtc_1"
+                name = f"{network}_lndbtc_1"
+                short_name = "lndbtc"
             else:
-                name = "simnet_lndltc_1"
+                name = f"{network}_lndltc_1"
+                short_name = "lndltc"
 
             client = docker.from_env()
-            c = client.containers.get(name)
-            exit_code, output = c.exec_run(f"lncli -n simnet -c {chain} getinfo")
+            c: Container = client.containers.get(name)
+            cmd = f"lncli -n {network} -c {chain} getinfo"
+            exit_code, output = c.exec_run(cmd)
+            self.logger.debug("[Execute] %s: exit_code=%s, output=%s", cmd, exit_code, output)
+
             if exit_code == 0:
+                self.logger.debug("Skip restarting %s", name)
                 return
 
-            c = restart(name)
+            self.logger.debug("Restarting %s", name)
+            c = stop(name)
+            t1 = datetime.now()
+            c = start(name)
+            self.logger.debug("Restarted %s", name)
 
-            # [lncli] Wallet is encrypted. Please unlock using 'lncli unlock', or set password using 'lncli create' if this is the first time starting lnd.
-            for i in range(10):
-                exit_code, output = c.exec_run(f"lncli -n simnet -c {chain} getinfo")
-                result = output.decode()
-                if exit_code == 0:
-                    return
-                time.sleep(10)
+            # [INF] LTND: Waiting for wallet encryption password. Use `lncli create` to create a wallet, `lncli unlock` to unlock an existing wallet, or `lncli changepassword` to change the password of an existing wallet and unlock it.
+            for line in c.logs(stream=True, follow=True, since=t1):
+                line = line.decode().strip()
+                self.logger.debug("<%s> %s", short_name, line)
+                if "Waiting for wallet encryption password" in line:
+                    break
 
-            raise RuntimeError("Restarted lnd should be locked")
+            self.logger.debug("Sleep 15 seconds. For God's sake may %s work normally!!!", short_name)
+            time.sleep(15)
 
-        t1 = threading.Thread(target=lnd_restart, args=("bitcoin",))
-        t2 = threading.Thread(target=lnd_restart, args=("litecoin",))
-        t3 = threading.Thread(target=xud_restart)
+        with ThreadPoolExecutor(max_workers=3) as executor:
+            f1 = executor.submit(lnd_restart, "bitcoin")
+            f2 = executor.submit(lnd_restart, "litecoin")
 
-        t1.start()
-        t2.start()
-        t1.join()
-        t2.join()
+            try:
+                f1.result()
+            except Exception as e:
+                raise RuntimeError("Failed to restart lndbtc") from e
 
-        t3.start()
-        t3.join()
+            try:
+                f2.result()
+            except Exception as e:
+                raise RuntimeError("Failed to restart lndltc") from e
+
+            f3 = executor.submit(xud_restart)
+
+            try:
+                f3.result()
+            except Exception as e:
+                raise RuntimeError("Failed to restart xud") from e
+
+    def lnd_ready(self, chain: LndChain) -> bool:
+        network = self.node_manager.config.network
+        client = docker.from_env()
+        if chain == "bitcoin":
+            name = f"{network}_lndbtc_1"
+        else:
+            name = f"{network}_lndltc_1"
+        lnd: Container = client.containers.get(name)
+        cmd = f"lncli -n {network} -c {chain} getinfo"
+        exit_code, output = lnd.exec_run(cmd)
+        self.logger.debug("[Execute] %s: exit_code=%s, output=%s", cmd, exit_code, output)
+        # [lncli] open /root/.lnd/tls.cert: no such file or directory
+        # [lncli] unable to read macaroon path (check the network setting!): open /root/.lnd/data/chain/bitcoin/testnet/admin.macaroon: no such file or directory
+        # [lncli] Wallet is encrypted. Please unlock using 'lncli unlock', or set password using 'lncli create' if this is the first time starting lnd.
+        return exit_code == 0 or exit_code == 1 and (
+                "unable to read macaroon path" in output.decode() or
+                "Wallet is encrypted" in output.decode()
+        )
+
+    def ensure_lnd_ready(self, chain: LndChain) -> None:
+        if chain == "bitcoin":
+            name = f"lndbtc"
+        else:
+            name = f"lndltc"
+        for i in range(10):
+            if self.lnd_ready(chain):
+                self.logger.debug(f"{name.capitalize()} is ready")
+                return
+            time.sleep(1)
+        raise RuntimeError(f"{name.capitalize()} took too long to be ready")
+
+    def ensure_layer2_ready(self) -> None:
+        with ThreadPoolExecutor(max_workers=2) as executor:
+            f1 = executor.submit(self.ensure_lnd_ready, "bitcoin")
+            f2 = executor.submit(self.ensure_lnd_ready, "litecoin")
+
+            try:
+                f1.result()
+            except Exception as e:
+                raise FatalError("Failed to ensure lndbtc ready") from e
+
+            try:
+                f2.result()
+            except Exception as e:
+                raise FatalError("Failed to ensure lndltc ready") from e
+
+        client = docker.from_env()
+        xud: Container = client.containers.get(f"{self.network}_xud_1")
+        cmd = "xucli getinfo -j"
+
+        # Error: ENOENT: no such file or directory, open '/root/.xud/tls.cert'
+        # xud is starting... try again in a few seconds
+        # xud is locked, run 'xucli unlock', 'xucli create', or 'xucli restore' then try again
+        while True:
+            exit_code, output = xud.exec_run(cmd)
+            self.logger.debug("[Execute] %s: exit_code=%s, output=%s", cmd, exit_code, output)
+            if exit_code == 1 and "xud is locked" in output.decode():
+                break
+            time.sleep(3)
+        self.logger.debug("Xud is ready")
 
     def xucli_create_wrapper(self, xud):
         counter = 0
@@ -176,7 +279,7 @@ class Action:
             except:
                 raise RuntimeError(f"Failed to update backup-dir value in {config_file}")
             if "backup-dir" not in parsed:
-                raise NetworkConfigFileSyntaxError(f"The field \"backup-dir\" is in a wrong section of {network}.conf.")
+                raise FatalError(f"The field \"backup-dir\" is in a wrong section of {network}.conf.")
             if parsed["backup-dir"] != backup_dir:
                 raise RuntimeError(f"Failed to update backup-dir value in {config_file}")
         else:
@@ -216,7 +319,7 @@ class Action:
                 r = self.shell.no_or_yes("Retry?")
                 if r == "no":
                     self.node_manager.down()
-                    raise BackupDirNotAvailable()
+                    raise FatalError("Backup directory not available")
 
         if self.config.backup_dir != backup_dir:
             self.config.backup_dir = backup_dir
@@ -231,7 +334,6 @@ class Action:
             return False
 
         return True
-
 
     def setup_restore_dir(self) -> None:
         """This function will try to interactively setting up restore_dir. And
@@ -286,6 +388,7 @@ class Action:
 
     def execute(self):
         xud = self.node_manager.get_node("xud")
+        self.ensure_layer2_ready()
         if self.node_manager.newly_installed:
             while True:
                 print("Do you want to create a new xud environment or restore an existing one?")
@@ -326,15 +429,15 @@ class Action:
                 self.config.backup_dir = None
                 self.setup_backup_dir()
 
-            if self.node_manager.config.network == "simnet":
+            if self.network in ["simnet", "testnet", "mainnet"]:
                 print("\nClient restart required. This could take up to 3 minutes and you will be prompted to re-enter your password. Restarting...", end="")
                 sys.stdout.flush()
                 try:
-                    self.restart_lnds()
+                    self.restart_lnds(self.network)
                     print(" Done.")
                 except:
+                    self.logger.exception("Failed to do restaring logic here")
                     print(" Failed.")
-                    raise RuntimeError("Failed to restart lnds and xud after xucli create")
         else:
             if not self.is_backup_available():
                 print("Backup location not available.")

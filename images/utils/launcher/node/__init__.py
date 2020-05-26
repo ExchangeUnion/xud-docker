@@ -5,9 +5,9 @@ import functools
 import threading
 import docker
 from dataclasses import dataclass
-
 from docker.errors import NotFound
 from docker.types import IPAMConfig, IPAMPool
+import time
 
 from .base import Node
 from .bitcoind import Bitcoind, Litecoind
@@ -19,20 +19,10 @@ from .xud import Xud, XudApiError
 from .connext import Connext
 from .image import Image, ImageManager
 
-from ..utils import parallel_execute, get_useful_error_message, get_hostfs_file
-from ..config import Config, ArgumentParser
+from ..utils import parallel_execute, get_useful_error_message, get_hostfs_file, ArgumentParser
+from ..config import Config
 from ..shell import Shell
-
-
-class NodeNotFound(Exception):
-    def __init__(self, name):
-        super(name)
-
-
-class ImagesNotAvailable(Exception):
-    def __init__(self, images):
-        super().__init__()
-        self.images = images
+from ..errors import FatalError
 
 
 class LogsCommand:
@@ -104,6 +94,10 @@ class Context:
     shell: Shell
     client: docker.DockerClient
     image_manager: ImageManager
+
+
+class NodeNotFound(Exception):
+    pass
 
 
 class NodeManager:
@@ -196,37 +190,6 @@ class NodeManager:
         print(f"Removing network {self.network_name}")
         self.docker_network.remove()
 
-    def pretty_image_check_result(self, images):
-        result = []
-
-        def get_metadata_str(m):
-            if not m:
-                return ""
-            return "{}\n  * digest: {}\n  * branch: {}\n  * revision: {}\n  * created at: {}".format(m.name, m.digest, m.branch, m.revision, m.created)
-
-        for image in images:
-            status = "  Status: {}\n".format(image.status)
-            pull = "  Pull: {}\n".format(image.pull_image)
-            local = "  Local: {}\n".format(get_metadata_str(image.local_metadata))
-            cloud = "  Cloud: {}\n".format(get_metadata_str(image.cloud_metadata))
-            use = "  Use: {}\n".format(image.use_image)
-            result.append("- {}\n{}{}{}{}{}".format(image.name, status, pull, local, cloud, use))
-        return "\n".join(result)
-
-    def pretty_container_check_result(self, container_check_result):
-        result = []
-        for key, value in container_check_result.items():
-            status, details = value
-
-            if details:
-                details_str = "\n"
-                for key2, value in details.items():
-                    details_str += "  * {}: {}\n    old: {}\n    new: {}\n".format(key2, value.message, value.old, value.new)
-            else:
-                details_str = "\n    (None)"
-            result.append("- {}\n  Status: {}\n  Details: {}".format(key, status, details_str))
-        return "\n".join(result)
-
     def _display_container_status_text(self, status):
         if status == "missing":
             return "missing"
@@ -245,7 +208,7 @@ class NodeManager:
         print("🌍 Checking for updates...")
         images = self.image_manager.check_for_updates()
 
-        self.logger.info("Image update checking result:\n{}".format(self.pretty_image_check_result(images)))
+        self.logger.debug("[Update] Image checking result: %r", images)
 
         # TODO handle image local status. Print a warning or give users a choice
         for image in images:
@@ -255,7 +218,7 @@ class NodeManager:
                 outdated = True
             elif status == "UNAVAILABLE":
                 all_unavailable_images = [x for x in images if x.status == "NOT_FOUND"]
-                raise ImagesNotAvailable(all_unavailable_images)
+                raise FatalError("Image(s) not available: %r" % all_unavailable_images)
 
         # Step 2. check all containers
         containers = self.nodes.values()
@@ -275,7 +238,7 @@ class NodeManager:
 
         parallel_execute(containers, lambda c: c.check_for_updates(), 60, print_failed, try_again, handle_result)
 
-        self.logger.info("Container update checking result:\n{}".format(self.pretty_container_check_result(container_check_result)))
+        self.logger.debug("[Update] Container checking result: %r", container_check_result)
 
         for container, result in container_check_result.items():
             status, details = result
@@ -377,7 +340,7 @@ class NodeManager:
             status = container.status()
             if status.startswith("could not connect"):
                 update_status(name, "Waiting for xud...")
-                sleep(5)
+                time.sleep(5)
                 status = container.status()
 
             update_status(name, status)

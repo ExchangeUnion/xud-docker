@@ -1,13 +1,14 @@
 import argparse
 import logging
+from logging.handlers import TimedRotatingFileHandler
 import os
 from shutil import copyfile
 import re
 
 import toml
 
-from ..utils import normalize_path, get_hostfs_file
-from ..errors import NetworkConfigFileValueError, CommandLineArgumentValueError
+from ..utils import normalize_path, get_hostfs_file, ArgumentParser, ArgumentError
+from ..errors import FatalError
 
 
 class PortPublish:
@@ -22,7 +23,7 @@ class PortPublish:
             p = parts[0]
             protocol = parts[1]
             if protocol not in ["tcp", "udp", "sctp"]:
-                raise NetworkConfigFileValueError("Invalid protocol: {} ({})".format(protocol, p))
+                raise FatalError("Invalid protocol: {} ({})".format(protocol, p))
 
         host = None
         host_port = None
@@ -383,31 +384,6 @@ networks = {
 }
 
 
-class ArgumentError(Exception):
-    def __init__(self, message, usage):
-        super().__init__(message)
-        self.usage = usage
-
-
-class ArgumentParser(argparse.ArgumentParser):
-    """
-    https://stackoverflow.com/questions/5943249/python-argparse-and-controlling-overriding-the-exit-status-code
-    """
-
-    def error(self, message):
-        raise ArgumentError(message, self.format_usage())
-
-
-class InvalidHomeDir(Exception):
-    def __init__(self, reason):
-        super().__init__(reason)
-
-
-class InvalidNetworkDir(Exception):
-    def __init__(self, reason):
-        super().__init__(reason)
-
-
 class ConfigLoader:
     def load_general_config(self, home_dir):
         config_file = get_hostfs_file(f"{home_dir}/xud-docker.conf")
@@ -440,12 +416,12 @@ class ConfigLoader:
         hostfs_dir = get_hostfs_file(home_dir)
         if os.path.exists(hostfs_dir):
             if not os.path.isdir(hostfs_dir):
-                raise InvalidHomeDir("{} is not a directory".format(home_dir))
+                raise FatalError("{} is not a directory".format(home_dir))
             else:
                 if not os.access(hostfs_dir, os.R_OK):
-                    raise InvalidHomeDir("{} is not readable".format(home_dir))
+                    raise FatalError("{} is not readable".format(home_dir))
                 if not os.access(hostfs_dir, os.W_OK):
-                    raise InvalidHomeDir("{} is not writable".format(home_dir))
+                    raise FatalError("{} is not writable".format(home_dir))
         else:
             os.mkdir(hostfs_dir)
         return home_dir
@@ -455,12 +431,12 @@ class ConfigLoader:
         hostfs_dir = get_hostfs_file(network_dir)
         if os.path.exists(hostfs_dir):
             if not os.path.isdir(hostfs_dir):
-                raise InvalidNetworkDir("{} is not a directory".format(network_dir))
+                raise FatalError("{} is not a directory".format(network_dir))
             else:
                 if not os.access(hostfs_dir, os.R_OK):
-                    raise InvalidNetworkDir("{} is not readable".format(network_dir))
+                    raise FatalError("{} is not readable".format(network_dir))
                 if not os.access(hostfs_dir, os.W_OK):
-                    raise InvalidNetworkDir("{} is not writable".format(network_dir))
+                    raise FatalError("{} is not writable".format(network_dir))
         else:
             os.makedirs(hostfs_dir)
 
@@ -517,18 +493,35 @@ class Config:
         parser.add_argument("--lndbtc.preserve-config", action="store_true")
         parser.add_argument("--lndltc.preserve-config", action="store_true")
 
-        self.args = parser.parse_args()
-        self.logger.info("Parsed command-line arguments: %r", self.args)
+        try:
+            self.args = parser.parse_args()
+            self.logger.info("Parsed command-line arguments: %r", self.args)
+        except Exception as e:
+            raise FatalError("Failed to parse command-line arguments: %s" % e) from e
 
     def parse_general_config(self):
         network = self.network
-        parsed = toml.loads(self.loader.load_general_config(self.home_dir))
-        self.logger.info("Parsed general config file: %r", parsed)
+
+        try:
+            parsed = toml.loads(self.loader.load_general_config(self.home_dir))
+            self.logger.info("Parsed xud-docker.conf: %r", parsed)
+        except Exception as e:
+            raise FatalError("Failed to parse xud-docker.conf: %s" % e) from e
+
         key = f"{network}-dir"
         if key in parsed:
             self.network_dir = parsed[key]
         if hasattr(self.args, f"{self.network}_dir"):
             self.network_dir = getattr(self.args, f"{self.network}_dir")
+
+        logs_dir = get_hostfs_file(f"{self.network_dir}/logs")
+        if not os.path.exists(logs_dir):
+            os.makedirs(logs_dir, exist_ok=True)
+        logfile = f"{logs_dir}/{self.network}.log"
+        fh = TimedRotatingFileHandler(logfile, when="d", interval=1, backupCount=7)
+        fmt = "%(asctime)s %(levelname)s %(process)d --- [%(threadName)s] %(name)s: %(message)s"
+        fh.setFormatter(logging.Formatter(fmt=fmt))
+        logging.getLogger().addHandler(fh)
 
         if hasattr(self.args, "branch"):
             self.branch = self.args.branch
@@ -572,7 +565,7 @@ class Config:
         if "mode" in parsed:
             value = parsed["mode"]
             if value not in ["native", "external", "neutrino"]:
-                raise NetworkConfigFileValueError("Invalid value of option \"mode\": {}".format(value))
+                raise FatalError("Invalid value of option \"mode\": {}".format(value))
             node["mode"] = value
 
         if node["mode"] == "external":
@@ -585,7 +578,7 @@ class Config:
                 try:
                     node["external_rpc_port"] = int(value)
                 except ValueError:
-                    raise NetworkConfigFileValueError("Invalid value of option \"rpc-port\": {}".format(value))
+                    raise FatalError("Invalid value of option \"rpc-port\": {}".format(value))
             if "rpc-user" in parsed:
                 value = parsed["rpc-user"]
                 # TODO rpc-user value validation
@@ -657,7 +650,7 @@ class Config:
         if "mode" in parsed:
             value = parsed["mode"]
             if value not in ["native", "external", "infura"]:
-                raise NetworkConfigFileValueError("Invalid value of option \"mode\": {}" + value)
+                raise FatalError("Invalid value of option \"mode\": {}" + value)
             node["mode"] = value
 
         if node["mode"] == "external":
@@ -670,7 +663,7 @@ class Config:
                 try:
                     node["external_rpc_port"] = int(value)
                 except ValueError:
-                    raise NetworkConfigFileValueError("Invalid value of option \"rpc-port\": {}".format(value))
+                    raise FatalError("Invalid value of option \"rpc-port\": {}".format(value))
         elif node["mode"] == "infura":
             if "infura-project-id" in parsed:
                 value = parsed["infura-project-id"]
@@ -727,8 +720,12 @@ class Config:
 
     def parse_network_config(self):
         network = self.network
-        parsed = toml.loads(self.loader.load_network_config(network, self.network_dir))
-        self.logger.info("Parsed network config file: %r", parsed)
+
+        try:
+            parsed = toml.loads(self.loader.load_network_config(network, self.network_dir))
+            self.logger.info("Parsed %s.conf: %r", network, parsed)
+        except Exception as e:
+            raise FatalError("Failed to parse %s.conf: %s" % (network, e)) from e
 
         if "backup-dir" in parsed and len(parsed["backup-dir"].strip()) > 0:
             self.backup_dir = parsed["backup-dir"]
@@ -776,9 +773,9 @@ class Config:
                         if port not in ports:
                             ports.append(port)
                     else:
-                        raise CommandLineArgumentValueError("--expose-ports {}: No such node: {}".format(value, name))
+                        raise FatalError("--expose-ports {}: No such node: {}".format(value, name))
                 else:
-                    raise CommandLineArgumentValueError("--expose-ports {}: Syntax error: {}".format(value, part))
+                    raise FatalError("--expose-ports {}: Syntax error: {}".format(value, part))
 
         # Backward compatible with lnd.env
         lndenv = get_hostfs_file(f"{self.network_dir}/lnd.env")
@@ -819,6 +816,5 @@ class Config:
     def logfile(self):
         if self.network_dir:
             network = self.network
-            suffix = os.environ["LOG_TIMESTAMP"]
-            return f"{self.network_dir}/logs/{network}-{suffix}.log"
+            return f"{self.network_dir}/logs/{network}.log"
         return None
