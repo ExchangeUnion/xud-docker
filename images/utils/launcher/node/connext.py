@@ -34,7 +34,7 @@ class Connext(Node):
             ]
         elif self.network == "mainnet":
             environment = [
-                "CONNEXT_NODE_URL=https://connext.mainnet.odex.dev/api",
+                "CONNEXT_NODE_URL=https://connext.odex.dev/api",
             ]
 
         if self.network in ["testnet", "mainnet"]:
