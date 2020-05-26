@@ -59,7 +59,7 @@ nodes_config = {
     "simnet": {
         "lndbtc": {
             "name": "lndbtc",
-            "image": "exchangeunion/lnd:0.10.0-beta-patched",
+            "image": "exchangeunion/lnd:0.10.0-beta-simnet",
             "volumes": [
                 {
                     "host": "$data_dir/lndbtc",
@@ -72,7 +72,7 @@ nodes_config = {
         },
         "lndltc": {
             "name": "lndltc",
-            "image": "exchangeunion/lnd:0.9.0-beta-ltc-patched",
+            "image": "exchangeunion/lnd:0.9.0-beta-ltc-simnet",
             "volumes": [
                 {
                     "host": "$data_dir/lndltc",
@@ -177,11 +177,10 @@ nodes_config = {
             "infura_project_id": None,
             "infura_project_secret": None,
             "preserve_config": False,
-            "eth_provider": None
         },
         "lndbtc": {
             "name": "lndbtc",
-            "image": "exchangeunion/lnd:0.9.2-beta",
+            "image": "exchangeunion/lnd:0.10.0-beta",
             "volumes": [
                 {
                     "host": "$data_dir/lndbtc",
@@ -303,11 +302,10 @@ nodes_config = {
             "infura_project_id": None,
             "infura_project_secret": None,
             "preserve_config": False,
-            "eth_provider": None
         },
         "lndbtc": {
             "name": "lndbtc",
-            "image": "exchangeunion/lnd:0.9.2-beta",
+            "image": "exchangeunion/lnd:0.10.0-beta",
             "volumes": [
                 {
                     "host": "$data_dir/lndbtc",
