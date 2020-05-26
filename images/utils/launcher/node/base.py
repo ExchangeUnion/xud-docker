@@ -11,6 +11,7 @@ from docker.models.containers import Container
 
 from .image import Image
 from ..config import PortPublish
+from ..types import XudNetwork
 
 
 class InvalidNetwork(Exception):
@@ -109,7 +110,7 @@ class Node:
         return ports
 
     @property
-    def network(self) -> str:
+    def network(self) -> XudNetwork:
         return self.config.network
 
     @property

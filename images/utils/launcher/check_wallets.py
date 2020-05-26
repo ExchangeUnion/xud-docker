@@ -15,10 +15,6 @@ from .errors import FatalError
 from .types import LndChain, XudNetwork
 
 
-class BackupDirNotAvailable(Exception):
-    pass
-
-
 class Action:
     def __init__(self, node_manager: NodeManager):
         self.logger = logging.getLogger("launcher.CheckWalletsAction")
@@ -80,7 +76,7 @@ class Action:
             self.logger.debug("Restarted %s", name)
 
             # [lncli] Wallet is encrypted. Please unlock using 'lncli unlock', or set password using 'lncli create' if this is the first time starting lnd.
-            for i in range(1000):
+            for i in range(10):
                 exit_code, output = c.exec_run(cmd)
                 self.logger.debug("[Execute] %s: exit_code=%s, output=%s", cmd, exit_code, output)
                 result = output.decode()
@@ -297,7 +293,7 @@ class Action:
                 r = self.shell.no_or_yes("Retry?")
                 if r == "no":
                     self.node_manager.down()
-                    raise BackupDirNotAvailable()
+                    raise FatalError("Backup directory not available")
 
         if self.config.backup_dir != backup_dir:
             self.config.backup_dir = backup_dir

@@ -5,9 +5,9 @@ import functools
 import threading
 import docker
 from dataclasses import dataclass
-
 from docker.errors import NotFound
 from docker.types import IPAMConfig, IPAMPool
+import time
 
 from .base import Node
 from .bitcoind import Bitcoind, Litecoind
@@ -19,20 +19,10 @@ from .xud import Xud, XudApiError
 from .connext import Connext
 from .image import Image, ImageManager
 
-from ..utils import parallel_execute, get_useful_error_message, get_hostfs_file
-from ..config import Config, ArgumentParser
+from ..utils import parallel_execute, get_useful_error_message, get_hostfs_file, ArgumentParser
+from ..config import Config
 from ..shell import Shell
-
-
-class NodeNotFound(Exception):
-    def __init__(self, name):
-        super(name)
-
-
-class ImagesNotAvailable(Exception):
-    def __init__(self, images):
-        super().__init__()
-        self.images = images
+from ..errors import FatalError
 
 
 class LogsCommand:
@@ -104,6 +94,10 @@ class Context:
     shell: Shell
     client: docker.DockerClient
     image_manager: ImageManager
+
+
+class NodeNotFound(Exception):
+    pass
 
 
 class NodeManager:
@@ -224,7 +218,7 @@ class NodeManager:
                 outdated = True
             elif status == "UNAVAILABLE":
                 all_unavailable_images = [x for x in images if x.status == "NOT_FOUND"]
-                raise ImagesNotAvailable(all_unavailable_images)
+                raise FatalError("Image(s) not available: %r" % all_unavailable_images)
 
         # Step 2. check all containers
         containers = self.nodes.values()
@@ -346,7 +340,7 @@ class NodeManager:
             status = container.status()
             if status.startswith("could not connect"):
                 update_status(name, "Waiting for xud...")
-                sleep(5)
+                time.sleep(5)
                 status = container.status()
 
             update_status(name, status)

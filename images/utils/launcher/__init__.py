@@ -1,20 +1,17 @@
 import logging
 import shlex
-import toml
-from shutil import copyfile
 import traceback
-import time
 
-from .config import Config, ConfigLoader, ArgumentError, InvalidHomeDir, InvalidNetworkDir
+from .config import Config, ConfigLoader
 from .shell import Shell
-from .node import NodeManager, NodeNotFound, ImagesNotAvailable
-from .utils import ParallelExecutionError, get_hostfs_file
-from .errors import NetworkConfigFileSyntaxError, NetworkConfigFileValueError, CommandLineArgumentValueError
+from .node import NodeManager, NodeNotFound
+from .utils import ParallelExecutionError, get_hostfs_file, ArgumentError
 
-from .check_wallets import Action as CheckWalletsAction, BackupDirNotAvailable
+from .check_wallets import Action as CheckWalletsAction
 from .close_other_utils import Action as CloseOtherUtilsAction
 from .auto_unlock import Action as AutoUnlockAction
 from .warm_up import Action as WarmUpAction
+from .errors import FatalError
 
 
 def init_logging():
@@ -152,34 +149,16 @@ class Launcher:
             env.start()
         except KeyboardInterrupt:
             print()
-            exit_code = 2
-        except BackupDirNotAvailable:
-            exit_code = 3
-        except (InvalidHomeDir, InvalidNetworkDir) as e:
-            print(f"❌ {e}")
-            exit_code = 4
-        except ImagesNotAvailable as e:
-            if len(e.images) == 1:
-                print(f"❌ No such image: {e.images[0]}")
-            elif len(e.images) > 1:
-                images_list = ", ".join(e.images)
-                print(f"❌ No such images: {images_list}")
-            exit_code = 5
-        except (NetworkConfigFileSyntaxError, NetworkConfigFileValueError, CommandLineArgumentValueError) as e:
-            print(f"❌ {e}")
-            exit_code = 6
-        except ArgumentError as e:
-            print(f"❌ {e}")
-            exit_code = 100
-        except toml.TomlDecodeError as e:
-            print(f"❌ {e}")
-            exit_code = 101
-        except:
-            self.logger.exception("Failed to launch")
+            exit_code = 1
+        except FatalError as e:
             if config and config.logfile:
-                print(f"❌ Failed to launch {config.network} environment. For more details, see {config.logfile}")
+                print(f"❌ Error: {e}. For more details, see {config.logfile}")
             else:
                 traceback.print_exc()
+            exit_code = 1
+        except:
+            self.logger.exception("Unexpected exception during launching")
+            traceback.print_exc()
             exit_code = 1
         finally:
             shell.stop()

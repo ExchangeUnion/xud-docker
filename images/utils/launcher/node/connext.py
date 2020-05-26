@@ -1,5 +1,4 @@
 from .base import Node, CliBackend, CliError
-import json
 
 
 class ConnextApiError(Exception):

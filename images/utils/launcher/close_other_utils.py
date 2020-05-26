@@ -1,9 +1,7 @@
 import docker
 from docker.models.containers import Container
-from docker.errors import APIError
 from typing import List
 from subprocess import check_output
-import re
 
 
 class Action:

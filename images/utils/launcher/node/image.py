@@ -15,7 +15,7 @@ from docker import DockerClient
 from docker.errors import ImageNotFound
 
 from ..utils import parallel_execute, get_useful_error_message
-from ..errors import InvalidImageName
+from ..errors import FatalError
 
 
 def get_line(record):
@@ -300,7 +300,7 @@ class ImageManager:
                 self.images[name] = Image(repo, tag, self.branch, self.client)
             return self.images[name]
         else:
-            raise InvalidImageName(name)
+            raise FatalError("Invalid image name: " + name)
 
     def check_for_updates(self) -> List[Image]:
         images = list(self.images.values())
