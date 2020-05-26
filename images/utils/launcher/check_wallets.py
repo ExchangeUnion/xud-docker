@@ -88,7 +88,9 @@ class Action:
                 exit_code, output = c.exec_run(cmd)
                 self.logger.debug("[Execute] %s: exit_code=%s, output=%s", cmd, exit_code, output)
                 result = output.decode()
-                if exit_code == 0 or "Wallet is encrypted" in result:
+                if exit_code == 0 or \
+                        "Wallet is encrypted" in result or \
+                        "unable to read macaroon path" in result:
                     self.logger.debug("%s is locked", short_name.capitalize())
                     return
                 time.sleep(10)
