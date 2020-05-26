@@ -108,6 +108,10 @@ class Action:
                 if "Waiting for wallet encryption password" in line:
                     break
 
+            time.sleep(5)
+            self.logger.debug("Sleep 5 seconds. For God's sake may lnd work normally!!!")
+
+
         with ThreadPoolExecutor(max_workers=3) as executor:
             f1 = executor.submit(lnd_restart, "bitcoin")
             f2 = executor.submit(lnd_restart, "litecoin")
