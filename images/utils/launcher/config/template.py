@@ -89,7 +89,7 @@ nodes_config = {
             "volumes": [
                 {
                     "host": "$data_dir/connext",
-                    "container": "/root/.connext",
+                    "container": "/app/connext-store",
                 },
             ],
             "ports": [],
@@ -177,6 +177,7 @@ nodes_config = {
             "infura_project_id": None,
             "infura_project_secret": None,
             "preserve_config": False,
+            "eth_provider": None
         },
         "lndbtc": {
             "name": "lndbtc",
@@ -204,13 +205,13 @@ nodes_config = {
             "mode": "native",
             "preserve_config": False,
         },
-        "raiden": {
-            "name": "raiden",
-            "image": "exchangeunion/raiden:0.100.5a1.dev162-2217bcb",
+        "connext": {
+            "name": "connext",
+            "image": "exchangeunion/connext:latest",
             "volumes": [
                 {
-                    "host": "$data_dir/raiden",
-                    "container": "/root/.raiden",
+                    "host": "$data_dir/connext",
+                    "container": "/app/connext-store",
                 },
             ],
             "ports": [],
@@ -329,13 +330,13 @@ nodes_config = {
             "mode": "native",
             "preserve_config": False,
         },
-        "raiden": {
-            "name": "raiden",
-            "image": "exchangeunion/raiden:0.100.5a1.dev162-2217bcb",
+        "connext": {
+            "name": "connext",
+            "image": "exchangeunion/connext:latest",
             "volumes": [
                 {
-                    "host": "$data_dir/raiden",
-                    "container": "/root/.raiden",
+                    "host": "$data_dir/connext",
+                    "container": "/app/connext-store",
                 },
             ],
             "ports": [],

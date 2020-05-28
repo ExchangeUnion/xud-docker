@@ -21,13 +21,21 @@ class Connext(Node):
     def __init__(self, name, ctx):
         super().__init__(name, ctx)
 
+        environment = []
+
         if self.network == "simnet":
             environment = [
                 "CONNEXT_ETH_PROVIDER_URL=http://connext.simnet.exchangeunion.com:8545",
                 "CONNEXT_NODE_URL=https://connext.simnet.exchangeunion.com/api",
             ]
-        else:
-            environment = []
+        elif self.network == "testnet":
+            environment = [
+                "CONNEXT_NODE_URL=https://connext.testnet.odex.dev/api",
+            ]
+        elif self.network == "mainnet":
+            environment = [
+                "CONNEXT_NODE_URL=https://connext.odex.dev/api",
+            ]
 
         if self.network in ["testnet", "mainnet"]:
             geth = self.config.nodes["geth"]
@@ -37,7 +45,6 @@ class Connext(Node):
                 environment.extend([
                     f'CONNEXT_ETH_PROVIDER_URL=http://{rpc_host}:{rpc_port}'
                 ])
-                # TODO: add CONNEXT_NODE_URL
             elif geth["mode"] == "infura":
                 project_id = geth["infura_project_id"]
                 project_secret = geth["infura_project_secret"]
@@ -47,8 +54,17 @@ class Connext(Node):
                     ])
                 elif self.network == "testnet":
                     environment.extend([
-                        f'CONNEXT_ETH_PROVIDER_URL=https://ropsten.infura.io/v3/{project_id}'
+                        f'CONNEXT_ETH_PROVIDER_URL=https://rinkeby.infura.io/v3/{project_id}'
                     ])
+            elif geth["mode"] == "light":
+                eth_provider = geth["eth_provider"]
+                environment.extend([
+                    f'CONNEXT_ETH_PROVIDER_URL={eth_provider}'
+                ])
+            elif geth["mode"] == "native":
+                environment.extend([
+                    f'CONNEXT_ETH_PROVIDER_URL=http://geth:8545'
+                ])
 
         self.container_spec.environment.extend(environment)
 
