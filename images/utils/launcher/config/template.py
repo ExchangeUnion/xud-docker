@@ -89,7 +89,7 @@ nodes_config = {
             "volumes": [
                 {
                     "host": "$data_dir/connext",
-                    "container": "/root/.connext",
+                    "container": "/app/connext-store",
                 },
             ],
             "ports": [],
@@ -211,7 +211,7 @@ nodes_config = {
             "volumes": [
                 {
                     "host": "$data_dir/connext",
-                    "container": "/root/.connext",
+                    "container": "/app/connext-store",
                 },
             ],
             "ports": [],
@@ -336,7 +336,7 @@ nodes_config = {
             "volumes": [
                 {
                     "host": "$data_dir/connext",
-                    "container": "/root/.connext",
+                    "container": "/app/connext-store",
                 },
             ],
             "ports": [],
