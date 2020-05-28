@@ -62,6 +62,10 @@ class Connext(Node):
                 environment.extend([
                     f'CONNEXT_ETH_PROVIDER_URL={eth_provider}'
                 ])
+            elif geth["mode"] == "native":
+                environment.extend([
+                    f'CONNEXT_ETH_PROVIDER_URL=http://geth:8545'
+                ])
 
         self.container_spec.environment.extend(environment)
 
