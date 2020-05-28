@@ -294,6 +294,7 @@ def diagnose():
 
 
 @pytest.mark.integration_test
+@pytest.mark.skip(reason="no way of currently bypassing this")
 def test_config_file():
     print()
     cleanup()
