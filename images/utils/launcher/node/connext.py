@@ -45,7 +45,6 @@ class Connext(Node):
                 environment.extend([
                     f'CONNEXT_ETH_PROVIDER_URL=http://{rpc_host}:{rpc_port}'
                 ])
-                # TODO: add CONNEXT_NODE_URL
             elif geth["mode"] == "infura":
                 project_id = geth["infura_project_id"]
                 project_secret = geth["infura_project_secret"]
