@@ -55,7 +55,7 @@ class Connext(Node):
                     ])
                 elif self.network == "testnet":
                     environment.extend([
-                        f'CONNEXT_ETH_PROVIDER_URL=https://ropsten.infura.io/v3/{project_id}'
+                        f'CONNEXT_ETH_PROVIDER_URL=https://rinkeby.infura.io/v3/{project_id}'
                     ])
             elif geth["mode"] == "light":
                 eth_provider = geth["eth_provider"]
