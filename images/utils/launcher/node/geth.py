@@ -34,6 +34,10 @@ class Geth(Node):
 
         self.container_spec.environment.extend(self.get_environment())
 
+        self.container_spec.command.extend([
+            "--cache {}".format(self.node_config["cache"])
+        ])
+
         if self.network == "testnet":
             self._cli = "geth --rinkeby"
         elif self.network == "mainnet":
