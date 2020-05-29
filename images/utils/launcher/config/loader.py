@@ -10,19 +10,19 @@ class ConfigLoader:
         config_file = get_hostfs_file(f"{home_dir}/xud-docker.conf")
         sample_config_file = get_hostfs_file(f"{home_dir}/sample-xud-docker.conf")
         copyfile(os.path.dirname(__file__) + "/xud-docker.conf", sample_config_file)
-        if not os.path.exists(config_file):
-            copyfile(os.path.dirname(__file__) + f"/xud-docker.conf", config_file)
-        with open(config_file) as f:
-            return f.read()
+        if os.path.exists(config_file):
+            with open(config_file) as f:
+                return f.read()
+        return b''
 
     def load_network_config(self, network, network_dir):
         config_file = get_hostfs_file(f"{network_dir}/{network}.conf")
         sample_config_file = get_hostfs_file(f"{network_dir}/sample-{network}.conf")
         copyfile(os.path.dirname(__file__) + f'/{network}.conf', sample_config_file)
-        if not os.path.exists(config_file):
-            copyfile(os.path.dirname(__file__) + f"/{network}.conf", config_file)
-        with open(config_file) as f:
-            return f.read()
+        if os.path.exists(config_file):
+            with open(config_file) as f:
+                return f.read()
+        return b''
 
     def load_lndenv(self, network_dir):
         lndenv = get_hostfs_file(f"{network_dir}/lnd.env")
