@@ -133,7 +133,7 @@ nodes_config = {
                 }
             ],
             "ports": [],
-            "mode": "native",  # external, neutrino, light
+            "mode": "light",  # external, neutrino, light
             "external_rpc_host": "127.0.0.1",
             "external_rpc_port": 18332,
             "external_rpc_user": "xu",
@@ -152,7 +152,7 @@ nodes_config = {
                 }
             ],
             "ports": [],
-            "mode": "native",  # external, neutrino, light
+            "mode": "light",  # external, neutrino, light
             "external_rpc_host": "127.0.0.1",
             "external_rpc_port": 19332,
             "external_rpc_user": "xu",
@@ -171,7 +171,7 @@ nodes_config = {
                 }
             ],
             "ports": [],
-            "mode": "native",  # external, infura, light
+            "mode": "light",  # external, infura, light
             "external_rpc_host": "127.0.0.1",
             "external_rpc_port": 8545,
             "infura_project_id": None,
@@ -259,7 +259,7 @@ nodes_config = {
                 }
             ],
             "ports": [],
-            "mode": "native",  # external, neutrino, light
+            "mode": "light",  # external, neutrino, light
             "external_rpc_host": "127.0.0.1",
             "external_rpc_port": 8332,
             "external_rpc_user": "xu",
@@ -278,7 +278,7 @@ nodes_config = {
                 }
             ],
             "ports": [],
-            "mode": "native",  # external, neutrino, light
+            "mode": "light",  # external, neutrino, light
             "external_rpc_host": "127.0.0.1",
             "external_rpc_port": 9332,
             "external_rpc_user": "xu",
@@ -297,7 +297,7 @@ nodes_config = {
                 }
             ],
             "ports": [],
-            "mode": "native",  # external, infura, light
+            "mode": "light",  # external, infura, light
             "external_rpc_host": "127.0.0.1",
             "external_rpc_port": 8545,
             "infura_project_id": None,
