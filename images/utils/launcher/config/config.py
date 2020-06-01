@@ -55,7 +55,6 @@ class Config:
         parser.add_argument("--testnet-dir")
         parser.add_argument("--mainnet-dir")
         parser.add_argument("--external-ip")
-        parser.add_argument("--backup-dir")
         parser.add_argument("--xud.preserve-config", action="store_true")
         parser.add_argument("--lndbtc.preserve-config", action="store_true")
         parser.add_argument("--lndltc.preserve-config", action="store_true")
@@ -436,26 +435,6 @@ class Config:
 
         if "ltcd" in parsed:
             self.update_ltcd(parsed["ltcd"])
-
-        if hasattr(self.args, "expose_ports"):
-            value = self.args.expose_ports
-            parts = value.split(",")
-            p = re.compile("^(.*)/(.*)$")
-            for part in parts:
-                part = part.strip()
-                m = p.match(part)
-                if m:
-                    name = m.group(1)
-                    port = m.group(2)
-                    if name in self.nodes:
-                        ports = self.nodes[name]["ports"]
-                        port = PortPublish(port)
-                        if port not in ports:
-                            ports.append(port)
-                    else:
-                        raise FatalError("--expose-ports {}: No such node: {}".format(value, name))
-                else:
-                    raise FatalError("--expose-ports {}: Syntax error: {}".format(value, part))
 
         # Backward compatible with lnd.env
         lndenv = get_hostfs_file(f"{self.network_dir}/lnd.env")
