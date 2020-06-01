@@ -188,7 +188,7 @@ class Action:
         while True:
             exit_code, output = xud.exec_run(cmd)
             self.logger.debug("[Execute] %s: exit_code=%s, output=%s", cmd, exit_code, output)
-            if exit_code == 1 and "xud is locked" in output.decode():
+            if exit_code == 0 or (exit_code == 1 and "xud is locked" in output.decode()):
                 break
             time.sleep(3)
         self.logger.debug("Xud is ready")
