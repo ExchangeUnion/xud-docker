@@ -1,6 +1,7 @@
 import json
-from .base import Node, CliBackend, CliError
 import re
+
+from .base import Node, CliBackend, CliError
 
 
 class XudApiError(Exception):

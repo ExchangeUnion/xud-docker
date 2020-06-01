@@ -26,14 +26,14 @@ class Geth(Node):
 
         if self.mode == "external":
             self.external_config = {
-                "rpc_host": self.node_config["external_rpc_host"],
-                "rpc_port": self.node_config["external_rpc_port"],
+                "rpc_host": self.node_config.external_rpc_host,
+                "rpc_port": self.node_config.external_rpc_port,
             }
 
         if self.mode == "infura":
             self.infura_config = {
-                "project_id": self.node_config["infura_project_id"],
-                "project_secret": self.node_config["infura_project_secret"],
+                "project_id": self.node_config.infura_project_id,
+                "project_secret": self.node_config.infura_project_secret,
             }
 
         if self.mode == "light":
@@ -41,7 +41,7 @@ class Geth(Node):
             eth_provider = self.get_fastest_provider(providers)
             if not eth_provider:
                 raise RuntimeError("No valid ethereum provider")
-            self.node_config["eth_provider"] = eth_provider
+            self.node_config.eth_provider = eth_provider
             self.light_config = {
                 "eth_provider": eth_provider
             }

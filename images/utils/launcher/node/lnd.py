@@ -1,7 +1,11 @@
-from .base import Node, CliBackend, CliError
+from typing import TYPE_CHECKING
+
 import json
 import re
 
+from .base import Node, CliBackend, CliError
+if TYPE_CHECKING:
+    from ..config import BitcoindConfig, LitecoindConfig
 
 class InvalidChain(Exception):
     def __init__(self, chain: str):
@@ -83,21 +87,21 @@ class Lnd(Node):
 
         if self.network in ["testnet", "mainnet"]:
             if self.name == "lndbtc":
-                layer1_node = self.config.nodes["bitcoind"]
+                layer1_node: BitcoindConfig = self.config.nodes["bitcoind"]
             else:
-                layer1_node = self.config.nodes["litecoind"]
+                layer1_node: LitecoindConfig = self.config.nodes["litecoind"]
 
-            if layer1_node["mode"] == "neutrino" or layer1_node["mode"] == "light":
+            if layer1_node.mode == "neutrino" or layer1_node.mode == "light":
                 environment.extend([
                     f'NEUTRINO=True',
                 ])
-            elif layer1_node["mode"] == "external":
+            elif layer1_node.mode == "external":
                 environment.extend([
-                    f'RPCHOST={layer1_node["external_rpc_host"]}',
-                    f'RPCUSER={layer1_node["external_rpc_user"]}',
-                    f'RPCPASS={layer1_node["external_rpc_password"]}',
-                    f'ZMQPUBRAWBLOCK={layer1_node["external_zmqpubrawblock"]}',
-                    f'ZMQPUBRAWTX={layer1_node["external_zmqpubrawtx"]}',
+                    f'RPCHOST={layer1_node.external_rpc_host}',
+                    f'RPCUSER={layer1_node.external_rpc_user}',
+                    f'RPCPASS={layer1_node.external_rpc_password}',
+                    f'ZMQPUBRAWBLOCK={layer1_node.external_zmqpubrawblock}',
+                    f'ZMQPUBRAWTX={layer1_node.external_zmqpubrawtx}',
                 ])
         return environment
 

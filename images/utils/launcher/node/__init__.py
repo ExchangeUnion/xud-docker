@@ -11,7 +11,6 @@ import time
 
 from .base import Node
 from .bitcoind import Bitcoind, Litecoind
-from .btcd import Btcd, Ltcd
 from .geth import Geth
 from .lnd import Lndbtc, Lndltc
 from .xud import Xud, XudApiError

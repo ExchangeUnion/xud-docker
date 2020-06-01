@@ -1,6 +1,9 @@
-from .base import Node, InvalidNetwork, CliBackend, CliError
 import json
 import socket
+
+from .base import Node, InvalidNetwork, CliBackend, CliError
+from ..config import BitcoindConfig
+
 
 class BitcoindApiError(Exception):
     pass
@@ -24,18 +27,20 @@ class BitcoindApi:
 
 
 class Bitcoind(Node):
+    node_config: BitcoindConfig
+
     def __init__(self, name, ctx, litecoin: bool = False):
         self.litecoin = litecoin
         super().__init__(name, ctx)
 
         if self.mode == "external":
             self.external_config = {
-                "rpc_host": self.node_config["external_rpc_host"],
-                "rpc_port": self.node_config["external_rpc_port"],
-                "rpc_user": self.node_config["external_rpc_user"],
-                "rpc_password": self.node_config["external_rpc_password"],
-                "zmqpubrawblock": self.node_config["external_zmqpubrawblock"],
-                "zmqpubrawtx": self.node_config["external_zmqpubrawtx"],
+                "rpc_host": self.node_config.external_rpc_host,
+                "rpc_port": self.node_config.external_rpc_port,
+                "rpc_user": self.node_config.external_rpc_user,
+                "rpc_password": self.node_config.external_rpc_password,
+                "zmqpubrawblock": self.node_config.external_zmqpubrawblock,
+                "zmqpubrawtx": self.node_config.external_zmqpubrawtx,
             }
 
         command = [

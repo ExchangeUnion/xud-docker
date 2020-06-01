@@ -1,372 +1,245 @@
 import re
-from ..errors import FatalError
+
+from typing import Optional, Dict
+
+from .options import *
+from .types import PortPublish, VolumeMapping
 
 
-class PortPublish:
-    def __init__(self, value):
-        p1 = re.compile(r"^(\d+)$")  # 8080
-        p2 = re.compile(r"^(\d+):(\d+)$")  # 80:8080
-        p3 = re.compile(r"^(\d+):(\d+):(\d+)$")  # 127.0.0.1:80:8080
+class NodeConfig:
+    def __init__(self, name: str, image: str, volumes: [str], ports: [str]):
+        self.name = name
+        self.image = image
+        self.volumes: {VolumeMapping} = {VolumeMapping(v) for v in volumes}
+        self.ports: {PortPublish} = {PortPublish(p) for p in ports}
 
-        protocol = "tcp"
-        if "/" in value:
-            parts = value.split("/")
-            p = parts[0]
-            protocol = parts[1]
-            if protocol not in ["tcp", "udp", "sctp"]:
-                raise FatalError("Invalid protocol: {} ({})".format(protocol, p))
+        self.options: Dict[str, Option] = {
+            "dir": DirOption(self),
+            "expose-ports": ExposePortsOption(self),
+        }
 
-        host = None
-        host_port = None
-        port = None
+    def parse(self, config):
+        self.options["dir"].parse(config)
+        self.options["expose-ports"].parse(config)
 
-        m = p1.match(value)
-        if m:
-            port = int(m.group(1))
-            host_port = port
-        else:
-            m = p2.match(value)
-            if m:
-                host_port = int(m.group(1))
-                port = int(m.group(2))
-            else:
-                m = p3.match(value)
-                if m:
-                    host = m.group(1)
-                    host_port = int(m.group(2))
-                    port = int(m.group(3))
 
-        self.protocol = protocol
-        self.host = host
-        self.host_port = host_port
-        self.port = port
+class BitcoindConfig(NodeConfig):
+    def __init__(self, name: str, image: str, volumes: [str], ports: [str],
+                 mode: str,
+                 external_rpc_host: Optional[str],
+                 external_rpc_port: Optional[int],
+                 external_rpc_user: Optional[str],
+                 external_rpc_password: Optional[str],
+                 external_zmqpubrawblock: Optional[str],
+                 external_zmqpubrawtx: Optional[str],
+                 ):
+        super().__init__(name, image, volumes, ports)
+        self.mode = mode
+        self.external_rpc_host = external_rpc_host
+        self.external_rpc_port = external_rpc_port
+        self.external_rpc_user = external_rpc_user
+        self.external_rpc_password = external_rpc_password
+        self.external_zmqpubrawblock = external_zmqpubrawblock
+        self.external_zmqpubrawtx = external_zmqpubrawtx
 
-    def __eq__(self, other):
-        if not isinstance(other, PortPublish):
-            return False
-        if self.host != other.host:
-            return False
-        if self.host_port != other.host_port:
-            return False
-        if self.port != other.port:
-            return False
-        if self.protocol != other.protocol:
-            return False
-        return True
+        self.options.update({
+            "mode": ModeOption(self),
+            "rpc-host": RpcHostOption(self),
+            "rpc-port": RpcPortOption(self),
+            "rpc-user": RpcUserOption(self),
+            "rpc-password": RpcPasswordOption(self),
+            "zmqpubrawblock": ZmqpubrawblockOption(self),
+            "zmqpubrawtx": ZmqpubrawtxOption(self),
+        })
+
+    def parse(self, config):
+        super().parse(config)
+        self.options["mode"].parse(config)
+        if self.mode == "external":
+            self.options["rpc-host"].parse(config)
+            self.options["rpc-port"].parse(config)
+            self.options["rpc-user"].parse(config)
+            self.options["rpc-password"].parse(config)
+            self.options["zmqpubrawblock"].parse(config)
+            self.options["zmqpubrawtx"].parse(config)
+
+
+class LitecoindConfig(BitcoindConfig):
+    pass
+
+
+class GethConfig(NodeConfig):
+    def __init__(self, name: str, image: str, volumes: [str], ports: [str],
+                 mode: str,
+                 external_rpc_host: Optional[str],
+                 external_rpc_port: Optional[int],
+                 infura_project_id: Optional[str],
+                 infura_project_secret: Optional[str],
+                 eth_provider: Optional[str],
+                 ):
+        super().__init__(name, image, volumes, ports)
+        self.mode = mode
+        self.external_rpc_host = external_rpc_host
+        self.external_rpc_port = external_rpc_port
+        self.infura_project_id = infura_project_id
+        self.infura_project_secret = infura_project_secret
+        self.eth_provider = eth_provider
+
+        self.options.update({
+            "mode": ModeOption(self),
+            "rpc-host": RpcHostOption(self),
+            "rpc-port": RpcPortOption(self),
+            "infura-project-id": InfuraProjectIdOption(self),
+            "infura-project-secret": InfuraProjectSecretOption(self),
+        })
+
+    def parse(self, config):
+        self.options["ancient-chaindata-dir"].parse(config)
+        self.options["mode"].parse(config)
+        if self.mode == "external":
+            self.options["rpc-host"].parse(config)
+            self.options["rpc-port"].parse(config)
+        elif self.mode == "infura":
+            self.options["infura-project-id"].parse(config)
+            self.options["infura-project-secret"].parse(config)
+
+
+class LndConfig(NodeConfig):
+    pass
+
+
+class ConnextConfig(NodeConfig):
+    pass
+
+
+class XudConfig(NodeConfig):
+    pass
 
 
 nodes_config = {
     "simnet": {
-        "lndbtc": {
-            "name": "lndbtc",
-            "image": "exchangeunion/lnd:0.10.0-beta-simnet",
-            "volumes": [
-                {
-                    "host": "$data_dir/lndbtc",
-                    "container": "/root/.lnd",
-                },
+        "lndbtc": LndConfig(
+            name="lndbtc",
+            image="exchangeunion/lnd:0.10.0-beta-simnet",
+            volumes=[
+                "$data_dir/lndbtc:/root/.lnd",
             ],
-            "ports": [],
-            "mode": "native",
-            "preserve_config": False,
-        },
-        "lndltc": {
-            "name": "lndltc",
-            "image": "exchangeunion/lnd:0.9.0-beta-ltc-simnet",
-            "volumes": [
-                {
-                    "host": "$data_dir/lndltc",
-                    "container": "/root/.lnd",
-                },
+            ports=[],
+        ),
+        "lndltc": LndConfig(
+            name="lndltc",
+            image="exchangeunion/lnd:0.9.0-beta-ltc-simnet",
+            volumes=[
+                "$data_dir/lndltc:/root/.lnd",
             ],
-            "ports": [],
-            "mode": "native",
-            "preserve_config": False,
-        },
-        "connext": {
-            "name": "connext",
-            "image": "exchangeunion/connext:latest",
-            "volumes": [
-                {
-                    "host": "$data_dir/connext",
-                    "container": "/app/connext-store",
-                },
+            ports=[],
+        ),
+        "connext": ConnextConfig(
+            name="connext",
+            image="exchangeunion/connext:latest",
+            volumes=[
+                "$data_dir/connext:/app/connext-store",
             ],
-            "ports": [],
-            "mode": "native",
-            "preserve_config": False,
-        },
-        "xud": {
-            "name": "xud",
-            "image": "exchangeunion/xud:latest",
-            "volumes": [
-                {
-                    "host": "$data_dir/xud",
-                    "container": "/root/.xud",
-                },
-                {
-                    "host": "$data_dir/lndbtc",
-                    "container": "/root/.lndbtc",
-                },
-                {
-                    "host": "$data_dir/lndltc",
-                    "container": "/root/.lndltc",
-                },
-                {
-                    "host": "/",
-                    "container": "/mnt/hostfs",
-                },
+            ports=[],
+        ),
+        "xud": XudConfig(
+            name="xud",
+            image="exchangeunion/xud:latest",
+            volumes=[
+                "$data_dir/xud:/root/.xud",
+                "$data_dir/lndbtc:/root/.lndbtc",
+                "$data_dir/lndltc:/root/.lndltc",
+                "/:/mnt/hostfs"
             ],
-            "ports": [PortPublish("28885")],
-            "mode": "native",
-            "preserve_config": False,
-        }
+            ports=[
+                "28885",
+            ],
+        ),
     },
     "testnet": {
-        "bitcoind": {
-            "name": "bitcoind",
-            "image": "exchangeunion/bitcoind:0.19.1",
-            "volumes": [
-                {
-                    "host": "$data_dir/bitcoind",
-                    "container": "/root/.bitcoin",
-                }
+        "bitcoind": BitcoindConfig(
+            name="bitcoind",
+            image="exchangeunion/bitcoind:0.19.1",
+            volumes=[
+                "$data_dir/bitcoind:/root/.bitcoin",
             ],
-            "ports": [],
-            "mode": "light",  # external, neutrino, light
-            "external_rpc_host": "127.0.0.1",
-            "external_rpc_port": 18332,
-            "external_rpc_user": "xu",
-            "external_rpc_password": "xu",
-            "external_zmqpubrawblock": "127.0.0.1:28332",
-            "external_zmqpubrawtx": "127.0.0.1:28333",
-            "preserve_config": False,
-        },
-        "litecoind": {
-            "name": "litecoind",
-            "image": "exchangeunion/litecoind:0.17.1",
-            "volumes": [
-                {
-                    "host": "$data_dir/litecoind",
-                    "container": "/root/.litecoin",
-                }
+            ports=[],
+            mode="light",  # external, neutrino, light
+            external_rpc_host="127.0.0.1",
+            external_rpc_port=18332,
+            external_rpc_user="xu",
+            external_rpc_password="xu",
+            external_zmqpubrawblock="127.0.0.1:28332",
+            external_zmqpubrawtx="127.0.0.1:28333",
+        ),
+        "litecoind": LitecoindConfig(
+            name="litecoind",
+            image="exchangeunion/litecoind:0.17.1",
+            volumes=[
+                "$data_dir/litecoind:/root/.litecoin",
             ],
-            "ports": [],
-            "mode": "light",  # external, neutrino, light
-            "external_rpc_host": "127.0.0.1",
-            "external_rpc_port": 19332,
-            "external_rpc_user": "xu",
-            "external_rpc_password": "xu",
-            "external_zmqpubrawblock": "127.0.0.1:29332",
-            "external_zmqpubrawtx": "127.0.0.1:29333",
-            "preserve_config": False,
-        },
-        "geth": {
-            "name": "geth",
-            "image": "exchangeunion/geth:1.9.14",
-            "volumes": [
-                {
-                    "host": "$data_dir/geth",
-                    "container": "/root/.ethereum",
-                }
+            ports=[],
+            mode="light",  # external, neutrino, light
+            external_rpc_host="127.0.0.1",
+            external_rpc_port=19332,
+            external_rpc_user="xu",
+            external_rpc_password="xu",
+            external_zmqpubrawblock="127.0.0.1:29332",
+            external_zmqpubrawtx="127.0.0.1:29333",
+        ),
+        "geth": GethConfig(
+            name="geth",
+            image="exchangeunion/geth:1.9.14",
+            volumes=[
+                "$data_dir/geth:/root/.ethereum",
             ],
-            "ports": [],
-            "mode": "light",  # external, infura, light
-            "external_rpc_host": "127.0.0.1",
-            "external_rpc_port": 8545,
-            "infura_project_id": None,
-            "infura_project_secret": None,
-            "preserve_config": False,
-            "eth_provider": None,
-            "cache": 256,
-        },
-        "lndbtc": {
-            "name": "lndbtc",
-            "image": "exchangeunion/lnd:0.10.0-beta",
-            "volumes": [
-                {
-                    "host": "$data_dir/lndbtc",
-                    "container": "/root/.lnd",
-                },
+            ports=[],
+            mode="light",  # external, infura, light
+            external_rpc_host="127.0.0.1",
+            external_rpc_port=8545,
+            infura_project_id=None,
+            infura_project_secret=None,
+            eth_provider=None,
+            cache=256,
+        ),
+        "lndbtc": LndConfig(
+            name="lndbtc",
+            image="exchangeunion/lnd:0.10.0-beta",
+            volumes=[
+                "$data_dir/lndbtc:/root/.lnd",
             ],
-            "ports": [],
-            "mode": "native",
-            "preserve_config": False,
-        },
-        "lndltc": {
-            "name": "lndltc",
-            "image": "exchangeunion/lnd:0.9.0-beta-ltc",
-            "volumes": [
-                {
-                    "host": "$data_dir/lndltc",
-                    "container": "/root/.lnd",
-                },
+            ports=[],
+        ),
+        "lndltc": LndConfig(
+            name="lndltc",
+            image="exchangeunion/lnd:0.9.0-beta-ltc",
+            volumes=[
+                "$data_dir/lndltc:/root/.lnd",
             ],
-            "ports": [],
-            "mode": "native",
-            "preserve_config": False,
-        },
-        "connext": {
-            "name": "connext",
-            "image": "exchangeunion/connext:latest",
-            "volumes": [
-                {
-                    "host": "$data_dir/connext",
-                    "container": "/app/connext-store",
-                },
+            ports=[],
+        ),
+        "connext": ConnextConfig(
+            name="connext",
+            image="exchangeunion/connext:latest",
+            volumes=[
+                "$data_dir/connext:/app/connext-store",
             ],
-            "ports": [],
-            "mode": "native",
-            "preserve_config": False,
-        },
-        "xud": {
-            "name": "xud",
-            "image": "exchangeunion/xud:latest",
-            "volumes": [
-                {
-                    "host": "$data_dir/xud",
-                    "container": "/root/.xud",
-                },
-                {
-                    "host": "$data_dir/lndbtc",
-                    "container": "/root/.lndbtc",
-                },
-                {
-                    "host": "$data_dir/lndltc",
-                    "container": "/root/.lndltc",
-                },
-                {
-                    "host": "/",
-                    "container": "/mnt/hostfs",
-                },
+            ports=[],
+        ),
+        "xud": XudConfig(
+            name="xud",
+            image="exchangeunion/xud:latest",
+            volumes=[
+                "$data_dir/xud:/root/.xud",
+                "$data_dir/lndbtc:/root/.lndbtc",
+                "$data_dir/lndltc:/root/.lndltc",
+                "/:/mnt/hostfs",
             ],
-            "ports": [PortPublish("18885")],
-            "mode": "native",
-            "preserve_config": False,
-        }
+            ports=[
+                "18885"
+            ],
+        ),
     },
-    "mainnet": {
-        "bitcoind": {
-            "name": "bitcoind",
-            "image": "exchangeunion/bitcoind:0.19.1",
-            "volumes": [
-                {
-                    "host": "$data_dir/bitcoind",
-                    "container": "/root/.bitcoin",
-                }
-            ],
-            "ports": [],
-            "mode": "light",  # external, neutrino, light
-            "external_rpc_host": "127.0.0.1",
-            "external_rpc_port": 8332,
-            "external_rpc_user": "xu",
-            "external_rpc_password": "xu",
-            "external_zmqpubrawblock": "127.0.0.1:28332",
-            "external_zmqpubrawtx": "127.0.0.1:28333",
-            "preserve_config": False,
-        },
-        "litecoind": {
-            "name": "litecoind",
-            "image": "exchangeunion/litecoind:0.17.1",
-            "volumes": [
-                {
-                    "host": "$data_dir/litecoind",
-                    "container": "/root/.litecoin",
-                }
-            ],
-            "ports": [],
-            "mode": "light",  # external, neutrino, light
-            "external_rpc_host": "127.0.0.1",
-            "external_rpc_port": 9332,
-            "external_rpc_user": "xu",
-            "external_rpc_password": "xu",
-            "external_zmqpubrawblock": "127.0.0.1:29332",
-            "external_zmqpubrawtx": "127.0.0.1:29333",
-            "preserve_config": False,
-        },
-        "geth": {
-            "name": "geth",
-            "image": "exchangeunion/geth:1.9.14",
-            "volumes": [
-                {
-                    "host": "$data_dir/geth",
-                    "container": "/root/.ethereum",
-                }
-            ],
-            "ports": [],
-            "mode": "light",  # external, infura, light
-            "external_rpc_host": "127.0.0.1",
-            "external_rpc_port": 8545,
-            "infura_project_id": None,
-            "infura_project_secret": None,
-            "preserve_config": False,
-            "cache": 256,
-        },
-        "lndbtc": {
-            "name": "lndbtc",
-            "image": "exchangeunion/lnd:0.10.0-beta",
-            "volumes": [
-                {
-                    "host": "$data_dir/lndbtc",
-                    "container": "/root/.lnd",
-                },
-            ],
-            "ports": [],
-            "mode": "native",
-            "preserve_config": False,
-        },
-        "lndltc": {
-            "name": "lndltc",
-            "image": "exchangeunion/lnd:0.9.0-beta-ltc",
-            "volumes": [
-                {
-                    "host": "$data_dir/lndltc",
-                    "container": "/root/.lnd",
-                },
-            ],
-            "ports": [],
-            "mode": "native",
-            "preserve_config": False,
-        },
-        "connext": {
-            "name": "connext",
-            "image": "exchangeunion/connext:latest",
-            "volumes": [
-                {
-                    "host": "$data_dir/connext",
-                    "container": "/app/connext-store",
-                },
-            ],
-            "ports": [],
-            "mode": "native",
-            "preserve_config": False,
-        },
-        "xud": {
-            "name": "xud",
-            "image": "exchangeunion/xud:1.0.0-beta.3",
-            "volumes": [
-                {
-                    "host": "$data_dir/xud",
-                    "container": "/root/.xud",
-                },
-                {
-                    "host": "$data_dir/lndbtc",
-                    "container": "/root/.lndbtc",
-                },
-                {
-                    "host": "$data_dir/lndltc",
-                    "container": "/root/.lndltc",
-                },
-                {
-                    "host": "/",
-                    "container": "/mnt/hostfs",
-                },
-            ],
-            "ports": [PortPublish("8885")],
-            "mode": "native",
-            "preserve_config": False,
-        }
-    }
 }
 
 general_config = {

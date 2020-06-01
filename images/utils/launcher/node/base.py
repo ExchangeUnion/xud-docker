@@ -1,9 +1,11 @@
+from __future__ import annotations
+
 import datetime
 import itertools
 import logging
 import os
 import sys
-from typing import List, Dict, Any
+from typing import List, Dict, Any, TYPE_CHECKING, Type
 import docker
 from docker import DockerClient
 from docker.errors import NotFound
@@ -12,6 +14,8 @@ from docker.models.containers import Container
 from .image import Image
 from ..config import PortPublish
 from ..types import XudNetwork
+if TYPE_CHECKING:
+    from ..config import NodeConfig
 
 
 class InvalidNetwork(Exception):
@@ -82,25 +86,24 @@ class Node:
         self._cli = None
 
     def generate_environment(self):
-        environment = [f"NETWORK={self.network}"]
-        if self.node_config["preserve_config"]:
-            environment.append("PRESERVE_CONFIG=true")
-        else:
-            environment.append("PRESERVE_CONFIG=false")
+        environment = [
+            f"NETWORK={self.network}",
+            "PRESERVE_CONFIG=false",
+        ]
         return environment
 
     def generate_volumes(self):
         volumes = {}
-        for v in self.node_config["volumes"]:
-            volumes[v["host"]] = {
-                "bind": v["container"],
-                "mode": "rw"
+        for v in self.node_config.volumes:
+            volumes[v.host_dir] = {
+                "bind": v.container_dir,
+                "mode": v.mode
             }
         return volumes
 
     def generate_ports(self):
         ports = {}
-        for p in self.node_config["ports"]:
+        for p in self.node_config.ports:
             if not isinstance(p, PortPublish):
                 raise RuntimeError("node_config ports must contain PortPublish instances")
             if p.host:
@@ -118,16 +121,18 @@ class Node:
         return self.network + "_default"
 
     @property
-    def node_config(self) -> Dict:
+    def node_config(self) -> Type[NodeConfig]:
         return self.config.nodes[self.name]
 
     @property
     def image(self) -> Image:
-        return self.image_manager.get_image(self.node_config["image"])
+        return self.image_manager.get_image(self.node_config.image)
 
     @property
     def mode(self) -> str:
-        return self.node_config["mode"]
+        if hasattr(self.node_config, "mode"):
+            return self.node_config.mode
+        raise AttributeError("missing mode in node_config")
 
     @property
     def container_name(self) -> str:

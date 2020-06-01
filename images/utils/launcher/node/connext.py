@@ -1,4 +1,10 @@
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 from .base import Node, CliBackend, CliError
+if TYPE_CHECKING:
+    from ..config import GethConfig
 
 
 class ConnextApiError(Exception):
@@ -38,16 +44,16 @@ class Connext(Node):
             ]
 
         if self.network in ["testnet", "mainnet"]:
-            geth = self.config.nodes["geth"]
-            if geth["mode"] == "external":
-                rpc_host = geth["external_rpc_host"]
-                rpc_port = geth["external_rpc_port"]
+            geth: GethConfig = self.config.nodes["geth"]
+            if geth.mode == "external":
+                rpc_host = geth.external_rpc_host
+                rpc_port = geth.external_rpc_port
                 environment.extend([
                     f'CONNEXT_ETH_PROVIDER_URL=http://{rpc_host}:{rpc_port}'
                 ])
-            elif geth["mode"] == "infura":
-                project_id = geth["infura_project_id"]
-                project_secret = geth["infura_project_secret"]
+            elif geth.mode == "infura":
+                project_id = geth.infura_project_id
+                project_secret = geth.infura_project_secret
                 if self.network == "mainnet":
                     environment.extend([
                         f'CONNEXT_ETH_PROVIDER_URL=https://mainnet.infura.io/v3/{project_id}'
@@ -56,12 +62,12 @@ class Connext(Node):
                     environment.extend([
                         f'CONNEXT_ETH_PROVIDER_URL=https://rinkeby.infura.io/v3/{project_id}'
                     ])
-            elif geth["mode"] == "light":
-                eth_provider = geth["eth_provider"]
+            elif geth.mode == "light":
+                eth_provider = geth.eth_provider
                 environment.extend([
                     f'CONNEXT_ETH_PROVIDER_URL={eth_provider}'
                 ])
-            elif geth["mode"] == "native":
+            elif geth.mode == "native":
                 environment.extend([
                     f'CONNEXT_ETH_PROVIDER_URL=http://geth:8545'
                 ])
