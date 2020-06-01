@@ -147,9 +147,9 @@ class Config:
                 p = PortPublish(str(p))
                 if p not in node["ports"]:
                     node["ports"].append(p)
-        option = "{}.expose-ports".format(node["name"])
-        if option in self.args:
-            value = self.args["expose-ports"]
+        opt = "{}.expose-ports".format(node["name"])
+        if hasattr(self.args, opt):
+            value = getattr(self.args, opt)
             for p in value.split(","):
                 p = PortPublish(p.strip())
                 if p not in node["ports"]:
