@@ -186,6 +186,7 @@ networks = {
             "infura_project_id": None,
             "infura_project_secret": None,
             "preserve_config": False,
+            "cache": 256,
         },
         "lndbtc": {
             "name": "lndbtc",
@@ -311,6 +312,7 @@ networks = {
             "infura_project_id": None,
             "infura_project_secret": None,
             "preserve_config": False,
+            "cache": 256,
         },
         "lndbtc": {
             "name": "lndbtc",
@@ -673,6 +675,10 @@ class Config:
                 value = parsed["infura-project-secret"]
                 # TODO infura-project-secret value validation
                 node["infura_project_secret"] = value
+
+        if "cache" in parsed:
+            value = int(parsed["cache"])
+            node["cache"] = value
 
     def update_lndbtc(self, parsed):
         """Update lndbtc related configurations from parsed TOML lndbtc section
