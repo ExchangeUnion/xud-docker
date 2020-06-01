@@ -56,8 +56,6 @@ class Config:
         parser.add_argument("--mainnet-dir")
         parser.add_argument("--external-ip")
         parser.add_argument("--backup-dir")
-        parser.add_argument("--nodes-json")
-        parser.add_argument("--expose-ports")
         parser.add_argument("--xud.preserve-config", action="store_true")
         parser.add_argument("--lndbtc.preserve-config", action="store_true")
         parser.add_argument("--lndltc.preserve-config", action="store_true")
@@ -89,7 +87,7 @@ class Config:
 
         parser.add_argument("--lndbtc.expose-ports")
         parser.add_argument("--lndltc.expose-ports")
-        parser.add_argument("--raiden.expose-ports")
+        parser.add_argument("--connext.expose-ports")
         parser.add_argument("--xud.expose-ports")
 
         try:
@@ -147,6 +145,13 @@ class Config:
             value = parsed["expose-ports"]
             for p in value:
                 p = PortPublish(str(p))
+                if p not in node["ports"]:
+                    node["ports"].append(p)
+        option = "{}.expose-ports".format(node["name"])
+        if option in self.args:
+            value = self.args["expose-ports"]
+            for p in value.split(","):
+                p = PortPublish(p.strip())
                 if p not in node["ports"]:
                     node["ports"].append(p)
 
