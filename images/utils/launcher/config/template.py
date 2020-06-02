@@ -96,6 +96,23 @@ nodes_config = {
             "mode": "native",
             "preserve_config": False,
         },
+        "arby": {
+            "name": "arby",
+            "image": "exchangeunion/arby:latest",
+            "volumes": [
+                {
+                    "host": "$data_dir/arby",
+                    "container": "/root/.arby",
+                },
+                {
+                    "host": "$data_dir/xud",
+                    "container": "/root/.xud",
+                },
+            ],
+            "ports": [],
+            "mode": "native",
+            "preserve_config": False,
+        },
         "xud": {
             "name": "xud",
             "image": "exchangeunion/xud:latest",

@@ -396,6 +396,25 @@ class Config:
         node = self.nodes["raiden"]
         self.update_ports(node, parsed)
 
+    def update_arby(self, parsed):
+        """Update arby related configurations from parsed TOML arby section
+        :param parsed: Parsed xud TOML section
+        """
+        node = self.nodes["arby"]
+        if "binance-api-key" in parsed:
+            if parsed["binance-api-key"]:
+                value = parsed["binance-api-key"]
+                node["binance-api-key"] = value
+        if "binance-api-secret" in parsed:
+            if parsed["binance-api-secret"]:
+                value = parsed["binance-api-secret"]
+                node["binance-api-secret"] = value
+        if "margin" in parsed:
+            if parsed["margin"]:
+                value = parsed["margin"]
+                node["margin"] = value
+        self.update_ports(node, parsed)
+
     def update_xud(self, parsed):
         """Update xud related configurations from parsed TOML xud section
         :param parsed: Parsed xud TOML section

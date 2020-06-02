@@ -1,0 +1,21 @@
+FROM node:12-alpine3.11 AS builder
+ARG REPO=ExchangeUnion/market-maker-tools
+ARG BRANCH=master
+RUN apk add --no-cache git bash
+# This is a "hack" to automatically invalidate the cache in case there are new commits
+ADD https://api.github.com/repos/$REPO/commits/$BRANCH /dev/null
+RUN git clone -b $BRANCH --depth=2 https://github.com/$REPO /arby
+# lock arby container down to specific commit hash
+WORKDIR /arby
+RUN git checkout bc5192975209c62a74391779ee306915aad2cc5f
+RUN npm install
+
+FROM node:12-alpine3.11
+RUN apk add --no-cache bash supervisor curl rsync
+RUN mkdir /root/.arby
+VOLUME [ "/root/.arby" ]
+COPY --from=builder /arby /app
+COPY entrypoint.sh /app
+COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+WORKDIR /app
+ENTRYPOINT ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]
