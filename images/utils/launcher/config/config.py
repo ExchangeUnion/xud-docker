@@ -146,7 +146,7 @@ class Config:
                 p = PortPublish(str(p))
                 if p not in node["ports"]:
                     node["ports"].append(p)
-        opt = "{}.expose-ports".format(node["name"])
+        opt = "{}.expose_ports".format(node["name"])
         if hasattr(self.args, opt):
             value = getattr(self.args, opt)
             for p in value.split(","):
@@ -188,7 +188,7 @@ class Config:
                 value = parsed["rpc-host"]
                 # TODO rpc-host value validation
                 node["external_rpc_host"] = value
-            opt = "{}.rpc-host".format(opt_prefix)
+            opt = "{}.rpc_host".format(opt_prefix)
             if hasattr(self.args, opt):
                 value = getattr(self.args, opt)
                 node["external_rpc_host"] = value
@@ -199,7 +199,7 @@ class Config:
                     node["external_rpc_port"] = int(value)
                 except ValueError:
                     raise FatalError("Invalid value of option \"rpc-port\": {}".format(value))
-            opt = "{}.rpc-port".format(opt_prefix)
+            opt = "{}.rpc_port".format(opt_prefix)
             if hasattr(self.args, opt):
                 value = getattr(self.args, opt)
                 try:
@@ -211,7 +211,7 @@ class Config:
                 value = parsed["rpc-user"]
                 # TODO rpc-user value validation
                 node["external_rpc_user"] = value
-            opt = "{}.rpc-user".format(opt_prefix)
+            opt = "{}.rpc_user".format(opt_prefix)
             if hasattr(self.args, opt):
                 value = getattr(self.args, opt)
                 node["external_rpc_user"] = value
@@ -220,7 +220,7 @@ class Config:
                 value = parsed["rpc-password"]
                 # TODO rpc-password value validation
                 node["external_rpc_password"] = value
-            opt = "{}.rpc-password".format(opt_prefix)
+            opt = "{}.rpc_password".format(opt_prefix)
             if hasattr(self.args, opt):
                 value = getattr(self.args, opt)
                 node["external_rpc_password"] = value
@@ -311,7 +311,7 @@ class Config:
                 value = parsed["rpc-host"]
                 # TODO rpc-host value validation
                 node["external_rpc_host"] = value
-            opt = "geth.rpc-host"
+            opt = "geth.rpc_host"
             if hasattr(self.args, opt):
                 value = getattr(self.args, opt)
                 node["external_rpc_host"] = value
@@ -322,7 +322,7 @@ class Config:
                     node["external_rpc_port"] = int(value)
                 except ValueError:
                     raise FatalError("Invalid value of option \"rpc-port\": {}".format(value))
-            opt = "geth.rpc-port"
+            opt = "geth.rpc_port"
             if hasattr(self.args, opt):
                 value = getattr(self.args, opt)
                 try:
@@ -335,7 +335,7 @@ class Config:
                 value = parsed["infura-project-id"]
                 # TODO infura-project-id value validation
                 node["infura_project_id"] = value
-            opt = "geth.infura-project-id"
+            opt = "geth.infura_project_id"
             if hasattr(self.args, opt):
                 value = getattr(self.args, opt)
                 node["infura_project_id"] = value
@@ -344,7 +344,7 @@ class Config:
                 value = parsed["infura-project-secret"]
                 # TODO infura-project-secret value validation
                 node["infura_project_secret"] = value
-            opt = "geth.infura-project-secret"
+            opt = "geth.infura_project_secret"
             if hasattr(self.args, opt):
                 value = getattr(self.args, opt)
                 node["infura_project_secret"] = value
@@ -409,32 +409,12 @@ class Config:
         if "backup-dir" in parsed and len(parsed["backup-dir"].strip()) > 0:
             self.backup_dir = parsed["backup-dir"]
 
-        if "bitcoind" in parsed:
-            self.update_bitcoind(parsed["bitcoind"])
-
-        if "litecoind" in parsed:
-            self.update_litecoind(parsed["litecoind"])
-
-        if "geth" in parsed:
-            self.update_geth(parsed["geth"])
-
-        if "lndbtc" in parsed:
-            self.update_lndbtc(parsed["lndbtc"])
-
-        if "lndltc" in parsed:
-            self.update_lndltc(parsed["lndltc"])
-
-        if "raiden" in parsed:
-            self.update_raiden(parsed["raiden"])
-
-        if "connext" in parsed:
-            self.update_connext(parsed["connext"])
-
-        if "xud" in parsed:
-            self.update_xud(parsed["xud"])
-
-        if "ltcd" in parsed:
-            self.update_ltcd(parsed["ltcd"])
+        for node in self.nodes.values():
+            name = node["name"]
+            if name in parsed:
+                getattr(self, f"update_{name}")(parsed[name])
+            else:
+                getattr(self, f"update_{name}")({})
 
         # Backward compatible with lnd.env
         lndenv = get_hostfs_file(f"{self.network_dir}/lnd.env")
