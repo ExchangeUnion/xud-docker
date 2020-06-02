@@ -197,6 +197,10 @@ class NodeManager:
         elif status == "external_with_container":
             return "external"
 
+    def _readable_details(self, details):
+        diff_keys = [key for key, value in details.items() if not value.same]
+        return ", ".join(diff_keys)
+
     def update(self):
         if self.config.disable_update:
             return
@@ -244,7 +248,11 @@ class NodeManager:
             # when internal -> external status will be "external_with_container"
             # when external -> internal status will be "missing" because we deleted the container before
             if status in ["missing", "outdated", "external_with_container"]:
-                print("- Container %s: %s" % (container.container_name, self._display_container_status_text(status)))
+                readable_details = self._readable_details(details)
+                if readable_details:
+                    print("- Container %s: %s (%s)" % (container.container_name, self._display_container_status_text(status), readable_details))
+                else:
+                    print("- Container %s: %s" % (container.container_name, self._display_container_status_text(status)))
                 outdated = True
 
         if not outdated:
