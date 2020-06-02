@@ -2,11 +2,10 @@ import argparse
 import logging
 from logging.handlers import TimedRotatingFileHandler
 import os
-import re
 
 import toml
 
-from ..utils import normalize_path, get_hostfs_file, ArgumentParser, ArgumentError
+from ..utils import get_hostfs_file, ArgumentParser
 from ..errors import FatalError
 from .template import nodes_config, general_config, PortPublish
 from .loader import ConfigLoader
