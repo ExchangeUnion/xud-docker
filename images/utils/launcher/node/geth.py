@@ -127,9 +127,9 @@ class Geth(Node):
         rpc_port = self.external_config["rpc_port"]
         url = f"http://{rpc_host}:{rpc_port}"
         if self.check_eth_rpc(url):
-            return "Ready (Connected to external)"
+            return "Ready (connected to external)"
         else:
-            return "Unavailable (Connection to external failed)"
+            return "Unavailable (connection to external failed)"
 
     def get_infura_status(self):
         project_id = self.infura_config["project_id"]
@@ -140,16 +140,16 @@ class Geth(Node):
         else:
             raise RuntimeError(f"{self.network} won't use Infura")
         if self.check_eth_rpc(url):
-            return "Ready (Connected to Infura)"
+            return "Ready (connected to Infura)"
         else:
-            return "Unavailable (Connection to Infura failed)"
+            return "Unavailable (connection to Infura failed)"
 
     def get_light_status(self):
         eth_provider = self.light_config["eth_provider"]
         if self.check_eth_rpc(eth_provider):
-            return "Ready (Light mode)"
+            return "Ready (light mode)"
         else:
-            return "Unavailable (Connection to Light failed)"
+            return "Unavailable (light mode failed)"
 
     def status(self):
         if self.mode == "external":
