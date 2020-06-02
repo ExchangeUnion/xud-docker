@@ -16,6 +16,7 @@ from .geth import Geth
 from .lnd import Lndbtc, Lndltc
 from .xud import Xud, XudApiError
 from .connext import Connext
+from .arby import Arby
 from .image import Image, ImageManager
 
 from ..utils import parallel_execute, get_useful_error_message, get_hostfs_file, ArgumentParser
