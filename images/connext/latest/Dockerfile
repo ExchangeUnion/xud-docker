@@ -15,7 +15,6 @@ RUN npm run build
 FROM node:12-alpine3.11
 RUN apk add --no-cache bash supervisor curl
 RUN mkdir /root/.connext
-VOLUME [ "/root/.connext" ]
 COPY --from=builder /connext /app
 COPY entrypoint.sh /app
 COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
