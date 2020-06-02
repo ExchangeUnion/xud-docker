@@ -177,7 +177,8 @@ nodes_config = {
             "infura_project_id": None,
             "infura_project_secret": None,
             "preserve_config": False,
-            "eth_provider": None
+            "eth_provider": None,
+            "cache": 256,
         },
         "lndbtc": {
             "name": "lndbtc",
@@ -233,10 +234,6 @@ nodes_config = {
                 {
                     "host": "$data_dir/lndltc",
                     "container": "/root/.lndltc",
-                },
-                {
-                    "host": "$data_dir/raiden",
-                    "container": "/root/.raiden",
                 },
                 {
                     "host": "/",
@@ -303,6 +300,7 @@ nodes_config = {
             "infura_project_id": None,
             "infura_project_secret": None,
             "preserve_config": False,
+            "cache": 256,
         },
         "lndbtc": {
             "name": "lndbtc",
@@ -345,7 +343,7 @@ nodes_config = {
         },
         "xud": {
             "name": "xud",
-            "image": "exchangeunion/xud:1.0.0-beta.2",
+            "image": "exchangeunion/xud:1.0.0-beta.3",
             "volumes": [
                 {
                     "host": "$data_dir/xud",
@@ -358,10 +356,6 @@ nodes_config = {
                 {
                     "host": "$data_dir/lndltc",
                     "container": "/root/.lndltc",
-                },
-                {
-                    "host": "$data_dir/raiden",
-                    "container": "/root/.raiden",
                 },
                 {
                     "host": "/",
