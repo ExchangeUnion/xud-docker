@@ -198,6 +198,8 @@ class NodeManager:
             return "external"
 
     def _readable_details(self, details):
+        if not details:
+            return None
         diff_keys = [key for key, value in details.items() if not value.same]
         return ", ".join(diff_keys)
 
