@@ -88,9 +88,10 @@ class Bitcoind(Node):
     def status(self):
         if self.mode == "external":
             return self.get_external_status()
-
-        if self.mode == "neutrino" or self.mode == "light":
+        elif self.mode == "neutrino":
             return "Ready (Connected to Neutrino)"
+        elif self.mode == "light":
+            return "Ready (Light mode)"
 
         status = super().status()
         if status == "exited":
