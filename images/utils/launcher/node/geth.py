@@ -1,14 +1,10 @@
 import demjson
 from urllib.request import urlopen, Request
 import json
-import logging
 from datetime import datetime, timedelta
 from concurrent.futures import ThreadPoolExecutor, wait
 
 from .base import Node, CliBackend
-
-
-logger = logging.getLogger(__name__)
 
 
 class GethApi:
@@ -92,7 +88,7 @@ class Geth(Node):
             j = json.loads(r.read().decode())
             result = j["result"]
             # Geth/v1.9.9-omnibus-e320ae4c-20191206/linux-amd64/go1.13.4
-            logger.info("The ethereum RPC %s net version is %s", url, result)
+            self._logger.info("The ethereum RPC %s net version is %s", url, result)
             return True
         except:
             return False
@@ -123,7 +119,7 @@ class Geth(Node):
             if ok:
                 return t2 - t1
         except:
-            logger.error("Failed to get provider %s delay", provider)
+            self._logger.exception("Failed to get provider %s delay", provider)
         return None
 
     def get_external_status(self):
