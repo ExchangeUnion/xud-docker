@@ -33,7 +33,8 @@ labelprefix = "com.exchangeunion.image"
 group = "exchangeunion"
 docker_registry = "registry-1.docker.io"
 dry_run = False
-commit_before_travis = "205bbf4d430d906875a30e4a47872145ee9d06ee"
+# use this variable as last successful travis build
+commit_before_travis = "0aa9c74f46012d212134ec6b7d58732b84f14ee0"
 no_cache = False
 
 travis = "TRAVIS_BRANCH" in os.environ
