@@ -1,6 +1,6 @@
 FROM node:12-alpine3.11 AS builder
 ARG REPO=ExchangeUnion/xud
-ARG BRANCH=v1.0.0-beta.2
+ARG BRANCH=v1.0.0-beta.3
 # Use pure JS implemented secp256k1 bindings
 RUN apk add --no-cache git rsync bash musl-dev go python3 make g++
 # Pre-built binaries not found for sqlite3@4.1.0 and node@12.16.1 (node-v72 ABI, musl) (falling back to source compile with node-gyp)
