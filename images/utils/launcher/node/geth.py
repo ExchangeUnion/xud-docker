@@ -127,7 +127,7 @@ class Geth(Node):
         rpc_port = self.external_config["rpc_port"]
         url = f"http://{rpc_host}:{rpc_port}"
         if self.check_eth_rpc(url):
-            return "Ready (Light mode)"
+            return "Ready (Connected to external)"
         else:
             return "Unavailable (Connection to external failed)"
 
@@ -147,7 +147,7 @@ class Geth(Node):
     def get_light_status(self):
         eth_provider = self.light_config["eth_provider"]
         if self.check_eth_rpc(eth_provider):
-            return "Ready (Connected to Light)"
+            return "Ready (Light mode)"
         else:
             return "Unavailable (Connection to Light failed)"
 
