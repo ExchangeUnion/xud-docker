@@ -7,6 +7,7 @@ if TYPE_CHECKING:
     from ..config import Config, ParseResult
     from ..services import Service
     from ..presets import Preset
+    from ...utils import ArgumentParser
 
 
 class Option(metaclass=ABCMeta):
@@ -15,11 +16,11 @@ class Option(metaclass=ABCMeta):
         self.value = None
 
     @abstractmethod
-    def parse(self, result: ParseResult):
+    def parse(self, result: ParseResult) -> None:
         pass
 
     @abstractmethod
-    def configure(self, parser):
+    def configure(self, parser: ArgumentParser) -> None:
         pass
 
 

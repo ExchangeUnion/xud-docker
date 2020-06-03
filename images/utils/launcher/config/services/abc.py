@@ -8,7 +8,6 @@ if TYPE_CHECKING:
 
 class ServiceOptions(Iterable[Option]):
     def __init__(self, service: Service):
-        self.dir = DirOption(service)
         self.expose_ports = ExposePortsOption(service)
         self.disabled = DisabledOption(service)
 

@@ -1,6 +1,5 @@
 from .abc import Option, ServiceOption
 
-from .home_dir import HomeDirOption
 from .mainnet_dir import MainnetDirOption
 from .testnet_dir import TestnetDirOption
 from .simnet_dir import SimnetDirOption
@@ -9,7 +8,6 @@ from .branch import BranchOption
 from .network import NetworkOption
 from .disable_update import DisableUpdateOption
 from .external_ip import ExternalIpOption
-from .eth_providers import EthProvidersOption
 
 # service options
 from .dir import DirOption

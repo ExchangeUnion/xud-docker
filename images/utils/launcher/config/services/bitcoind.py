@@ -1,9 +1,10 @@
 from __future__ import annotations
-from typing import TYPE_CHECKING, Iterator
+
+from typing import TYPE_CHECKING
 
 from .abc import Service, ServiceOptions
 from ..options import ModeOption, RpcHostOption, RpcPortOption, RpcUserOption, \
-    RpcPasswordOption, ZmqpubrawblockOption, ZmqpubrawtxOption, Option
+    RpcPasswordOption, ZmqpubrawblockOption, ZmqpubrawtxOption, DirOption
 
 if TYPE_CHECKING:
     from ..presets import Preset
@@ -12,6 +13,7 @@ if TYPE_CHECKING:
 class BitcoindOptions(ServiceOptions):
     def __init__(self, service: Service):
         super().__init__(service)
+        self.dir = DirOption(service)
         self.mode = ModeOption(service)
         self.rpc_host = RpcHostOption(service)
         self.rpc_port = RpcPortOption(service)

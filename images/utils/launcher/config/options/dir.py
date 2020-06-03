@@ -1,6 +1,21 @@
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 from .abc import ServiceOption
+from ..services import Bitcoind, Litecoind, Geth, Service
+from ..types import VolumeMapping
+from ...utils import ArgumentParser
+
+if TYPE_CHECKING:
+    from ..config import ParseResult
+
 
 class DirOption(ServiceOption):
+
+    def __init__(self, service: Service):
+        assert isinstance(service, (Bitcoind, Litecoind, Geth)), "dir option is bitcoind, litecoind and geth only"
+        super().__init__(service)
 
     def update_volume(self, volumes, container_dir, host_dir):
         target = [v for v in volumes if v.container_dir == container_dir]
@@ -10,26 +25,41 @@ class DirOption(ServiceOption):
             target = target[0]
             target.host_dir = host_dir
 
-    def parse(self, config: Config):
-        node = self.node
-        name = node.name
-        parsed = config.network_config_file[name]
-        args = config.command_line_arguments
+    def parse(self, result: ParseResult) -> None:
+        assert result.preset_conf
+        assert result.command_line_args
 
-        if name == "bitcoind":
+        service = self.service
+        name = service.name
+        parsed = result.preset_conf[name]
+        args = result.command_line_args
+
+        target = None
+
+        if isinstance(service, Bitcoind):
             target = "/root/.bitcoin"
-        elif name == "litecoind":
+        elif isinstance(service, Litecoind):
             target = "/root/.litecoin"
-        elif name == "geth":
+        elif isinstance(service, Geth):
             target = "/root/.ethereum"
-        else:
-            raise AssertionError("name should be bitcoind, litecoind or geth: " + name)
+
+        assert target
 
         if "dir" in parsed:
             value = parsed["dir"]
-            self.update_volume(node.volumes, target, value)
+            self.update_volume(service.container_spec.volumes, target, value)
 
         opt = "{}.dir".format(name)
         if hasattr(args, opt):
             value = getattr(args, opt)
-            self.update_volume(node.volumes, target, value)
+            self.update_volume(service.container_spec.volumes, target, value)
+
+    def configure(self, parser: ArgumentParser) -> None:
+        key = f"--{self.service.name}.dir"
+        help = (
+            "This option specifies the container's volume mapping data "
+            "directory. It will be ignored if you set below `external` or "
+            "`neutrino` option to true."
+        )
+        parser.add_argument(key, type=str, help=help)
+

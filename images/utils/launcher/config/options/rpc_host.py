@@ -1,18 +1,38 @@
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 from .abc import ServiceOption
 
+if TYPE_CHECKING:
+    from ..config import ParseResult
+    from ...utils import ArgumentParser
+
+
 class RpcHostOption(ServiceOption):
-    def parse(self, config: Config):
-        node = self.node
-        name = node.name
-        parsed = config.network_config_file[name]
-        args = config.command_line_arguments
+    def parse(self, result: ParseResult) -> None:
+        assert result.preset_conf
+        assert result.command_line_args
+
+        service = self.service
+        name = service.name
+        parsed = result.preset_conf[name]
+        args = result.command_line_args
+
+        value = None
 
         if "rpc-host" in parsed:
             value = parsed["rpc-host"]
-            # TODO rpc-host value validation
-            node.external_rpc_host = value
 
-        opt = "{}.rpc-host".format(name)
+        opt = "{}.rpc_host".format(name)
         if hasattr(args, opt):
             value = getattr(args, opt)
-            node.external_rpc_host = value
+
+        self.value = value
+
+    def configure(self, parser: ArgumentParser) -> None:
+        key = f"--{self.service.name}.rpc-host"
+        help = (
+            "TODO rpc-host option help"
+        )
+        parser.add_argument(key, type=str, help=help)

@@ -1,7 +1,12 @@
 from __future__ import annotations
+
 from typing import TYPE_CHECKING
+
 from .abc import Service, ServiceOptions
-from ..options import AncientChaindataDirOption, ModeOption, RpcHostOption, RpcPortOption, InfuraProjectIdOption, InfuraProjectSecretOption, CacheOption, Option
+from ..options import AncientChaindataDirOption, ModeOption, RpcHostOption, \
+    RpcPortOption, InfuraProjectIdOption, InfuraProjectSecretOption, \
+    CacheOption, DirOption
+
 if TYPE_CHECKING:
     from ..presets import Preset
 
@@ -9,6 +14,7 @@ if TYPE_CHECKING:
 class GethOptions(ServiceOptions):
     def __init__(self, service: Service):
         super().__init__(service)
+        self.dir = DirOption(service)
         self.ancient_chaindata_dir = AncientChaindataDirOption(service)
         self.mode = ModeOption(service)
         self.rpc_host = RpcHostOption(service)
