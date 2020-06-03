@@ -82,6 +82,7 @@ class Config:
         parser.add_argument("--geth.infura-project-id")
         parser.add_argument("--geth.infura-project-secret")
         parser.add_argument("--geth.expose-ports")
+        parser.add_argument("--geth.cache", type=int)
 
         parser.add_argument("--lndbtc.expose-ports")
         parser.add_argument("--lndltc.expose-ports")
@@ -350,6 +351,10 @@ class Config:
 
         if "cache" in parsed:
             value = int(parsed["cache"])
+            node["cache"] = value
+        opt = "geth.cache"
+        if hasattr(self.args, opt):
+            value = getattr(self.args, opt)
             node["cache"] = value
 
     def update_lndbtc(self, parsed):
