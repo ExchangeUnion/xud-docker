@@ -87,7 +87,7 @@ class Lnd(Node):
             else:
                 layer1_node = self.config.nodes["litecoind"]
 
-            if layer1_node["mode"] == "neutrino":
+            if layer1_node["mode"] == "neutrino" or layer1_node["mode"] == "light":
                 environment.extend([
                     f'NEUTRINO=True',
                 ])

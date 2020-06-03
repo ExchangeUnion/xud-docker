@@ -156,7 +156,7 @@ class Launcher:
             else:
                 traceback.print_exc()
             exit_code = 1
-        except:
+        except Exception:  # exclude system exceptions like SystemExit
             self.logger.exception("Unexpected exception during launching")
             traceback.print_exc()
             exit_code = 1

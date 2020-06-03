@@ -78,19 +78,20 @@ class Bitcoind(Node):
         rpc_port = self.external_config["rpc_port"]
         try:
             s.connect((rpc_host, rpc_port))
-            return "Ready (Connected to external)"
+            return "Ready (connected to external)"
         except:
             self._logger.exception(f"Failed to connect to external node {rpc_host}:{rpc_port}")
-            return "Unavailable (Connection to external failed)"
+            return "Unavailable (connection to external failed)"
         finally:
             s.close()
 
     def status(self):
         if self.mode == "external":
             return self.get_external_status()
-
-        if self.mode == "neutrino":
-            return "Ready (Connected to Neutrino)"
+        elif self.mode == "neutrino":
+            return "Ready (connected to Neutrino)"
+        elif self.mode == "light":
+            return "Ready (light mode)"
 
         status = super().status()
         if status == "exited":
