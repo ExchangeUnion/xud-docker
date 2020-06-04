@@ -171,12 +171,12 @@ class Action:
             try:
                 f1.result()
             except Exception as e:
-                raise FatalError("Failed to ensure lndbtc ready") from e
+                raise FatalError("Failed to wait for lndbtc to be ready") from e
 
             try:
                 f2.result()
             except Exception as e:
-                raise FatalError("Failed to ensure lndltc ready") from e
+                raise FatalError("Failed to wait for lndltc to be ready") from e
 
         client = docker.from_env()
         xud: Container = client.containers.get(f"{self.network}_xud_1")
