@@ -139,7 +139,6 @@ class Launcher:
 
     def launch(self):
         shell = Shell()
-        exit_code = 0
         config = None
         try:
             config = Config(ConfigLoader())
@@ -149,18 +148,14 @@ class Launcher:
             env.start()
         except KeyboardInterrupt:
             print()
-            exit_code = 1
         except FatalError as e:
             if config and config.logfile:
                 print(f"❌ Error: {e}. For more details, see {config.logfile}")
             else:
                 traceback.print_exc()
-            exit_code = 1
         except Exception:  # exclude system exceptions like SystemExit
             self.logger.exception("Unexpected exception during launching")
             traceback.print_exc()
-            exit_code = 1
         finally:
             shell.stop()
-        exit(exit_code)
 
