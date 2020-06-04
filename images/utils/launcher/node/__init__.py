@@ -180,9 +180,6 @@ class NodeManager:
             self.wait_for_channels()
 
     def down(self):
-        reply = self.shell.yes_or_no("Are you sure to shutdown your xud environment (this will cancel all open orders)?")
-        if reply == "no":
-            return
         for name, container in self.nodes.items():
             print(f"Stopping {name}...")
             container.stop()

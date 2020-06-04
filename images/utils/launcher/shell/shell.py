@@ -389,6 +389,9 @@ class InputHandler(threading.Thread):
                     if not cmd.is_empty():
                         if cmd.is_exit():
                             return False
+                        elif str(cmd) == "down":
+                            self._handle_command(str(cmd))
+                            return False
                         else:
                             self._handle_command(str(cmd))
                             self._history_commit(cmd)  # will reset history too
