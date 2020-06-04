@@ -13,7 +13,7 @@ class ConfigLoader:
         if os.path.exists(config_file):
             with open(config_file) as f:
                 return f.read()
-        return b''
+        return ""
 
     def load_network_config(self, network, network_dir):
         config_file = get_hostfs_file(f"{network_dir}/{network}.conf")
@@ -22,7 +22,7 @@ class ConfigLoader:
         if os.path.exists(config_file):
             with open(config_file) as f:
                 return f.read()
-        return b''
+        return ""
 
     def load_lndenv(self, network_dir):
         lndenv = get_hostfs_file(f"{network_dir}/lnd.env")
