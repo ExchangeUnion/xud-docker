@@ -7,10 +7,10 @@ class SimnetPreset(Preset):
     def __init__(self, config: Config):
         super().__init__(config)
         self.services = [
-            Lndbtc(image="exchangeunion/lnd:0.10.0-beta-simnet"),
-            Lndltc(image="exchangeunion/lnd:0.9.0-beta-ltc-simnet"),
-            Connext(image="exchangeunion/connext:latest"),
-            Xud(image="exchangeunion/xud:latest"),
+            Lndbtc(self, image="exchangeunion/lnd:0.10.0-beta-simnet"),
+            Lndltc(self, image="exchangeunion/lnd:0.9.0-beta-ltc-simnet"),
+            Connext(self, image="exchangeunion/connext:latest"),
+            Xud(self, image="exchangeunion/xud:latest"),
         ]
 
     @property

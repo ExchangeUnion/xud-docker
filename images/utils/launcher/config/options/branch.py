@@ -6,10 +6,10 @@ from .abc import Option
 
 if TYPE_CHECKING:
     from ..config import ParseResult
-    from ...utils import ArgumentParser
+    from ..types import ArgumentParser
 
 
-class BranchOption(Option):
+class BranchOption(Option[str]):
     def parse(self, result: ParseResult) -> None:
         assert result.command_line_args
 

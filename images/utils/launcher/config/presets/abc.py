@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import TYPE_CHECKING, Dict
+from typing import TYPE_CHECKING, Type
 from abc import ABC, abstractmethod
 from .update import UpdateManager
 
@@ -7,7 +7,8 @@ if TYPE_CHECKING:
     from ..config import Config, ParseResult
     from ..services import Service
     from ..options import BackupDirOption
-    from ...utils import ArgumentParser
+    from ..types import ArgumentParser
+    from ..docker import Network
 
 
 class PresetOptions:
@@ -17,9 +18,12 @@ class PresetOptions:
 
 class Preset(ABC):
     services: [Service]
+    docker_network: Network
 
     def __init__(self, config: Config):
         self.config = config
+        self.services = []
+        self.docker_network = config.docker_factory.create_image(f"{self.prefix}_default")
         self._update_manager = UpdateManager(self)
         self._options = PresetOptions(self)
 
@@ -41,6 +45,7 @@ class Preset(ABC):
             svc.parse(result)
 
     def up(self) -> None:
+        self.docker_network.create()
         for svc in self.services:
             svc.create()
         for svc in self.services:
@@ -50,7 +55,8 @@ class Preset(ABC):
         for svc in self.services:
             svc.stop()
         for svc in self.services:
-            svc.remove()
+            svc.destroy()
+        self.docker_network.destroy()
 
     def update(self) -> None:
         self._update_manager.update()

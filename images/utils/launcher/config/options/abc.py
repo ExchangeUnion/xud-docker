@@ -1,16 +1,21 @@
 from __future__ import annotations
 
 from abc import ABCMeta, abstractmethod
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Generic, TypeVar, Optional
 
 if TYPE_CHECKING:
     from ..config import Config, ParseResult
     from ..services import Service
     from ..presets import Preset
-    from ...utils import ArgumentParser
+    from ..types import ArgumentParser
 
 
-class Option(metaclass=ABCMeta):
+T = TypeVar('T')
+
+
+class Option(Generic[T], metaclass=ABCMeta):
+    value: Optional[T]
+
     def __init__(self, config: Config):
         self.config = config
         self.value = None

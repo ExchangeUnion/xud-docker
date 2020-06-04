@@ -5,13 +5,13 @@ from typing import TYPE_CHECKING
 from .abc import ServiceOption
 from ..services import Bitcoind, Litecoind, Geth, Service
 from ..types import VolumeMapping
-from ...utils import ArgumentParser
+from ..types import ArgumentParser
 
 if TYPE_CHECKING:
     from ..config import ParseResult
 
 
-class DirOption(ServiceOption):
+class DirOption(ServiceOption[str]):
 
     def __init__(self, service: Service):
         assert isinstance(service, (Bitcoind, Litecoind, Geth)), "dir option is bitcoind, litecoind and geth only"

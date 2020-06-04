@@ -6,10 +6,10 @@ from .abc import ServiceOption
 
 if TYPE_CHECKING:
     from ..config import ParseResult
-    from ...utils import ArgumentParser
+    from ..types import ArgumentParser
 
 
-class DisabledOption(ServiceOption):
+class DisabledOption(ServiceOption[bool]):
 
     def parse(self, result: ParseResult) -> None:
         assert result.preset_conf

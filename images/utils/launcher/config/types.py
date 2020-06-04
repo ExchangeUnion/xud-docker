@@ -1,4 +1,6 @@
 import re
+import argparse
+
 
 class PortPublish:
     def __init__(self, value: str):
@@ -80,3 +82,18 @@ class VolumeMapping:
 
     def __hash__(self):
         return self.__str__().__hash__()
+
+
+class ArgumentError(Exception):
+    def __init__(self, message, usage):
+        super().__init__(message)
+        self.usage = usage
+
+
+class ArgumentParser(argparse.ArgumentParser):
+    """
+    https://stackoverflow.com/questions/5943249/python-argparse-and-controlling-overriding-the-exit-status-code
+    """
+
+    def error(self, message):
+        raise ArgumentError(message, self.format_usage())

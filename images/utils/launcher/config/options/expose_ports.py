@@ -8,10 +8,10 @@ from ..types import PortPublish
 
 if TYPE_CHECKING:
     from ..config import ParseResult
-    from ...utils import ArgumentParser
+    from ..types import ArgumentParser
 
 
-class ExposePortsOption(ServiceOption):
+class ExposePortsOption(ServiceOption[str]):
     def parse(self, result: ParseResult) -> None:
         assert result.preset_conf
         assert result.command_line_args

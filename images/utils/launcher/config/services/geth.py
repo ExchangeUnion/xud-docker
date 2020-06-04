@@ -28,3 +28,31 @@ class Geth(Service[GethOptions]):
     def __init__(self, preset: Preset, name: str = "geth", image: str = "exchangeunion/geth"):
         super().__init__(preset, name, image)
         # TODO eth_provider
+
+    @property
+    def command(self) -> [str]:
+        pass
+
+    @property
+    def environment(self) -> [str]:
+        pass
+
+    @property
+    def application_status(self) -> str:
+        pass
+
+    @property
+    def mode(self) -> str:
+        return self.options.mode.value
+
+    @property
+    def rpc_port(self) -> int:
+        return self.options.rpc_port.value
+
+    @property
+    def rpc_host(self) -> str:
+        return self.options.rpc_host.value
+
+    @property
+    def infura_project_id(self) -> str:
+        return self.options.infura_project_id.value

@@ -7,10 +7,10 @@ from ..services import Geth, Service
 
 if TYPE_CHECKING:
     from ..config import ParseResult
-    from ...utils import ArgumentParser
+    from ..types import ArgumentParser
 
 
-class CacheOption(ServiceOption):
+class CacheOption(ServiceOption[int]):
 
     def __init__(self, service: Service):
         assert isinstance(service, Geth), "cache option is geth only"

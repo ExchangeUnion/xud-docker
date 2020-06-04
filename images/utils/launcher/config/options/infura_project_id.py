@@ -7,10 +7,10 @@ from ..services import Geth, Service
 
 if TYPE_CHECKING:
     from ..config import ParseResult
-    from ...utils import ArgumentParser
+    from ..types import ArgumentParser
 
 
-class InfuraProjectIdOption(ServiceOption):
+class InfuraProjectIdOption(ServiceOption[str]):
     def __init__(self, service: Service):
         assert isinstance(service, Geth), "infura-project-id is geth only"
         super().__init__(service)

@@ -1,26 +1,21 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
 import argparse
 import logging
-from logging.handlers import TimedRotatingFileHandler
 import os
+from typing import TYPE_CHECKING
 
 import toml
 
-from ..utils import get_hostfs_file, ArgumentParser, ArgumentError
-from ..errors import FatalError
-from .loader import ConfigLoader
-
-
-
 from .options import BranchOption, DisableUpdateOption, ExternalIpOption, NetworkOption, \
-    HomeDirOption, SimnetDirOption, TestnetDirOption, MainnetDirOption, BackupDirOption, \
-    EthProvidersOption
+    SimnetDirOption, TestnetDirOption, MainnetDirOption
 from .presets import SimnetPreset, TestnetPreset, MainnetPreset
+from .types import ArgumentParser, ArgumentError
+from .docker import DockerFactory, DockerClientFactory
+from ..errors import FatalError
 
 if TYPE_CHECKING:
-    from .options import Option
+    from .loader import ConfigLoader
     from .presets import Preset
 
 
@@ -40,7 +35,6 @@ class ConfigOptions:
         self.simnet_dir = SimnetDirOption(config)
         self.testnet_dir = TestnetDirOption(config)
         self.mainnet_dir = MainnetDirOption(config)
-        self.backup_dir = BackupDirOption(config)
 
     def configure(self, parser: ArgumentParser):
         self.branch.configure(parser)
@@ -70,6 +64,9 @@ class Config:
         self._loader = loader
         self._options = ConfigOptions(self)
         self._presets = ConfigPresets(self)
+
+        self.docker_factory = DockerFactory(DockerClientFactory())
+
         parser = ArgumentParser(argument_default=argparse.SUPPRESS, prog="launcher")
         self._options.configure(parser)
         self._presets.configure(parser)

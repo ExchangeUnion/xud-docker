@@ -6,10 +6,10 @@ from .abc import PresetOption
 
 if TYPE_CHECKING:
     from ..config import ParseResult
-    from ...utils import ArgumentParser
+    from ..types import ArgumentParser
 
 
-class BackupDirOption(PresetOption):
+class BackupDirOption(PresetOption[str]):
 
     def parse(self, result: ParseResult) -> None:
         assert result.preset_conf

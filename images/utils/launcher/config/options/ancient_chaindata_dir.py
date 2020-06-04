@@ -8,10 +8,10 @@ from ..types import VolumeMapping
 
 if TYPE_CHECKING:
     from ..config import ParseResult
-    from ...utils import ArgumentParser
+    from ..types import ArgumentParser
 
 
-class AncientChaindataDirOption(ServiceOption):
+class AncientChaindataDirOption(ServiceOption[str]):
     def __init__(self, service: Service):
         assert isinstance(service, Geth), "ancient-chaindata-dir option is geth only"
         super().__init__(service)
