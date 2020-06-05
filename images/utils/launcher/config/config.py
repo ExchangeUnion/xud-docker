@@ -6,7 +6,7 @@ import os
 import toml
 
 from ..utils import get_hostfs_file, ArgumentParser
-from ..errors import FatalError
+from ..errors import ConfigError, ConfigErrorScope
 from .template import nodes_config, general_config, PortPublish
 from .loader import ConfigLoader
 
@@ -36,11 +36,26 @@ class Config:
         self.parse()
 
     def parse(self):
-        self.parse_command_line_arguments()
+        try:
+            self.parse_command_line_arguments()
+        except Exception as e:
+            raise ConfigError(ConfigErrorScope.COMMAND_LINE_ARGS) from e
+
         self.network_dir = "{}/{}".format(self.home_dir, self.network)
-        self.parse_general_config()
+
+        try:
+            self.parse_general_config()
+        except Exception as e:
+            conf_file = "{}/{}.conf".format(self.home_dir, "xud-docker")
+            raise ConfigError(ConfigErrorScope.GENERAL_CONF, conf_file=conf_file) from e
+
         self.network_dir = self.loader.ensure_network_dir(self.network_dir)
-        self.parse_network_config()
+
+        try:
+            self.parse_network_config()
+        except Exception as e:
+            conf_file = "{}/{}.conf".format(self.network_dir, self.network)
+            raise ConfigError(ConfigErrorScope.NETWORK_CONF, conf_file=conf_file) from e
 
         for node in self.nodes.values():
             for v in node["volumes"]:
@@ -89,20 +104,14 @@ class Config:
         parser.add_argument("--connext.expose-ports")
         parser.add_argument("--xud.expose-ports")
 
-        try:
-            self.args = parser.parse_args()
-            self.logger.info("Parsed command-line arguments: %r", self.args)
-        except Exception as e:
-            raise FatalError("Failed to parse command-line arguments: %s" % e) from e
+        self.args = parser.parse_args()
+        self.logger.info("Parsed command-line arguments: %r", self.args)
 
     def parse_general_config(self):
         network = self.network
 
-        try:
-            parsed = toml.loads(self.loader.load_general_config(self.home_dir))
-            self.logger.info("Parsed xud-docker.conf: %r", parsed)
-        except Exception as e:
-            raise FatalError("Failed to parse xud-docker.conf: %s" % e) from e
+        parsed = toml.loads(self.loader.load_general_config(self.home_dir))
+        self.logger.info("Parsed xud-docker.conf: %r", parsed)
 
         key = f"{network}-dir"
         if key in parsed:
@@ -168,7 +177,7 @@ class Config:
         if "mode" in parsed:
             value = parsed["mode"]
             if value not in ["native", "external", "neutrino", "light"]:
-                raise FatalError("Invalid value of option \"mode\": {}".format(value))
+                raise ValueError("Invalid value of option \"mode\": {}".format(value))
             node["mode"] = value
 
         if node["name"] == "litecoind":
@@ -180,7 +189,7 @@ class Config:
         if hasattr(self.args, opt):
             value = getattr(self.args, opt)
             if value not in ["native", "external", "neutrino", "light"]:
-                raise FatalError("Invalid value of option \"--{}\": {}".format(opt, value))
+                raise ValueError("Invalid value of option \"--{}\": {}".format(opt, value))
             node["mode"] = value
 
         if node["mode"] == "external":
@@ -198,14 +207,14 @@ class Config:
                 try:
                     node["external_rpc_port"] = int(value)
                 except ValueError:
-                    raise FatalError("Invalid value of option \"rpc-port\": {}".format(value))
+                    raise ValueError("Invalid value of option \"rpc-port\": {}".format(value))
             opt = "{}.rpc_port".format(opt_prefix)
             if hasattr(self.args, opt):
                 value = getattr(self.args, opt)
                 try:
                     node["external_rpc_port"] = int(value)
                 except ValueError:
-                    raise FatalError("Invalid value of option \"--{}\": {}".format(opt, value))
+                    raise ValueError("Invalid value of option \"--{}\": {}".format(opt, value))
 
             if "rpc-user" in parsed:
                 value = parsed["rpc-user"]
@@ -297,13 +306,13 @@ class Config:
         if "mode" in parsed:
             value = parsed["mode"]
             if value not in ["native", "external", "infura", "light"]:
-                raise FatalError("Invalid value of option \"mode\": {}" + value)
+                raise ValueError("Invalid value of option \"mode\": {}" + value)
             node["mode"] = value
 
         if hasattr(self.args, "geth.mode"):
             value = getattr(self.args, "geth.mode")
             if value not in ["native", "external", "infura", "light"]:
-                raise FatalError("Invalid value of option \"--geth.mode\": {}".format(value))
+                raise ValueError("Invalid value of option \"--geth.mode\": {}".format(value))
             node["mode"] = value
 
         if node["mode"] == "external":
@@ -321,14 +330,14 @@ class Config:
                 try:
                     node["external_rpc_port"] = int(value)
                 except ValueError:
-                    raise FatalError("Invalid value of option \"rpc-port\": {}".format(value))
+                    raise ValueError("Invalid value of option \"rpc-port\": {}".format(value))
             opt = "geth.rpc_port"
             if hasattr(self.args, opt):
                 value = getattr(self.args, opt)
                 try:
                     node["external_rpc_port"] = int(value)
                 except ValueError:
-                    raise FatalError("Invalid value of option \"--{}\": {}".format(opt, value))
+                    raise ValueError("Invalid value of option \"--{}\": {}".format(opt, value))
 
         elif node["mode"] == "infura":
             if "infura-project-id" in parsed:
@@ -404,11 +413,8 @@ class Config:
     def parse_network_config(self):
         network = self.network
 
-        try:
-            parsed = toml.loads(self.loader.load_network_config(network, self.network_dir))
-            self.logger.info("Parsed %s.conf: %r", network, parsed)
-        except Exception as e:
-            raise FatalError("Failed to parse %s.conf: %s" % (network, e)) from e
+        parsed = toml.loads(self.loader.load_network_config(network, self.network_dir))
+        self.logger.info("Parsed %s.conf: %r", network, parsed)
 
         if "backup-dir" in parsed and len(parsed["backup-dir"].strip()) > 0:
             self.backup_dir = parsed["backup-dir"]
