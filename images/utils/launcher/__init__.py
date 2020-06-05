@@ -1,17 +1,18 @@
 import logging
 import shlex
 import traceback
+import os
 
 from .config import Config, ConfigLoader
 from .shell import Shell
 from .node import NodeManager, NodeNotFound
-from .utils import ParallelExecutionError, get_hostfs_file, ArgumentError
+from .utils import ParallelExecutionError, ArgumentError
 
 from .check_wallets import Action as CheckWalletsAction
 from .close_other_utils import Action as CloseOtherUtilsAction
 from .auto_unlock import Action as AutoUnlockAction
 from .warm_up import Action as WarmUpAction
-from .errors import FatalError
+from .errors import FatalError, ConfigError, ConfigErrorScope
 
 
 def init_logging():
@@ -139,7 +140,6 @@ class Launcher:
 
     def launch(self):
         shell = Shell()
-        exit_code = 0
         config = None
         try:
             config = Config(ConfigLoader())
@@ -149,18 +149,24 @@ class Launcher:
             env.start()
         except KeyboardInterrupt:
             print()
-            exit_code = 1
+        except ConfigError as e:
+            if e.scope == ConfigErrorScope.COMMAND_LINE_ARGS:
+                print("❌ Failed to parse command-line arguments, exiting.")
+                print(f"Error details: {e.__cause__}")
+            elif e.scope == ConfigErrorScope.GENERAL_CONF:
+                print("❌ Failed to parse config file {}, exiting.".format(e.conf_file))
+                print(f"Error details: {e.__cause__}")
+            elif e.scope == ConfigErrorScope.NETWORK_CONF:
+                print("❌ Failed to parse config file {}, exiting.".format(e.conf_file))
+                print(f"Error details: {e.__cause__}")
         except FatalError as e:
             if config and config.logfile:
                 print(f"❌ Error: {e}. For more details, see {config.logfile}")
             else:
                 traceback.print_exc()
-            exit_code = 1
         except Exception:  # exclude system exceptions like SystemExit
             self.logger.exception("Unexpected exception during launching")
             traceback.print_exc()
-            exit_code = 1
         finally:
             shell.stop()
-        exit(exit_code)
 
