@@ -416,8 +416,26 @@ class Config:
         parsed = toml.loads(self.loader.load_network_config(network, self.network_dir))
         self.logger.info("Parsed %s.conf: %r", network, parsed)
 
-        if "backup-dir" in parsed and len(parsed["backup-dir"].strip()) > 0:
-            self.backup_dir = parsed["backup-dir"]
+        # parse backup-dir value from
+        # 1) data/xud/.backup-dir-value
+        # 2) network.conf
+        # 3) --backup-dir
+        value_file = get_hostfs_file(f"{self.network_dir}/data/xud/.backup-dir-value")
+        if os.path.exists(value_file):
+            with open(value_file) as f:
+                value = f.read().strip()
+                value = value.replace("/mnt/hostfs", "")
+                if len(value) > 0:
+                    self.backup_dir = value
+        if "backup-dir" in parsed:
+            value = parsed["backup-dir"].strip()
+            if len(value) > 0:
+                self.backup_dir = value
+        opt = "backup_dir"
+        if hasattr(self.args, opt):
+            value = getattr(self.args, opt).strip()
+            if len(value) > 0:
+                self.backup_dir = value
 
         for node in self.nodes.values():
             name = node["name"]

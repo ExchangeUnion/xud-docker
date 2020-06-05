@@ -171,12 +171,12 @@ class Action:
             try:
                 f1.result()
             except Exception as e:
-                raise FatalError("Failed to ensure lndbtc ready") from e
+                raise FatalError("Failed to wait for lndbtc to be ready") from e
 
             try:
                 f2.result()
             except Exception as e:
-                raise FatalError("Failed to ensure lndltc ready") from e
+                raise FatalError("Failed to wait for lndltc to be ready") from e
 
         client = docker.from_env()
         xud: Container = client.containers.get(f"{self.network}_xud_1")
@@ -230,6 +230,8 @@ class Action:
             raise Exception("Failed to restore wallets")
 
     def check_backup_dir(self, backup_dir):
+        assert not backup_dir.startswith("/mnt/hostfs")
+
         hostfs_dir = get_hostfs_file(backup_dir)
 
         if not os.path.exists(hostfs_dir):
@@ -262,35 +264,6 @@ class Action:
             contents.append("raiden")
         return contents
 
-    def persist_backup_dir(self, backup_dir):
-        network = self.config.network
-        config_file = get_hostfs_file(f"{self.config.network_dir}/{network}.conf")
-
-        exit_code = os.system(f"grep -q backup-dir {config_file} >/dev/null 2>&1")
-
-        if exit_code == 0:
-            os.system(f"sed -Ei 's|backup-dir = .*$|backup-dir = \"{backup_dir}\"|' {config_file}")
-            line = check_output(f"grep backup-dir {config_file}", shell=True).decode().splitlines()[0].strip()
-            if line.startswith("#"):
-                # uncomment backup-dir line
-                os.system(f"sed -Ei 's/^.*#.*backup-dir/backup-dir/' {config_file}")
-            try:
-                parsed = toml.load(open(config_file))
-            except:
-                raise RuntimeError(f"Failed to update backup-dir value in {config_file}")
-            if "backup-dir" not in parsed:
-                raise FatalError(f"The field \"backup-dir\" is in a wrong section of {network}.conf.")
-            if parsed["backup-dir"] != backup_dir:
-                raise RuntimeError(f"Failed to update backup-dir value in {config_file}")
-        else:
-            with open(config_file, 'r') as f:
-                contents = f.readlines()
-            with open(config_file, 'w') as f:
-                f.write("# The path to the directory to store your backup in. This should be located on \n# an external drive, which usually is mounted in /mnt or /media.\n")
-                f.write(f"backup-dir = \"{backup_dir}\"\n")
-                f.write("\n")
-                f.write("".join(contents))
-
     def setup_backup_dir(self):
         if self.config.backup_dir:
             return
@@ -310,7 +283,6 @@ class Action:
             ok, reason = self.check_backup_dir(backup_dir)
             if ok:
                 print("OK.")
-                self.persist_backup_dir(backup_dir)
                 break
             else:
                 print(f"Failed. ", end="")
@@ -321,8 +293,7 @@ class Action:
                     self.node_manager.down()
                     raise FatalError("Backup directory not available")
 
-        if self.config.backup_dir != backup_dir:
-            self.config.backup_dir = backup_dir
+        self.config.backup_dir = backup_dir
 
     def is_backup_available(self):
         if self.config.backup_dir is None:
