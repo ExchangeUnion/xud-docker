@@ -125,7 +125,7 @@ class Lnd(Node):
                 synced_to_chain = info["synced_to_chain"]
                 total = info["block_height"]
                 current = self.get_current_height()
-                if synced_to_chain:
+                if synced_to_chain or total <= current:
                     msg = "Ready"
                 else:
                     msg = "Syncing"
