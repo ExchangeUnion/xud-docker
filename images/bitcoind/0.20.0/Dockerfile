@@ -1,5 +1,5 @@
-FROM alpine:3.11.5 as builder
-ARG VERSION=0.19.1
+FROM alpine:3.11 as builder
+ARG VERSION=0.20.0
 RUN apk --no-cache add musl-dev g++ make autoconf automake libtool pkgconfig boost-dev libressl-dev libevent-dev zeromq-dev
 WORKDIR /tmp
 RUN wget https://bitcoin.org/bin/bitcoin-core-$VERSION/bitcoin-$VERSION.tar.gz
@@ -12,7 +12,7 @@ RUN make install
 RUN strip /usr/local/bin/bitcoind /usr/local/bin/bitcoin-cli
 
 
-FROM alpine:3.11.5
+FROM alpine:3.11
 RUN apk --no-cache add boost-system boost-filesystem boost-chrono boost-thread libevent libressl zeromq bash
 COPY --from=builder /usr/local/bin/bitcoind /usr/local/bin/bitcoin-cli /usr/local/bin/
 ENTRYPOINT ["bitcoind"]
