@@ -130,12 +130,12 @@ class Lnd(Node):
                         msg = "Ready"
                     else:
                         msg = "Syncing"
-                    p = current / total * 100
-                    if p > 0.005:
-                        p = p - 0.005
-                    else:
-                        p = 0
-                    msg += " %.2f%% (%d/%d)" % (p, current, total)
+                        p = current / total * 100
+                        if p > 0.005:
+                            p = p - 0.005
+                        else:
+                            p = 0
+                        msg += " %.2f%% (%d/%d)" % (p, current, total)
                 else:
                     if synced_to_chain:
                         msg = "Ready"
