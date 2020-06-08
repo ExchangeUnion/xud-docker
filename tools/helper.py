@@ -610,7 +610,7 @@ class ImageBundle:
         outdated = False
         if manifests:
             for key in self.images.keys():
-                if manifests[key] != digests[key]:
+                if key not in manifests or manifests[key] != digests[key]:
                     outdated = True
                     break
         else:

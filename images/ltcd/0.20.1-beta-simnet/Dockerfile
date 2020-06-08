@@ -8,7 +8,7 @@ RUN git apply /tmp/patches/ltcd.patch
 RUN go install -v . ./cmd/...
 
 
-FROM alpine:3.11.5
+FROM alpine:3.11
 RUN apk add --no-cache bash
 COPY --from=builder /go/bin/ltcd /go/bin/ltcctl /usr/local/bin/
 COPY entrypoint.sh /
