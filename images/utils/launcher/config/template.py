@@ -163,7 +163,7 @@ nodes_config = {
         },
         "geth": {
             "name": "geth",
-            "image": "exchangeunion/geth:1.9.14",
+            "image": "exchangeunion/geth:1.9.15",
             "volumes": [
                 {
                     "host": "$data_dir/geth",
@@ -286,7 +286,7 @@ nodes_config = {
         },
         "geth": {
             "name": "geth",
-            "image": "exchangeunion/geth:1.9.14",
+            "image": "exchangeunion/geth:1.9.15",
             "volumes": [
                 {
                     "host": "$data_dir/geth",
