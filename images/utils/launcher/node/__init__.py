@@ -222,7 +222,7 @@ class NodeManager:
                 print("- Image %s: %s" % (image.name, image.status_message))
                 outdated = True
             elif status == "UNAVAILABLE":
-                all_unavailable_images = [x for x in images if x.status == "NOT_FOUND"]
+                all_unavailable_images = [x for x in images if x.status == "UNAVAILABLE"]
                 raise FatalError("Image(s) not available: %r" % all_unavailable_images)
 
         # Step 2. check all containers
