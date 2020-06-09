@@ -77,6 +77,8 @@ class Connext(Node):
         status = info["connext"]["status"]
         if status == "Ready":
             return "Ready"
+        elif "ECONNREFUSED" in status:
+            return "Can't connect to Connext node"
         else:
             return "Starting..."
 
