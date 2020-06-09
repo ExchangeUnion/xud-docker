@@ -59,10 +59,14 @@ write_config() {
     sed -i "/\[p2p/,/^$/s/port.*/port = $P2P_PORT/" $XUD_CONF
     sed -i '/\[p2p/,/^$/s/tor = .*/tor = true/' $XUD_CONF
     sed -i '/\[p2p/,/^$/s/torport.*/torport = 9050/' $XUD_CONF
-    sed -i '/\[raiden/,/^$/s/host.*/host = "raiden"/' $XUD_CONF
-    sed -i "/\[raiden/,/^$/s|^$|keystorepath = \"$KEYSTORE_DIR\"\n|" $XUD_CONF
+    sed -i '/\[raiden/,/^$/s/disable.*/disable = true/' $XUD_CONF
     sed -i '/\[rpc/,/^$/s/host.*/host = "0.0.0.0"/' $XUD_CONF
     sed -i "/\[rpc/,/^$/s/port.*/port = $RPC_PORT/" $XUD_CONF
+    sed -i '/\[connext/,/^$/s/disable.*/disable = false/' $XUD_CONF
+    sed -i '/\[connext/,/^$/s/host.*/host = "connext"/' $XUD_CONF
+    sed -i '/\[connext/,/^$/s/port.*/port = 5040/' $XUD_CONF
+    sed -i '/\[connext/,/^$/s/webhookhost.*/webhookhost = "xud"/' $XUD_CONF
+    sed -i "/\[connext/,/^$/s/webhookport.*/webhookport = $HTTP_PORT/" $XUD_CONF
 }
 
 if [[ $XUD_REWRITE_CONFIG || ! -e $XUD_CONF ]]; then
