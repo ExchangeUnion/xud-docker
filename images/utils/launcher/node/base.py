@@ -459,6 +459,8 @@ class Node:
         except NotFound:
             if config["mode"] != "native":
                 return "external", None
+            if self.disabled:
+                return "up-to-date", None
             return "missing", None
 
     def update(self, check_result):
