@@ -1,5 +1,6 @@
+from __future__ import annotations
 import logging
-from typing import Dict
+from typing import Dict, TYPE_CHECKING
 import platform
 from datetime import datetime
 from urllib.request import urlopen, Request
@@ -16,6 +17,8 @@ from docker.errors import ImageNotFound
 
 from ..utils import parallel_execute, get_useful_error_message
 from ..errors import FatalError
+if TYPE_CHECKING:
+    from .base import Node
 
 
 def get_line(record):
@@ -71,13 +74,14 @@ class ImageMetadata:
 
 
 class Image:
-    def __init__(self, repo: str, tag: str, branch: str, client: DockerClient):
+    def __init__(self, repo: str, tag: str, branch: str, client: DockerClient, node: Node):
         self.logger = logging.getLogger("launcher.node.Image")
         self.id = None
         self.repo = repo
         self.tag = tag
         self.branch = branch
         self.client = client
+        self.node = node
 
         self.local_metadata = self.fetch_local_metadata()
         self.cloud_metadata = None
@@ -277,7 +281,7 @@ class ImageManager:
             else:
                 return "library/" + name + ":latest"
 
-    def get_image(self, name: str) -> Image:
+    def get_image(self, name: str, node: Node) -> Image:
         """Get Image object by name. The name cloud be like "alpine",
         "alpine:3.11" or "exchangeunion/bitcoind:0.20.0". The same normalized
         name will always get the same Image object.
@@ -297,25 +301,15 @@ class ImageManager:
             repo = m.group(1)
             tag = m.group(2)
             if name not in self.images:
-                self.images[name] = Image(repo, tag, self.branch, self.client)
+                self.images[name] = Image(repo, tag, self.branch, self.client, node)
             return self.images[name]
         else:
             raise FatalError("Invalid image name: " + name)
 
     def check_for_updates(self) -> List[Image]:
         images = list(self.images.values())
-        
-        def check_for_light_setup(images, name):
-            if name in self.nodes:
-                if self.nodes[name]['mode'] != 'native':
-                    for image in images:
-                        if name in image.name:
-                            images.remove(image)
-            return images
-        
-        images = check_for_light_setup(images, 'bitcoind')
-        images = check_for_light_setup(images, 'litecoind')
-        images = check_for_light_setup(images, 'geth')
+
+        images = [image for image in images if image.node.mode == "native" and not image.node.disabled]
 
         def print_failed(failed):
             print("Failed to check for image updates.")

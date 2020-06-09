@@ -123,7 +123,7 @@ class Node:
 
     @property
     def image(self) -> Image:
-        return self.image_manager.get_image(self.node_config["image"])
+        return self.image_manager.get_image(self.node_config["image"], self)
 
     @property
     def mode(self) -> str:
@@ -132,6 +132,13 @@ class Node:
     @property
     def container_name(self) -> str:
         return f"{self.network}_{self.name}_1"
+
+    @property
+    def disabled(self) -> bool:
+        result = False
+        if "disabled" in self.node_config:
+            result = self.node_config["disabled"]
+        return result
 
     def _get_ports(self, spec_ports: Dict):
         ports = []
@@ -436,8 +443,11 @@ class Node:
         try:
             container = self.client.containers.get(self.container_name)
 
-            if config["mode"] != "native":
+            if self.mode != "native":
                 return "external_with_container", None
+
+            if self.disabled:
+                return "disabled_with_container", None
 
             same, details = self.compare(container)
 
@@ -449,6 +459,8 @@ class Node:
         except NotFound:
             if config["mode"] != "native":
                 return "external", None
+            if self.disabled:
+                return "disabled", None
             return "missing", None
 
     def update(self, check_result):
@@ -463,7 +475,7 @@ class Node:
             container.stop()
             container.remove()
             self._container = self.create_container()
-        elif status == "external_with_container":
+        elif status == "external_with_container" or status == "disabled_with_container":
             print("Removing %s..." % self.container_name)
             container = self.get_container()
             assert container is not None
