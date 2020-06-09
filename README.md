@@ -3,7 +3,7 @@
 [![Discord](https://img.shields.io/discord/547402601885466658.svg)](https://discord.gg/YgDhMSn)
 [![Docker Pulls](https://img.shields.io/docker/pulls/exchangeunion/xud)](https://hub.docker.com/r/exchangeunion/xud)
 
-A complete [xud](https://github.com/ExchangeUnion/xud) environment using [docker](https://www.docker.com/) targeted at market makers. Follow the 👉 [market maker guide](https://docs.exchangeunion.com/start-earning/market-maker-guide) 👈!
+A complete [xud](https://github.com/ExchangeUnion/xud) environment targeted at market makers using [docker](https://www.docker.com/). Follow the 👉 [market maker guide](https://docs.exchangeunion.com/start-earning/market-maker-guide) 👈
 
 ## Developing
 
