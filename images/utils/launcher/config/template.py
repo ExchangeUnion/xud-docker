@@ -378,8 +378,8 @@ general_config = {
     "testnet": {
         "eth_providers": [
             "http://eth.kilrau.com:52041",
-            "http://michael1011.at:8546"
-            "http://gethxudxv2k4pv5t5a5lswq2hcv3icmj3uwg7m2n2vuykiyv77legiad.onion:8546",
+            "http://michael1011.at:8546",
+            "http://gethxudxv2k4pv5t5a5lswq2hcv3icmj3uwg7m2n2vuykiyv77legiad.onion:8546"
         ]
     },
     "mainnet": {
