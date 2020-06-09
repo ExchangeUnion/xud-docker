@@ -14,9 +14,12 @@ class Arby(Node):
         super().__init__(name, ctx)
 
         if self.network == "simnet":
-            api_key = self.node_config["binance-api-key"]
-            api_secret = self.node_config["binance-api-secret"]
-            margin = self.node_config["margin"]
+            api_key = self.node_config["binance-api-key"] \
+                if "binance-api-key" in self.node_config else ""
+            api_secret = self.node_config["binance-api-secret"] \
+                if "binance-api-secret" in self.node_config else ""
+            margin = self.node_config["margin"] \
+                if "margin" in self.node_config else ""
             environment = [
                 "LOG_LEVEL=debug",
                 "DATA_DIR=/root/.arby",
