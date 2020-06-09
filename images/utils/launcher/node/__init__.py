@@ -272,7 +272,7 @@ class NodeManager:
             print("All up-to-date.")
             return
 
-        all_containers_missing = functools.reduce(lambda a, b: a and b[0] in ["missing", "external", "external_with_container"], container_check_result.values(), True)
+        all_containers_missing = functools.reduce(lambda a, b: a and b[0] in ["missing", "external", "disabled"], container_check_result.values(), True)
 
         if all_containers_missing:
             answer = "yes"
