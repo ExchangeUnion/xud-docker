@@ -1,6 +1,7 @@
 from .base import Node, CliBackend, CliError
 import json
 import re
+from datetime import datetime, timedelta
 
 
 class InvalidChain(Exception):
@@ -104,7 +105,8 @@ class Lnd(Node):
     def get_current_height(self):
         try:
             c = self.get_container()
-            lines = c.logs().decode().splitlines()
+            since = datetime.now() - timedelta(hours=1)
+            lines = c.logs(since=since).decode().splitlines()
             p = re.compile(r".*New block: height=(\d+),.*")
             for line in reversed(lines):
                 m = p.match(line)
