@@ -94,6 +94,7 @@ class Context:
     shell: Shell
     client: docker.DockerClient
     image_manager: ImageManager
+    node_manager: 'NodeManager'
 
 
 class NodeNotFound(Exception):
@@ -112,7 +113,7 @@ class NodeManager:
         self.branch = self.config.branch
         self.network = self.config.network
 
-        ctx = Context(self.config, self.shell, self.client, self.image_manager)
+        ctx = Context(self.config, self.shell, self.client, self.image_manager, self)
 
         self.nodes = {name: globals()[name.capitalize()](name, ctx) for name in self.config.nodes}
         self.docker_network = self.create_docker_network()

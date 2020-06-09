@@ -72,7 +72,7 @@ class Connext(Node):
         self.api = ConnextApi(CliBackend(self.client, self.container_name, self._logger, self._cli))
 
     def get_xud_getinfo_connext_status(self):
-        xud = self.config.nodes["xud"]
+        xud = self.node_manager.nodes["xud"]
         info = xud.api.getinfo()
         status = info["connext"]["status"]
         if status == "Ready":
