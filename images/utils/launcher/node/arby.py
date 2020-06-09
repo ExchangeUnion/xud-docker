@@ -1,11 +1,13 @@
 from .base import Node, CliBackend, CliError
 
+
 class ArbyApi:
     def __init__(self, backend):
         self._backend = backend
 
     def is_healthy(self):
-        return result == ""
+        return True
+
 
 class Arby(Node):
     def __init__(self, name, ctx):
