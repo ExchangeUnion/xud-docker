@@ -78,9 +78,9 @@ class Xud(Node):
                 if "xud is locked" in str(e):
                     return "Wallet locked. Unlock with xucli unlock."
                 elif "no such file or directory, open '/root/.xud/tls.cert'" in str(e):
-                    return "starting..."
+                    return "Starting..."
                 elif "xud is starting" in str(e):
-                    return "starting..."
+                    return "Starting..."
                 else:
                     return str(e)
             except:
