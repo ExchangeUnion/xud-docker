@@ -156,7 +156,7 @@ class Action:
             name = f"lndbtc"
         else:
             name = f"lndltc"
-        for i in range(10):
+        for i in range(100):
             if self.lnd_ready(chain):
                 self.logger.debug(f"{name.capitalize()} is ready")
                 return
@@ -164,6 +164,29 @@ class Action:
         raise RuntimeError(f"{name.capitalize()} took too long to be ready")
 
     def ensure_layer2_ready(self) -> None:
+        client = docker.from_env()
+        xud: Container = client.containers.get(f"{self.network}_xud_1")
+        cmd = "xucli getinfo -j"
+
+        xud_ok = False
+
+        # Error: ENOENT: no such file or directory, open '/root/.xud/tls.cert'
+        # xud is starting... try again in a few seconds
+        # xud is locked, run 'xucli unlock', 'xucli create', or 'xucli restore' then try again
+        while True:
+            exit_code, output = xud.exec_run(cmd)
+            self.logger.debug("[Execute] %s: exit_code=%s, output=%s", cmd, exit_code, output)
+            if exit_code == 0:
+                xud_ok = True
+                break
+            if exit_code == 1 and "xud is locked" in output.decode():
+                break
+            time.sleep(3)
+        self.logger.debug("Xud is ready")
+
+        if xud_ok:
+            return
+
         with ThreadPoolExecutor(max_workers=2) as executor:
             f1 = executor.submit(self.ensure_lnd_ready, "bitcoin")
             f2 = executor.submit(self.ensure_lnd_ready, "litecoin")
@@ -177,21 +200,6 @@ class Action:
                 f2.result()
             except Exception as e:
                 raise FatalError("Failed to wait for lndltc to be ready") from e
-
-        client = docker.from_env()
-        xud: Container = client.containers.get(f"{self.network}_xud_1")
-        cmd = "xucli getinfo -j"
-
-        # Error: ENOENT: no such file or directory, open '/root/.xud/tls.cert'
-        # xud is starting... try again in a few seconds
-        # xud is locked, run 'xucli unlock', 'xucli create', or 'xucli restore' then try again
-        while True:
-            exit_code, output = xud.exec_run(cmd)
-            self.logger.debug("[Execute] %s: exit_code=%s, output=%s", cmd, exit_code, output)
-            if exit_code == 0 or (exit_code == 1 and "xud is locked" in output.decode()):
-                break
-            time.sleep(3)
-        self.logger.debug("Xud is ready")
 
     def xucli_create_wrapper(self, xud):
         counter = 0
