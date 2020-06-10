@@ -4,4 +4,4 @@ set -euo pipefail
 
 cd "$(dirname "$0")"
 
-python3 helper.py push "$@"
+python3 helper.py release "$@"
