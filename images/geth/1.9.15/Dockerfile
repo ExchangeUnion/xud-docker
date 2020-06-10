@@ -6,7 +6,7 @@ RUN git clone -b $VERSION https://github.com/ethereum/go-ethereum.git /go-ethere
 WORKDIR /go-ethereum
 RUN make geth
 
-FROM alpine:3.11
+FROM alpine:3.12
 RUN apk add --no-cache ca-certificates bash
 COPY --from=builder /go-ethereum/build/bin/geth /usr/local/bin/
 COPY entrypoint.sh rinkeby-peers.txt mainnet-peers.txt /

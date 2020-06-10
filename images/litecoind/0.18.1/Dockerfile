@@ -1,4 +1,4 @@
-FROM alpine:3.11 as builder
+FROM alpine:3.12 as builder
 ARG VERSION=0.18.1
 RUN apk --no-cache add musl-dev g++ make autoconf automake libtool pkgconfig boost-dev libressl-dev libevent-dev zeromq-dev
 WORKDIR /tmp
@@ -16,7 +16,7 @@ RUN make install
 RUN strip /usr/local/bin/litecoind /usr/local/bin/litecoin-cli
 
 
-FROM alpine:3.11
+FROM alpine:3.12
 RUN apk --no-cache add boost-system boost-filesystem boost-chrono boost-thread libevent libressl zeromq bash
 COPY --from=builder /usr/local/bin/litecoind /usr/local/bin/litecoin-cli /usr/local/bin/
 ADD entrypoint.sh /

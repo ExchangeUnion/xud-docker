@@ -291,7 +291,7 @@ class ImageManager:
 
     def get_image(self, name: str, node: Node) -> Image:
         """Get Image object by name. The name cloud be like "alpine",
-        "alpine:3.11" or "exchangeunion/bitcoind:0.20.0". The same normalized
+        "alpine:3.12" or "exchangeunion/bitcoind:0.20.0". The same normalized
         name will always get the same Image object.
 
         The name normalization examples:

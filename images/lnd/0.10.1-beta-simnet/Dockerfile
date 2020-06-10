@@ -1,4 +1,4 @@
-FROM golang:1.13-alpine3.11 as builder
+FROM golang:1.13-alpine3.12 as builder
 RUN apk add --no-cache bash git make gcc musl-dev
 ARG VERSION=v0.10.1-beta
 RUN wget https://github.com/lightningnetwork/lnd/releases/download/$VERSION/lnd-source-$VERSION.tar.gz
@@ -20,7 +20,7 @@ RUN go install -v -mod=vendor -tags="chainrpc experimental invoicesrpc routerrpc
 RUN strip /go/bin/lnd /go/bin/lncli
 
 
-FROM alpine:3.11
+FROM alpine:3.12
 RUN apk add --no-cache bash tor
 COPY --from=builder /go/bin/lnd /go/bin/lncli /usr/local/bin/
 COPY entrypoint.sh /
