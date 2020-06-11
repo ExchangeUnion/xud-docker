@@ -65,7 +65,7 @@ class GithubTemplate:
         self._client = GithubClient()
 
     def get_branch_head_revision(self, name: str, branch: str) -> Optional[str]:
-        raise NotImplementedError  # TODO
+        return self._client.get_revision(name, branch)
 
     def expand_short_sha(self, sha: str) -> str:
         return self._client.get_commit(sha)["sha"]
