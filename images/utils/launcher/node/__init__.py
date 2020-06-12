@@ -12,6 +12,7 @@ from docker.types import IPAMConfig, IPAMPool
 
 from .arby import Arby
 from .base import Node
+from .boltz import Boltz
 from .bitcoind import Bitcoind, Litecoind
 from .btcd import Btcd, Ltcd
 from .connext import Connext

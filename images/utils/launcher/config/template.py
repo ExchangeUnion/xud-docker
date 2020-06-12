@@ -292,6 +292,28 @@ nodes_config = {
             "mode": "native",
             "preserve_config": False,
             "use_local_image": False,
+        },
+        "boltz": {
+            "name": "boltz",
+            "image": "exchangeunion/boltz:latest",
+            "volumes": [
+                {
+                    "host": "$data_dir/boltz",
+                    "container": "/root/.boltz",
+                },
+                {
+                    "host": "$data_dir/lndbtc",
+                    "container": "/root/.lndbtc",
+                },
+                {
+                    "host": "$data_dir/lndltc",
+                    "container": "/root/.lndltc",
+                },
+            ],
+            "ports": [PortPublish("9002"), PortPublish("9003")],
+            "mode": "native",
+            "preserve_config": False,
+            "use_local_image": False,
         }
     },
     "mainnet": {

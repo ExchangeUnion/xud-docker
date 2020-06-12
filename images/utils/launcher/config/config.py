@@ -471,6 +471,10 @@ class Config:
         node = self.nodes["ltcd"]
         self.update_ports(node, parsed)
 
+    def update_boltz(self, parsed):
+        node = self.nodes["boltz"]
+        self.update_ports(node, parsed)
+
     def parse_network_config(self):
         network = self.network
 

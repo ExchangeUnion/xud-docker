@@ -88,6 +88,8 @@ your issue.""")
                 self.node_manager.cli("geth", *args)
             elif arg0 == "xucli":
                 self.node_manager.cli("xud", *args)
+            elif arg0 == "boltzcli":
+                self.node_manager.cli("boltz", *args)
             else:
                 self.delegate_cmd_to_xucli(cmd)
         except NodeNotFound as e:
