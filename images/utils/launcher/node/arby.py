@@ -14,13 +14,15 @@ class Arby(Node):
         super().__init__(name, ctx)
 
         api_key = self.node_config["binance-api-key"] \
-            if "binance-api-key" in self.node_config else ""
+            if "binance-api-key" in self.node_config else "123"
         api_secret = self.node_config["binance-api-secret"] \
-            if "binance-api-secret" in self.node_config else ""
+            if "binance-api-secret" in self.node_config else "abc"
         margin = self.node_config["margin"] \
-            if "margin" in self.node_config else ""
+            if "margin" in self.node_config else "0.04"
         environment = [
-            "LOG_LEVEL=debug",
+            "LOG_LEVEL=trace",
+            "BASEASSET=ETH",
+            "QUOTEASSET=BTC",
             "DATA_DIR=/root/.arby",
             "OPENDEX_CERT_PATH=/root/.xud/tls.cert",
             "OPENDEX_RPC_HOST=xud",
@@ -37,5 +39,5 @@ class Arby(Node):
 
     def status(self):
         status = super().status()
-        status = "Hello, Arby."
+        status = "Ready"
         return status
