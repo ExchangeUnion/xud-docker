@@ -2,8 +2,6 @@ FROM node:12-alpine3.11 AS builder
 ARG REPO=ExchangeUnion/xud
 ARG BRANCH=master
 RUN apk add --no-cache git rsync bash musl-dev go python3 make g++
-# This is a "hack" to automatically invalidate the cache in case there are new commits
-ADD https://api.github.com/repos/$REPO/commits/$BRANCH /dev/null
 RUN git clone -b $BRANCH --depth=2 https://github.com/$REPO
 WORKDIR /xud
 RUN npm install
