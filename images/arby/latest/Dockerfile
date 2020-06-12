@@ -7,7 +7,7 @@ ADD https://api.github.com/repos/$REPO/commits/$BRANCH /dev/null
 RUN git clone -b $BRANCH --depth=2 https://github.com/$REPO /arby
 # lock arby container down to specific commit hash
 WORKDIR /arby
-RUN git checkout 27c13412eef222778a96d1a3aa7081fb85501807
+RUN git checkout c777c9c9edb172db16c4bb2310e68194edd53b29
 RUN npm install
 
 FROM node:12-alpine3.11
