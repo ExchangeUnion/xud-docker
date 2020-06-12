@@ -15,12 +15,11 @@ if TYPE_CHECKING:
     from .toolkit import Platform, Context
 
 
-
 class Image:
     def __init__(self, context: Context, name: str):
         self._logger = logging.getLogger("core.Image(%s)" % name)
         self.context = context
-        p = re.compile(r"^([a-z0-9\-]+):([a-z0-9\-_]+)$")
+        p = re.compile(r"^(.+):(.+)$")
         m = p.match(name)
         if m:
             self.name = m.group(1)
@@ -196,7 +195,7 @@ class Image:
             errmsg = "Failed to append application branch and revision labels to the image: {}".format(build_tag)
             self.run_command(cmd, errmsg)
 
-    def _build_platform(self, platform: Platform, no_cache: bool = False) -> None:
+    def _build_platform(self, platform: Platform, no_cache: bool = False) -> bool:
         prefix = "[_build_platform] ({})".format(platform)
         build_tag = self.get_build_tag(self.branch, platform)
 
@@ -205,11 +204,11 @@ class Image:
 
         if self._skip_build(platform, unmodified_history):
             self._logger.debug("%s Skip building", prefix)
-            if platform == self.context.current_platform:
+            if platform == self.context.current_platform and "TRAVIS_BRANCH" not in os.environ:
                 tag = self.get_build_tag(self.branch)
                 self.run_command(f"docker pull {tag}", "Failed to pull " + tag)
                 self.run_command(f"docker tag {tag} {build_tag}", "Failed to re-tag " + tag)
-            return
+            return False
 
         self.print_title("Building {}".format(self.name), "{} ({})".format(self.tag, platform.tag_suffix))
 
@@ -251,15 +250,20 @@ class Image:
             for f in shared_files:
                 os.remove("{}/{}".format(build_dir, f))
 
-    def build(self, no_cache: bool = False) -> None:
+        return True
+
+    def build(self, no_cache: bool = False) -> [Platform]:
         os.chdir(self.context.project_dir + "/images")
+        result = []
         for p in self.context.platforms:
-            self._build_platform(p, no_cache=no_cache)
+            if self._build_platform(p, no_cache=no_cache):
+                result.append(p)
+        return result
 
     def push(self, no_cache: bool = False, dirty_push: bool = False) -> None:
-        self.build(no_cache=no_cache)
+        platforms = self.build(no_cache=no_cache)
 
-        for platform in self.context.platforms:
+        for platform in platforms:
             tag = self.get_build_tag(self.branch, platform)
             cmd = "docker push {}".format(tag)
             output = self.run_command(cmd, "Failed to push " + tag)
@@ -318,3 +322,6 @@ class Image:
             sys.exit(1)
 
         return output.decode()
+
+    def __repr__(self):
+        return "<Image name=%r tag=%r branch=%r>" % (self.name, self.tag, self.branch)

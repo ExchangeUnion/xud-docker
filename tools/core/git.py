@@ -111,6 +111,8 @@ class GitTemplate:
                 assert m
                 folders.add("{}/{}".format(m.group(1), m.group(2)))
 
+        folders = [folder for folder in folders if os.path.exists("images/" + folder)]
+
         return sorted(folders)
 
     def _get_modified_since_commit(self, commit: str) -> List[str]:
