@@ -111,6 +111,8 @@ class Config:
         parser.add_argument("--arby.margin")
         parser.add_argument("--arby.disabled", nargs='?')
 
+        parser.add_argument("--boltz.disabled", nargs='?')
+
         parser.add_argument("--use-local-images")
         parser.add_argument("--dev", action="store_true")
 
@@ -491,6 +493,10 @@ class Config:
         :param parsed: Parsed ltcd TOML section
         """
         node = self.nodes["ltcd"]
+        self.update_ports(node, parsed)
+
+    def update_boltz(self, parsed):
+        node = self.nodes["boltz"]
         self.update_ports(node, parsed)
 
     def parse_network_config(self):
