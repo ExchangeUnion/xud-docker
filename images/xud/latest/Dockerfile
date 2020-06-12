@@ -1,6 +1,6 @@
 FROM node:12-alpine3.11 AS builder
 ARG REPO=ExchangeUnion/xud
-ARG BRANCH=dummy
+ARG BRANCH=master
 RUN apk add --no-cache git rsync bash musl-dev go python3 make g++
 RUN git clone -b $BRANCH --depth=2 https://github.com/$REPO
 WORKDIR /xud
