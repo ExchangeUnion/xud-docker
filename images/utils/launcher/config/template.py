@@ -143,7 +143,21 @@ nodes_config = {
             "mode": "native",
             "preserve_config": False,
             "use_local_image": False,
-        }
+        },
+        "webui": {
+            "name": "webui",
+            "image": "exchangeunion/webui:latest",
+            "volumes": [
+                {
+                    "host": "$data_dir/xud",
+                    "container": "/root/.xud",
+                }
+            ],
+            "ports": [PortPublish("8080")],
+            "mode": "native",
+            "preserve_config": False,
+            "use_local_image": False,
+        },
     },
     "testnet": {
         "bitcoind": {
@@ -315,6 +329,15 @@ nodes_config = {
             "mode": "native",
             "preserve_config": False,
             "use_local_image": False,
+        },
+        "webui": {
+            "name": "webui",
+            "image": "exchangeunion/webui:latest",
+            "volumes": [],
+            "ports": [PortPublish("8080")],
+            "mode": "native",
+            "preserve_config": False,
+            "use_local_image": False,
         }
     },
     "mainnet": {
@@ -483,6 +506,15 @@ nodes_config = {
                 },
             ],
             "ports": [PortPublish("8885")],
+            "mode": "native",
+            "preserve_config": False,
+            "use_local_image": False,
+        },
+        "webui": {
+            "name": "webui",
+            "image": "exchangeunion/webui:latest",
+            "volumes": [],
+            "ports": [PortPublish("8080")],
             "mode": "native",
             "preserve_config": False,
             "use_local_image": False,
