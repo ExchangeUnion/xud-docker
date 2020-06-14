@@ -101,6 +101,7 @@ done
     sed -i '/\[connext/,/^$/s/port.*/port = 5040/' $XUD_CONF
     sed -i '/\[connext/,/^$/s/webhookhost.*/webhookhost = "xud"/' $XUD_CONF
     sed -i "/\[connext/,/^$/s/webhookport.*/webhookport = $HTTP_PORT/" $XUD_CONF
+    sed -i "/\[webproxy/,/^$/s/disable.*/disable = false/" $XUD_CONF
 }
 
 echo "[entrypoint] Launch with xud.conf:"
