@@ -437,10 +437,9 @@ class Config:
                 node["margin"] = value
 
         if "disabled" in parsed:
-            if parsed["disabled"]:
-                value = parsed["disabled"]
-                assert isinstance(value, bool)
-                node["disabled"] = value
+            value = parsed["disabled"]
+            assert isinstance(value, bool)
+            node["disabled"] = value
         opt = "arby.disabled"
         if hasattr(self.args, opt):
             value: str = getattr(self.args, opt)
