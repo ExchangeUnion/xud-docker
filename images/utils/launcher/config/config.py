@@ -107,8 +107,7 @@ class Config:
         parser.add_argument("--arby.binance-api-key")
         parser.add_argument("--arby.binance-api-secret")
         parser.add_argument("--arby.margin")
-        parser.add_argument("--arby.disabled", action="store_true")
-        parser.add_argument("--arby", action="store_true")
+        parser.add_argument("--arby.disabled", nargs='?')
 
         self.args = parser.parse_args()
         self.logger.info("Parsed command-line arguments: %r", self.args)
@@ -444,18 +443,15 @@ class Config:
                 node["disabled"] = value
         opt = "arby.disabled"
         if hasattr(self.args, opt):
-            value = getattr(self.args, opt)
+            value: str = getattr(self.args, opt)
             if value:
+                value = value.strip().lower()
+            if not value or value == "true" or value == "":
                 node["disabled"] = True
-            else:
-                node["disabled"] = False
-        opt = "arby"
-        if hasattr(self.args, opt):
-            value = getattr(self.args, opt)
-            if value:
+            elif value == "false":
                 node["disabled"] = False
             else:
-                node["disabled"] = True
+                raise ValueError("Invalid value of option \"arby.disabled\": {}".format(value))
 
         self.update_ports(node, parsed)
 
