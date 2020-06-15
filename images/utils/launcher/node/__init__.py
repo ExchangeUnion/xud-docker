@@ -163,6 +163,10 @@ class NodeManager:
     def valid_nodes(self):
         return {name: node for name, node in self.nodes.items() if node.mode == "native" and not node.disabled}
 
+    @property
+    def enabled_nodes(self):
+        return {name: node for name, node in self.nodes.items() if not node.disabled}
+
     def up(self):
         self.docker_network = self.create_docker_network()
 
@@ -307,7 +311,7 @@ class NodeManager:
         self.get_node(name).cli(" ".join(args), self.shell)
 
     def status(self):
-        nodes = self.valid_nodes
+        nodes = self.enabled_nodes
         names = list(nodes)
 
         BRIGHT_BLACK = "\033[90m"
