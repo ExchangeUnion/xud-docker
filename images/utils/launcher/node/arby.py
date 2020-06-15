@@ -19,6 +19,14 @@ class Arby(Node):
             if "binance-api-secret" in self.node_config else "abc"
         margin = self.node_config["margin"] \
             if "margin" in self.node_config else "0.04"
+
+        if self.network == "simnet":
+            rpc_port = "28886"
+        elif self.network == "testnet":
+            rpc_port = "18886"
+        else:
+            rpc_port = "8886"
+
         environment = [
             "LOG_LEVEL=trace",
             "BASEASSET=ETH",
@@ -26,7 +34,7 @@ class Arby(Node):
             "DATA_DIR=/root/.arby",
             "OPENDEX_CERT_PATH=/root/.xud/tls.cert",
             "OPENDEX_RPC_HOST=xud",
-            "OPENDEX_RPC_PORT=28886",
+            f"OPENDEX_RPC_PORT={rpc_port}",
             f'BINANCE_API_SECRET={api_secret}',
             f'BINANCE_API_KEY={api_key}',
             f'MARGIN={margin}',
