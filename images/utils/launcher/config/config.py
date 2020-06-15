@@ -397,6 +397,13 @@ class Config:
         node = self.nodes["connext"]
         self.update_ports(node, parsed)
 
+    def update_webui(self, parsed):
+        """Update Connext related configurations from parsed TOML raiden section
+        :param parsed: Parsed raiden TOML section
+        """
+        node = self.nodes.get("webui", None)
+        self.update_ports(node, parsed)
+
     def update_raiden(self, parsed):
         """Update raiden related configurations from parsed TOML raiden section
         :param parsed: Parsed raiden TOML section
