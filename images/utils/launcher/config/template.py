@@ -112,7 +112,7 @@ nodes_config = {
             "ports": [],
             "mode": "native",
             "preserve_config": False,
-            "disabled": False,
+            "disabled": True,
         },
         "xud": {
             "name": "xud",
@@ -253,7 +253,7 @@ nodes_config = {
             "ports": [],
             "mode": "native",
             "preserve_config": False,
-            "disabled": False,
+            "disabled": True,
         },
         "xud": {
             "name": "xud",
@@ -393,7 +393,7 @@ nodes_config = {
             "ports": [],
             "mode": "native",
             "preserve_config": False,
-            "disabled": False,
+            "disabled": True,
         },
         "xud": {
             "name": "xud",
