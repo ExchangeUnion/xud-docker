@@ -1,27 +1,28 @@
+import functools
 import logging
 import os
 import sys
-import functools
 import threading
-import docker
+import time
 from dataclasses import dataclass
+
+import docker
 from docker.errors import NotFound
 from docker.types import IPAMConfig, IPAMPool
-import time
 
+from .arby import Arby
 from .base import Node
 from .bitcoind import Bitcoind, Litecoind
 from .btcd import Btcd, Ltcd
+from .connext import Connext
 from .geth import Geth
+from .image import Image, ImageManager
 from .lnd import Lndbtc, Lndltc
 from .xud import Xud, XudApiError
-from .connext import Connext
-from .image import Image, ImageManager
-
-from ..utils import parallel_execute, get_useful_error_message, get_hostfs_file, ArgumentParser
 from ..config import Config
-from ..shell import Shell
 from ..errors import FatalError
+from ..shell import Shell
+from ..utils import parallel_execute, get_useful_error_message, get_hostfs_file, ArgumentParser
 
 
 class LogsCommand:
@@ -148,7 +149,7 @@ class NodeManager:
 
     def get_node(self, name):
         try:
-            return self.nodes[name]
+            return self.valid_nodes[name]
         except KeyError:
             raise NodeNotFound(name)
 
@@ -158,10 +159,18 @@ class NodeManager:
     def wait_for_channels(self):
         pass
 
+    @property
+    def valid_nodes(self):
+        return {name: node for name, node in self.nodes.items() if node.mode == "native" and not node.disabled}
+
+    @property
+    def enabled_nodes(self):
+        return {name: node for name, node in self.nodes.items() if not node.disabled}
+
     def up(self):
         self.docker_network = self.create_docker_network()
 
-        nodes = self.nodes.values()
+        nodes = self.valid_nodes.values()
 
         def print_failed(failed):
             print("Failed to start these nodes.")
@@ -180,10 +189,12 @@ class NodeManager:
             self.wait_for_channels()
 
     def down(self):
-        for name, container in self.nodes.items():
+        nodes = self.valid_nodes
+
+        for name, container in nodes.items():
             print(f"Stopping {name}...")
             container.stop()
-        for name, container in self.nodes.items():
+        for name, container in nodes.items():
             print(f"Removing {name}...")
             container.remove()
         print(f"Removing network {self.network_name}")
@@ -195,7 +206,9 @@ class NodeManager:
         elif status == "outdated":
             return "outdated"
         elif status == "external_with_container":
-            return "external"
+            return "non-native"
+        elif status == "disabled_with_container":
+            return "disabled"
 
     def _readable_details(self, details):
         if not details:
@@ -247,9 +260,11 @@ class NodeManager:
 
         for container, result in container_check_result.items():
             status, details = result
-            # when internal -> external status will be "external_with_container"
-            # when external -> internal status will be "missing" because we deleted the container before
-            if status in ["missing", "outdated", "external_with_container"]:
+            # when mode internal -> external or others, status will be "external_with_container"
+            # when mode external or others -> internal, status will be "missing" because we deleted the container before
+            # when disabled False -> True, status will be "disabled_with_container"
+            # when disabled True -> False, status will be "missing" because we deleted the container before
+            if status in ["missing", "outdated", "external_with_container", "disabled_with_container"]:
                 readable_details = self._readable_details(details)
                 if readable_details:
                     print("- Container %s: %s (%s)" % (container.container_name, self._display_container_status_text(status), readable_details))
@@ -261,7 +276,7 @@ class NodeManager:
             print("All up-to-date.")
             return
 
-        all_containers_missing = functools.reduce(lambda a, b: a and b[0] in ["missing", "external", "external_with_container"], container_check_result.values(), True)
+        all_containers_missing = functools.reduce(lambda a, b: a and b[0] in ["missing", "external", "disabled"], container_check_result.values(), True)
 
         if all_containers_missing:
             answer = "yes"
@@ -296,7 +311,7 @@ class NodeManager:
         self.get_node(name).cli(" ".join(args), self.shell)
 
     def status(self):
-        nodes = self.nodes
+        nodes = self.enabled_nodes
         names = list(nodes)
 
         BRIGHT_BLACK = "\033[90m"

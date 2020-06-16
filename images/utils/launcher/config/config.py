@@ -104,6 +104,11 @@ class Config:
         parser.add_argument("--connext.expose-ports")
         parser.add_argument("--xud.expose-ports")
 
+        parser.add_argument("--arby.binance-api-key")
+        parser.add_argument("--arby.binance-api-secret")
+        parser.add_argument("--arby.margin")
+        parser.add_argument("--arby.disabled", nargs='?')
+
         self.args = parser.parse_args()
         self.logger.info("Parsed command-line arguments: %r", self.args)
 
@@ -394,6 +399,59 @@ class Config:
         if self.network in ["simnet", "testnet", "mainnet"]:
             return
         node = self.nodes["raiden"]
+        self.update_ports(node, parsed)
+
+    def update_arby(self, parsed):
+        """Update arby related configurations from parsed TOML arby section
+        :param parsed: Parsed xud TOML section
+        """
+        node = self.nodes["arby"]
+        if "binance-api-key" in parsed:
+            if parsed["binance-api-key"]:
+                value = parsed["binance-api-key"]
+                node["binance-api-key"] = value
+        opt = "arby.binance_api_key"
+        if hasattr(self.args, opt):
+            value = getattr(self.args, opt)
+            if value:
+                node["binance-api-key"] = value
+
+        if "binance-api-secret" in parsed:
+            if parsed["binance-api-secret"]:
+                value = parsed["binance-api-secret"]
+                node["binance-api-secret"] = value
+        opt = "arby.binance_api_secret"
+        if hasattr(self.args, opt):
+            value = getattr(self.args, opt)
+            if value:
+                node["binance-api-secret"] = value
+
+        if "margin" in parsed:
+            if parsed["margin"]:
+                value = parsed["margin"]
+                node["margin"] = value
+        opt = "arby.margin"
+        if hasattr(self.args, opt):
+            value = getattr(self.args, opt)
+            if value:
+                node["margin"] = value
+
+        if "disabled" in parsed:
+            value = parsed["disabled"]
+            assert isinstance(value, bool)
+            node["disabled"] = value
+        opt = "arby.disabled"
+        if hasattr(self.args, opt):
+            value: str = getattr(self.args, opt)
+            if value:
+                value = value.strip().lower()
+            if not value or value == "true" or value == "":
+                node["disabled"] = True
+            elif value == "false":
+                node["disabled"] = False
+            else:
+                raise ValueError("Invalid value of option \"arby.disabled\": {}".format(value))
+
         self.update_ports(node, parsed)
 
     def update_xud(self, parsed):
