@@ -212,23 +212,30 @@ class Image:
         except:
             self.logger.exception("Failed to fetch cloud image metadata")
 
+    def fetch_cloud_metadata_wrapper(self):
+        while True:
+            metadata = self.fetch_cloud_metadata()
+            if metadata:
+                return metadata
+            self.logger.exception("Image not found on cloud: %s (retry in 10 seconds)" % self.name)
+            time.sleep(10)
+
     def get_status(self):
-        self.cloud_metadata = self.fetch_cloud_metadata()
+        if self.node.node_config["use_local_image"]:
+            self.cloud_metadata = None
+            return "LOCAL_NEWER"
+
+        self.cloud_metadata = self.fetch_cloud_metadata_wrapper()
         local = self.local_metadata
         cloud = self.cloud_metadata
-        if not local and not cloud:
-            return "UNAVAILABLE"
-        if local and not cloud:
-            return "LOCAL_ONLY"
+        assert cloud
+
         if not local and cloud:
             return "LOCAL_MISSING"
         if local.digest == cloud.digest:
             return "UP_TO_DATE"
         else:
-            if local.created > cloud.created:
-                return "LOCAL_NEWER"
-            else:
-                return "LOCAL_OUTDATED"
+            return "LOCAL_OUTDATED"
 
     @property
     def status_message(self):
