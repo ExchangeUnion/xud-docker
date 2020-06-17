@@ -213,12 +213,13 @@ class Image:
             self.logger.exception("Failed to fetch cloud image metadata")
 
     def fetch_cloud_metadata_wrapper(self):
-        while True:
+        for i in range(3):
             metadata = self.fetch_cloud_metadata()
             if metadata:
                 return metadata
             self.logger.exception("Image not found on cloud: %s (retry in 10 seconds)" % self.name)
             time.sleep(10)
+        raise RuntimeError("Failed to fetch cloud image metadata (3 times): %s" % self.name)
 
     def get_status(self):
         if self.node.node_config["use_local_image"]:
@@ -319,9 +320,14 @@ class ImageManager:
         images = [image for image in images if image.node.mode == "native" and not image.node.disabled]
 
         def print_failed(failed):
+            for image, error in failed:
+                error_message = get_useful_error_message(error)
+                if error_message == "timeout":
+                    raise FatalError("Timeout error: Couldn't connect to Docker to check for updates. Please check your internet connection and https://status.docker.com/.")
             print("Failed to check for image updates.")
             for image, error in failed:
-                print("- {}: {}".format(image.name, get_useful_error_message(error)))
+                error_message = get_useful_error_message(error)
+                print("- {}: {}".format(image.name, error_message))
 
         def try_again():
             answer = self.shell.yes_or_no("Try again?")

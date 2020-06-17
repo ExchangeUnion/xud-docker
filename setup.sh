@@ -183,7 +183,7 @@ function ensure_utils_image() {
     local I_IMG # initial image
 
     if [[ $DEV == "true" ]]; then
-        UTILS_IMG=$(get_branch_image "exchangeunion/utils:$UTILS_TAG")
+        UTILS_IMG=$(get_branch_image "exchangeunion/utils:latest")
         return
     fi
 
