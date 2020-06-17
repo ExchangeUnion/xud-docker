@@ -164,15 +164,7 @@ function get_image_status() {
         return
     fi
 
-    L_CREATED=$(echo "$LOCAL" | sed -n '2p')
-    C_CREATED=$(echo "$CLOUD" | sed -n '2p')
-
-    if [[ $L_CREATED > $C_CREATED ]]; then
-        U_IMG=$B_IMG
-        echo "newer $B_IMG $U_IMG $P_IMG"
-    else
-        echo "outdated $B_IMG $U_IMG $P_IMG"
-    fi
+    echo "outdated $B_IMG $U_IMG $P_IMG"
 }
 
 function pull_image() {

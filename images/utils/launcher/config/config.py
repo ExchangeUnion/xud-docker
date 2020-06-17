@@ -109,6 +109,8 @@ class Config:
         parser.add_argument("--arby.margin")
         parser.add_argument("--arby.disabled", nargs='?')
 
+        parser.add_argument("--use-local-images")
+
         self.args = parser.parse_args()
         self.logger.info("Parsed command-line arguments: %r", self.args)
 
@@ -494,6 +496,14 @@ class Config:
             value = getattr(self.args, opt).strip()
             if len(value) > 0:
                 self.backup_dir = value
+
+        opt = "use_local_images"
+        if hasattr(self.args, opt):
+            value = getattr(self.args, opt).strip()
+            parts = value.split(",")
+            parts = [p.strip() for p in parts]
+            for p in parts:
+                self.nodes[p]["use_local_image"] = True
 
         for node in self.nodes.values():
             name = node["name"]
