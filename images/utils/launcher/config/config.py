@@ -110,6 +110,7 @@ class Config:
         parser.add_argument("--arby.disabled", nargs='?')
 
         parser.add_argument("--use-local-images")
+        parser.add_argument("--dev", action="store_true")
 
         self.args = parser.parse_args()
         self.logger.info("Parsed command-line arguments: %r", self.args)
