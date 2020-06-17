@@ -31,6 +31,8 @@ class GithubClient:
     def get_revision(self, name, branch):
         if name == "xud":
             repo = "ExchangeUnion/xud"
+        elif name == "arby":
+            repo = "ExchangeUnion/market-maker-tools"
         else:
             return None
 
