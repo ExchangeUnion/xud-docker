@@ -9,6 +9,10 @@ A complete [xud](https://github.com/ExchangeUnion/xud) environment targeted at m
 
 The following instructions are geared towards developers, intending to contribute to xud-docker.
 
+### Prerequisites
+
+Python 3.8 (or higher)
+
 ### Initial setup
 
 ```bash
