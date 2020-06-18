@@ -29,10 +29,13 @@ class GithubClient:
             raise RuntimeError(e, "Failed to get GitHub repository {} branch {} revision".format(repo, branch))
 
     def get_revision(self, name, branch):
+        # TODO improve name repo association
         if name == "xud":
             repo = "ExchangeUnion/xud"
         elif name == "arby":
             repo = "ExchangeUnion/market-maker-tools"
+        elif name == "boltz":
+            repo = "BoltzExchange/boltz-lnd"
         else:
             return None
 
