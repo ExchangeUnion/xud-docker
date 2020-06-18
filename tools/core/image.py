@@ -195,22 +195,19 @@ class Image:
             errmsg = "Failed to append application branch and revision labels to the image: {}".format(build_tag)
             self.run_command(cmd, errmsg)
 
-    def _build_platform(self, platform: Platform, no_cache: bool = False) -> bool:
+    def _build_platform(self, platform: Platform, no_cache: bool, force: bool) -> bool:
         prefix = "[_build_platform] ({})".format(platform)
         build_tag = self.get_build_tag(self.branch, platform)
 
         unmodified_history = self.context.get_unmodified_history(self)
         self._logger.debug("%s unmodified_history=%r", prefix, unmodified_history)
 
-        if self._skip_build(platform, unmodified_history):
-            self._logger.debug("%s Skip building", prefix)
-            if platform == self.context.current_platform and "TRAVIS_BRANCH" not in os.environ:
-                tag = self.get_build_tag(self.branch)
-                self.run_command(f"docker pull {tag}", "Failed to pull " + tag)
-                self.run_command(f"docker tag {tag} {build_tag}", "Failed to re-tag " + tag)
-            return False
-
         self.print_title("Building {}".format(self.name), "{} ({})".format(self.tag, platform.tag_suffix))
+
+        if not force and self._skip_build(platform, unmodified_history):
+            print("Image is up-to-date. Skip building.")
+            self._logger.debug("%s Skip building", prefix)
+            return False
 
         build_labels = self.get_labels(unmodified_history)
         build_dir = self.get_build_dir()
@@ -252,11 +249,11 @@ class Image:
 
         return True
 
-    def build(self, no_cache: bool = False) -> [Platform]:
+    def build(self, no_cache: bool = False, force: bool = False) -> [Platform]:
         os.chdir(self.context.project_dir + "/images")
         result = []
         for p in self.context.platforms:
-            if self._build_platform(p, no_cache=no_cache):
+            if self._build_platform(p, no_cache=no_cache, force=force):
                 result.append(p)
         return result
 

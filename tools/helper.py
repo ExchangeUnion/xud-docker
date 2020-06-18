@@ -12,6 +12,7 @@ def main():
     build_parser.add_argument("--dry-run", action="store_true")
     build_parser.add_argument("--cross-build", action="store_true")
     build_parser.add_argument("--no-cache", action="store_true")
+    build_parser.add_argument("-f", "--force", action="store_true")
     build_parser.add_argument("images", type=str, nargs="*")
 
     push_parser = subparsers.add_parser("push")
@@ -33,7 +34,7 @@ def main():
     toolkit = Toolkit(project_dir, ["linux/amd64", "linux/arm64"])
 
     if args.command == "build":
-        toolkit.build(args.images, args.dry_run, args.no_cache, args.cross_build)
+        toolkit.build(args.images, args.dry_run, args.no_cache, args.cross_build, args.force)
     elif args.command == "push":
         toolkit.push(args.images, args.dry_run, args.no_cache, args.cross_build, args.dirty_push)
     elif args.command == "test":
