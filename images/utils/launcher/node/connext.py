@@ -71,12 +71,27 @@ class Connext(Node):
         self._cli = "curl -s"
         self.api = ConnextApi(CliBackend(self.client, self.container_name, self._logger, self._cli))
 
+    def get_xud_getinfo_connext_status(self):
+        xud = self.node_manager.nodes["xud"]
+        info = xud.api.getinfo()
+        status = info["connext"]["status"]
+        if status == "Ready":
+            return "Ready"
+        elif "ECONNREFUSED" in status:
+            return "Can't connect to Connext node"
+        else:
+            return "Starting..."
+
     def status(self):
         status = super().status()
         if status == "exited":
             # TODO: analyze exit reason
             return "Container exited"
         elif status == "running":
+            try:
+                return self.get_xud_getinfo_connext_status()
+            except:
+                self._logger.exception("Failed to get connext status from xud getinfo")
             try:
                 healthy = self.api.is_healthy()
                 if healthy:

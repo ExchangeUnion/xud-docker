@@ -59,6 +59,7 @@ class Node:
         self.client = docker.from_env(timeout=999999999)
         self.config = ctx.config
         self.image_manager = ctx.image_manager
+        self.node_manager = ctx.node_manager
 
         self.name = name
 
