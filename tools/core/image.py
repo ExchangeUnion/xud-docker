@@ -174,7 +174,7 @@ class Image:
         cmd = "docker build {} {}".format(" ".join(args), build_dir)
         self.run_command(cmd, "Failed to build {}".format(build_tag))
 
-        metadata = get_application_metadata(self.name, build_tag, self.context)
+        metadata = get_application_metadata(self.context, self.name, build_tag, build_dir, args)
         labels = []
         if metadata.revision:
             labels.append(f"--label {self.label_prefix}.application.revision={metadata.revision}")
