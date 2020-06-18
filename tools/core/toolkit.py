@@ -121,6 +121,7 @@ class Toolkit:
               dry_run: bool = False,
               no_cache: bool = False,
               cross_build: bool = False,
+              force: bool = False,
               ) -> None:
 
         self._logger.debug("Build with images=%r, dry_run=%r, no_cache=%r, cross_build=%r",
@@ -135,10 +136,10 @@ class Toolkit:
 
         if images:
             for name in images:
-                Image(ctx, name).build(no_cache=no_cache)
+                Image(ctx, name).build(no_cache=no_cache, force=force)
         else:
             for image in self.git_template.get_modified_images(ctx):
-                image.build(no_cache=no_cache)
+                image.build(no_cache=no_cache, force=force)
 
     def push(self,
              images: List[str] = None,
