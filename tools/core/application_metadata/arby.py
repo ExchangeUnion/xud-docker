@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import re
 from subprocess import check_output, PIPE
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, List
 
 from .types import ApplicationMetadata
 
@@ -10,7 +10,7 @@ if TYPE_CHECKING:
     from ..toolkit import Context
 
 
-def get_metadata(build_tag: str, context: Context) -> ApplicationMetadata:
+def get_metadata(context: Context, build_tag: str, build_dir: str, build_args: List[str]) -> ApplicationMetadata:
     ref = None
     branch = None
     revision = None
