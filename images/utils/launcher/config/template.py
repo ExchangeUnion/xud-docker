@@ -73,7 +73,7 @@ nodes_config = {
         },
         "lndltc": {
             "name": "lndltc",
-            "image": "exchangeunion/lnd:0.9.0-beta-ltc-simnet",
+            "image": "exchangeunion/lnd:0.10.1-beta-ltc-simnet",
             "volumes": [
                 {
                     "host": "$data_dir/lndltc",
@@ -222,7 +222,7 @@ nodes_config = {
         },
         "lndltc": {
             "name": "lndltc",
-            "image": "exchangeunion/lnd:0.9.0-beta-ltc",
+            "image": "exchangeunion/lnd:0.10.1-beta-ltc",
             "volumes": [
                 {
                     "host": "$data_dir/lndltc",
@@ -370,7 +370,7 @@ nodes_config = {
         },
         "lndltc": {
             "name": "lndltc",
-            "image": "exchangeunion/lnd:0.9.0-beta-ltc",
+            "image": "exchangeunion/lnd:0.10.1-beta-ltc",
             "volumes": [
                 {
                     "host": "$data_dir/lndltc",
