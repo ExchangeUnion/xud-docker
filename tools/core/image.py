@@ -151,6 +151,14 @@ class Image:
 
         application_revision = manifest.application_revision
         application_branch = manifest.application_branch
+        # TODO improve application_branch association
+        if not application_branch:
+            if self.name == "arby" and self.tag == "latest":
+                application_branch = "master"
+            elif self.name == "boltz" and self.tag == "latest":
+                application_branch = "master"
+            elif self.name == "xud" and self.tag == "latest":
+                application_branch = "master"
         if application_branch:
             upstream_revision = self.context.github_template.get_branch_head_revision(self.name, application_branch)
         else:
