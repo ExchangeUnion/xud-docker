@@ -139,7 +139,7 @@ nodes_config = {
                     "container": "/mnt/hostfs",
                 },
             ],
-            "ports": [PortPublish("28885"), PortPublish("8081:8080")],
+            "ports": [PortPublish("28885")],
             "mode": "native",
             "preserve_config": False,
             "use_local_image": False,
