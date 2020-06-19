@@ -56,8 +56,7 @@ class Lnd(Node):
                 "--routing.assumechanvalid",
                 "--neutrino.connect=btcd.simnet.exchangeunion.com:38555",
                 "--chan-enable-timeout=0m10s",
-                "--max-cltv-expiry=5000",
-                "--autopilot.active false",
+                "--max-cltv-expiry=5000"
             ]
         if self.chain == "litecoin":
             # nohup lnd-ltc --noseedbackup --rpclisten=127.0.0.1:10001 --listen=127.0.0.1:10011 --restlisten=8001 --datadir=./data --logdir=./logs --nobootstrap --no-macaroons --litecoin.active --litecoin.simnet --debuglevel=debug --alias="LTC@$xname" --litecoin.node neutrino --neutrino.connect btcd.simnet.exchangeunion.com:39555 --chan-enable-timeout=0m10s --max-cltv-expiry=20000 > /dev/null 2>&1 &
@@ -73,8 +72,7 @@ class Lnd(Node):
                 "--routing.assumechanvalid",
                 "--neutrino.connect=btcd.simnet.exchangeunion.com:39555",
                 "--chan-enable-timeout=0m10s",
-                "--max-cltv-expiry=20000",
-                "--autopilot.active false",
+                "--max-cltv-expiry=20000"
             ]
 
     def get_environment(self):
