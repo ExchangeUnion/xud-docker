@@ -1,7 +1,7 @@
 from .base import Node
 
 
-class Webui(Node):
+class Envoy(Node):
     def __init__(self, name, ctx):
         super().__init__(name, ctx)
 

@@ -152,6 +152,15 @@ nodes_config = {
             "mode": "native",
             "preserve_config": False,
             "use_local_image": False,
+        },
+        "envoy": {
+            "name": "envoy",
+            "image": "exchangeunion/envoy:latest",
+            "volumes": [],
+            "ports": [PortPublish("9090")],
+            "mode": "native",
+            "preserve_config": False,
+            "use_local_image": False,
         }
     },
     "testnet": {

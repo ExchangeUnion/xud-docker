@@ -391,17 +391,24 @@ class Config:
         self.update_ports(node, parsed)
 
     def update_connext(self, parsed):
-        """Update Connext related configurations from parsed TOML raiden section
+        """Update Connext related configurations from parsed TOML connext section
         :param parsed: Parsed raiden TOML section
         """
         node = self.nodes["connext"]
         self.update_ports(node, parsed)
 
     def update_webui(self, parsed):
-        """Update Connext related configurations from parsed TOML raiden section
+        """Update webui related configurations from parsed TOML webui section
         :param parsed: Parsed raiden TOML section
         """
         node = self.nodes.get("webui", None)
+        self.update_ports(node, parsed)
+
+    def update_envoy(self, parsed):
+        """Update envoy related configurations from parsed TOML envoy section
+        :param parsed: Parsed raiden TOML section
+        """
+        node = self.nodes.get("envoy", None)
         self.update_ports(node, parsed)
 
     def update_raiden(self, parsed):
