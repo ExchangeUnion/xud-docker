@@ -150,15 +150,13 @@ class Image:
             return False
 
         application_revision = manifest.application_revision
-        self._logger.debug("%s application_revision=%r", prefix, application_revision)
-        if not application_revision:
-            return True
-
         application_branch = manifest.application_branch
-        self._logger.debug("%s application_branch=%r", prefix, application_branch)
-
-        upstream_revision = self.context.github_template.get_branch_head_revision(self.name, application_branch)
-        self._logger.debug("%s upstream_revision=%r", prefix, upstream_revision)
+        if application_branch:
+            upstream_revision = self.context.github_template.get_branch_head_revision(self.name, application_branch)
+        else:
+            upstream_revision = None
+        self._logger.debug("%s application_revision=%r application_branch=%r, upstream_revision=%r",
+                           prefix, application_revision, application_branch, upstream_revision)
         if not upstream_revision:
             return True
 
