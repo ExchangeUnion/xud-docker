@@ -276,9 +276,9 @@ class Action:
         if self.network == "simnet":
             self.lnd_cfheaders["bitcoin"] = CFHeaderState()
             self.lnd_cfheaders["litecoin"] = CFHeaderState()
-        elif "bitcoind" in nodes and nodes["bitcoind"]["mode"] in ["neutrino", "light"]:
+        if "bitcoind" in nodes and nodes["bitcoind"]["mode"] in ["neutrino", "light"]:
             self.lnd_cfheaders["bitcoin"] = CFHeaderState()
-        elif "litecoind" in nodes and nodes["litecoind"]["mode"] in ["neutrino", "light"]:
+        if "litecoind" in nodes and nodes["litecoind"]["mode"] in ["neutrino", "light"]:
             self.lnd_cfheaders["litecoin"] = CFHeaderState()
 
         if len(self.lnd_cfheaders) > 0:
