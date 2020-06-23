@@ -27,10 +27,7 @@ class Action:
     def __init__(self, node_manager: NodeManager):
         self.logger = logging.getLogger("launcher.CheckWalletsAction")
         self.node_manager = node_manager
-        self.lnd_cfheaders = {
-            "bitcoin": CFHeaderState(),
-            "litecoin": CFHeaderState(),
-        }
+        self.lnd_cfheaders = {}
 
     @property
     def shell(self):
@@ -157,31 +154,38 @@ class Action:
         return "%.2f%% (%d/%d)" % (p, current, total)
 
     def _print_lnd_cfheaders(self, erase_last_line=True):
+        services = {}
+
+        if "bitcoin" in self.lnd_cfheaders:
+            lndbtc = self.lnd_cfheaders["bitcoin"]
+            services["lndbtc"] = "Syncing " + self._get_percentage(lndbtc.current, lndbtc.total)
+
+        if "litecoin" in self.lnd_cfheaders:
+            lndltc = self.lnd_cfheaders["litecoin"]
+            services["lndltc"] = "Syncing " + self._get_percentage(lndltc.current, lndltc.total)
+
+        table = ServiceTable(services)
+        table_str = str(table)
         if erase_last_line:
-            print("\033[7F", end="", flush=True)
-        lndbtc = self.lnd_cfheaders["bitcoin"]
-        lndltc = self.lnd_cfheaders["litecoin"]
-        table = ServiceTable({
-            "lndbtc": "Syncing " + self._get_percentage(lndbtc.current, lndbtc.total),
-            "lndltc": "Syncing " + self._get_percentage(lndltc.current, lndltc.total),
-        })
-        print(table)
+            print("\033[%dF" % len(table_str.splitlines()), end="", flush=True)
+        print(table_str)
 
     def lnd_ready(self, chain: LndChain) -> bool:
         network = self.node_manager.config.network
         client = docker.from_env()
         if chain == "bitcoin":
             name = f"{network}_lndbtc_1"
+            layer1_node = "bitcoind"
         else:
             name = f"{network}_lndltc_1"
+            layer1_node = "litecoind"
         lnd: Container = client.containers.get(name)
         assert lnd.status == "running"
 
         nodes = self.config.nodes
 
         # Wait for lnd synced_to_chain = true
-        if "bitcoind" in nodes and nodes["bitcoind"]["mode"] in ["neutrino", "light"] \
-                or "litecoind" in nodes and nodes["litecoind"]["mode"] in ["neutrino", "light"] \
+        if layer1_node in nodes and nodes[layer1_node]["mode"] in ["neutrino", "light"] \
                 or self.config.network == "simnet":
             started_at = lnd.attrs["State"]["StartedAt"]  # e.g. 2020-06-22T17:26:01.541780733Z
             started_at = started_at.split(".")[0]
@@ -265,8 +269,18 @@ class Action:
         if xud_ok:
             return
 
-        print("Syncing light clients:")
-        self._print_lnd_cfheaders(erase_last_line=False)
+        nodes = self.config.nodes
+        if self.network == "simnet":
+            self.lnd_cfheaders["bitcoin"] = CFHeaderState()
+            self.lnd_cfheaders["litecoin"] = CFHeaderState()
+        elif "bitcoind" in nodes and nodes["bitcoind"]["mode"] in ["neutrino", "light"]:
+            self.lnd_cfheaders["bitcoin"] = CFHeaderState()
+        elif "litecoind" in nodes and nodes["litecoind"]["mode"] in ["neutrino", "light"]:
+            self.lnd_cfheaders["litecoin"] = CFHeaderState()
+
+        if len(self.lnd_cfheaders) > 0:
+            print("Syncing light clients:")
+            self._print_lnd_cfheaders(erase_last_line=False)
 
         with ThreadPoolExecutor(max_workers=2) as executor:
             f1 = executor.submit(self.ensure_lnd_ready, "bitcoin")
