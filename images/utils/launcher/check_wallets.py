@@ -13,6 +13,7 @@ from .node.xud import PasswordNotMatch, InvalidPassword, MnemonicNot24Words
 from .utils import normalize_path, get_hostfs_file
 from .errors import FatalError
 from .types import LndChain, XudNetwork
+from .table import ServiceTable
 
 
 class CFHeaderState:
@@ -156,12 +157,15 @@ class Action:
         return "%.2f%% (%d/%d)" % (p, current, total)
 
     def _print_lnd_cfheaders(self, erase_last_line=True):
+        if erase_last_line:
+            print("\033[7F", end="", flush=True)
         lndbtc = self.lnd_cfheaders["bitcoin"]
         lndltc = self.lnd_cfheaders["litecoin"]
-        line = "lndbtc %s lndltc %s" % (self._get_percentage(lndbtc.current, lndbtc.total), self._get_percentage(lndltc.current, lndltc.total))
-        if erase_last_line:
-            line = "\033[1F\033[K" + line
-        print(line)
+        table = ServiceTable({
+            "lndbtc": "Syncing " + self._get_percentage(lndbtc.current, lndbtc.total),
+            "lndltc": "Syncing " + self._get_percentage(lndltc.current, lndltc.total),
+        })
+        print(table)
 
     def lnd_ready(self, chain: LndChain) -> bool:
         network = self.node_manager.config.network
@@ -261,6 +265,7 @@ class Action:
         if xud_ok:
             return
 
+        print("Syncing light clients:")
         self._print_lnd_cfheaders(erase_last_line=False)
 
         with ThreadPoolExecutor(max_workers=2) as executor:
