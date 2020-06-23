@@ -185,39 +185,40 @@ class Action:
         nodes = self.config.nodes
 
         # Wait for lnd synced_to_chain = true
-        if layer1_node in nodes and nodes[layer1_node]["mode"] in ["neutrino", "light"] \
-                or self.config.network == "simnet":
-            started_at = lnd.attrs["State"]["StartedAt"]  # e.g. 2020-06-22T17:26:01.541780733Z
-            started_at = started_at.split(".")[0]
-            t_utc = datetime.strptime(started_at, "%Y-%m-%dT%H:%M:%S")
-            t_local = datetime.fromtimestamp(t_utc.timestamp())
+        if self.node_manager.newly_installed:
+            if layer1_node in nodes and nodes[layer1_node]["mode"] in ["neutrino", "light"] \
+                    or self.config.network == "simnet":
+                started_at = lnd.attrs["State"]["StartedAt"]  # e.g. 2020-06-22T17:26:01.541780733Z
+                started_at = started_at.split(".")[0]
+                t_utc = datetime.strptime(started_at, "%Y-%m-%dT%H:%M:%S")
+                t_local = datetime.fromtimestamp(t_utc.timestamp())
 
-            p0 = re.compile(r"^.*Fully caught up with cfheaders at height (\d+), waiting at tip for new blocks$")
-            if self.config.network == "simnet":
-                p1 = re.compile(r"^.*Writing cfheaders at height=(\d+) to next checkpoint$")
-            else:
-                p1 = re.compile(r"^.*Fetching set of checkpointed cfheaders filters from height=(\d+).*$")
-            p2 = re.compile(r"^.*Syncing to block height (\d+) from peer.*$")
-
-            for line in lnd.logs(stream=True, follow=True, since=t_local):
-                line = line.decode().strip()
-                self.logger.debug("<%s> %s", name, line)
-                m = p0.match(line)
-                if m:
-                    self.lnd_cfheaders[chain].current = int(m.group(1))
-                    self.lnd_cfheaders[chain].ready = True
-                    self._print_lnd_cfheaders()
-                    break
+                p0 = re.compile(r"^.*Fully caught up with cfheaders at height (\d+), waiting at tip for new blocks$")
+                if self.config.network == "simnet":
+                    p1 = re.compile(r"^.*Writing cfheaders at height=(\d+) to next checkpoint$")
                 else:
-                    m = p1.match(line)
+                    p1 = re.compile(r"^.*Fetching set of checkpointed cfheaders filters from height=(\d+).*$")
+                p2 = re.compile(r"^.*Syncing to block height (\d+) from peer.*$")
+
+                for line in lnd.logs(stream=True, follow=True, since=t_local):
+                    line = line.decode().strip()
+                    self.logger.debug("<%s> %s", name, line)
+                    m = p0.match(line)
                     if m:
                         self.lnd_cfheaders[chain].current = int(m.group(1))
+                        self.lnd_cfheaders[chain].ready = True
                         self._print_lnd_cfheaders()
+                        break
                     else:
-                        m = p2.match(line)
+                        m = p1.match(line)
                         if m:
-                            self.lnd_cfheaders[chain].total = int(m.group(1))
+                            self.lnd_cfheaders[chain].current = int(m.group(1))
                             self._print_lnd_cfheaders()
+                        else:
+                            m = p2.match(line)
+                            if m:
+                                self.lnd_cfheaders[chain].total = int(m.group(1))
+                                self._print_lnd_cfheaders()
 
         cmd = f"lncli -n {network} -c {chain} getinfo"
         try:
@@ -273,17 +274,18 @@ class Action:
             return
 
         nodes = self.config.nodes
-        if self.network == "simnet":
-            self.lnd_cfheaders["bitcoin"] = CFHeaderState()
-            self.lnd_cfheaders["litecoin"] = CFHeaderState()
-        if "bitcoind" in nodes and nodes["bitcoind"]["mode"] in ["neutrino", "light"]:
-            self.lnd_cfheaders["bitcoin"] = CFHeaderState()
-        if "litecoind" in nodes and nodes["litecoind"]["mode"] in ["neutrino", "light"]:
-            self.lnd_cfheaders["litecoin"] = CFHeaderState()
+        if self.node_manager.newly_installed:
+            if self.network == "simnet":
+                self.lnd_cfheaders["bitcoin"] = CFHeaderState()
+                self.lnd_cfheaders["litecoin"] = CFHeaderState()
+            if "bitcoind" in nodes and nodes["bitcoind"]["mode"] in ["neutrino", "light"]:
+                self.lnd_cfheaders["bitcoin"] = CFHeaderState()
+            if "litecoind" in nodes and nodes["litecoind"]["mode"] in ["neutrino", "light"]:
+                self.lnd_cfheaders["litecoin"] = CFHeaderState()
 
-        if len(self.lnd_cfheaders) > 0:
-            print("Syncing light clients:")
-            self._print_lnd_cfheaders(erase_last_line=False)
+            if len(self.lnd_cfheaders) > 0:
+                print("Syncing light clients:")
+                self._print_lnd_cfheaders(erase_last_line=False)
 
         with ThreadPoolExecutor(max_workers=2) as executor:
             f1 = executor.submit(self.ensure_lnd_ready, "bitcoin")
@@ -299,7 +301,8 @@ class Action:
             except Exception as e:
                 raise FatalError("Failed to wait for lndltc to be ready") from e
 
-        print()
+        if self.node_manager.newly_installed:
+            print()
 
     def xucli_create_wrapper(self, xud):
         counter = 0
