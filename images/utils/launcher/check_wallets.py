@@ -193,7 +193,10 @@ class Action:
             t_local = datetime.fromtimestamp(t_utc.timestamp())
 
             p0 = re.compile(r"^.*Fully caught up with cfheaders at height (\d+), waiting at tip for new blocks$")
-            p1 = re.compile(r"^.*Writing cfheaders at height=(\d+) to next checkpoint$")
+            if self.config.network == "simnet":
+                p1 = re.compile(r"^.*Writing cfheaders at height=(\d+) to next checkpoint$")
+            else:
+                p1 = re.compile(r"^.*Fetching set of checkpointed cfheaders filters from height=(\d+).*$")
             p2 = re.compile(r"^.*Syncing to block height (\d+) from peer.*$")
 
             for line in lnd.logs(stream=True, follow=True, since=t_local):
