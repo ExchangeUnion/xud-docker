@@ -8,7 +8,7 @@ ADD https://api.github.com/repos/$REPO/commits/$BRANCH /dev/null
 RUN git clone -b $BRANCH --depth=2 https://github.com/$REPO /connext
 # lock connext container down to specific commit hash
 WORKDIR /connext
-RUN git checkout b58fa301f041af579fc374e25bc51dc726e3dda8
+RUN git checkout 32a25fc0d25fb3a6b1733435d45f5b5e85b0bcf1
 RUN npm install
 RUN npm run build
 
