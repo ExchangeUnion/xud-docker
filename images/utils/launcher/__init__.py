@@ -91,6 +91,8 @@ your issue.""")
             elif arg0 == "boltzcli":
                 self.node_manager.cli("boltz", *args)
             elif arg0 == "deposit":
+                if len(args) == 0:
+                    print("Missing chain")
                 chain = args[0]
                 args = args[1:]
                 if chain == "btc":
@@ -98,6 +100,8 @@ your issue.""")
                 elif chain == "ltc":
                     self.node_manager.cli("boltz", "ltc", "deposit", *args)
             elif arg0 == "withdraw":
+                if len(args) == 0:
+                    print("Missing chain")
                 chain = args[0]
                 args = args[1:]
                 if chain == "btc":
