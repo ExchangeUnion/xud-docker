@@ -312,6 +312,7 @@ class NodeManager:
         self.get_node(name).cli(" ".join(args), self.shell)
 
     def status(self):
+        # TODO migrate to ServiceTable
         nodes = self.enabled_nodes
         names = list(nodes)
 

@@ -1,25 +1,33 @@
 import logging
 import sys
 import os
-from subprocess import check_output
-import toml
 import docker
 import time
 from concurrent.futures import ThreadPoolExecutor
 from docker.models.containers import Container
 from datetime import datetime
+import re
 
 from .node import NodeManager
 from .node.xud import PasswordNotMatch, InvalidPassword, MnemonicNot24Words
 from .utils import normalize_path, get_hostfs_file
 from .errors import FatalError
 from .types import LndChain, XudNetwork
+from .table import ServiceTable
+
+
+class CFHeaderState:
+    def __init__(self):
+        self.current = 0
+        self.total = 0
+        self.ready = False
 
 
 class Action:
     def __init__(self, node_manager: NodeManager):
         self.logger = logging.getLogger("launcher.CheckWalletsAction")
         self.node_manager = node_manager
+        self.lnd_cfheaders = {}
 
     @property
     def shell(self):
@@ -132,17 +140,95 @@ class Action:
             except Exception as e:
                 raise RuntimeError("Failed to restart xud") from e
 
+    @staticmethod
+    def _get_percentage(current, total):
+        if total == 0:
+            return "0.00%% (%d/%d)" % (current, total)
+        if current >= total:
+            return "100.00%% (%d/%d)" % (current, total)
+        p = current / total * 100
+        if p > 0.005:
+            p = p - 0.005
+        else:
+            p = 0
+        return "%.2f%% (%d/%d)" % (p, current, total)
+
+    def _print_lnd_cfheaders(self, erase_last_line=True):
+        services = {}
+
+        if "bitcoin" in self.lnd_cfheaders:
+            lndbtc = self.lnd_cfheaders["bitcoin"]
+            services["lndbtc"] = "Syncing " + self._get_percentage(lndbtc.current, lndbtc.total)
+
+        if "litecoin" in self.lnd_cfheaders:
+            lndltc = self.lnd_cfheaders["litecoin"]
+            services["lndltc"] = "Syncing " + self._get_percentage(lndltc.current, lndltc.total)
+
+        table = ServiceTable(services)
+        table_str = str(table)
+        if erase_last_line:
+            print("\033[%dF" % len(table_str.splitlines()), end="", flush=True)
+        print(table_str)
+
     def lnd_ready(self, chain: LndChain) -> bool:
         network = self.node_manager.config.network
         client = docker.from_env()
         if chain == "bitcoin":
             name = f"{network}_lndbtc_1"
+            layer1_node = "bitcoind"
         else:
             name = f"{network}_lndltc_1"
+            layer1_node = "litecoind"
         lnd: Container = client.containers.get(name)
+        assert lnd.status == "running"
+
+        nodes = self.config.nodes
+
+        # Wait for lnd synced_to_chain = true
+        if self.node_manager.newly_installed:
+            if layer1_node in nodes and nodes[layer1_node]["mode"] in ["neutrino", "light"] \
+                    or self.config.network == "simnet":
+                started_at = lnd.attrs["State"]["StartedAt"]  # e.g. 2020-06-22T17:26:01.541780733Z
+                started_at = started_at.split(".")[0]
+                t_utc = datetime.strptime(started_at, "%Y-%m-%dT%H:%M:%S")
+                t_local = datetime.fromtimestamp(t_utc.timestamp())
+
+                p0 = re.compile(r"^.*Fully caught up with cfheaders at height (\d+), waiting at tip for new blocks$")
+                if self.config.network == "simnet":
+                    p1 = re.compile(r"^.*Writing cfheaders at height=(\d+) to next checkpoint$")
+                else:
+                    p1 = re.compile(r"^.*Fetching set of checkpointed cfheaders filters from height=(\d+).*$")
+                p2 = re.compile(r"^.*Syncing to block height (\d+) from peer.*$")
+
+                for line in lnd.logs(stream=True, follow=True, since=t_local):
+                    line = line.decode().strip()
+                    self.logger.debug("<%s> %s", name, line)
+                    m = p0.match(line)
+                    if m:
+                        self.lnd_cfheaders[chain].current = int(m.group(1))
+                        self.lnd_cfheaders[chain].ready = True
+                        self._print_lnd_cfheaders()
+                        break
+                    else:
+                        m = p1.match(line)
+                        if m:
+                            self.lnd_cfheaders[chain].current = int(m.group(1))
+                            self._print_lnd_cfheaders()
+                        else:
+                            m = p2.match(line)
+                            if m:
+                                self.lnd_cfheaders[chain].total = int(m.group(1))
+                                self._print_lnd_cfheaders()
+
         cmd = f"lncli -n {network} -c {chain} getinfo"
-        exit_code, output = lnd.exec_run(cmd)
-        self.logger.debug("[Execute] %s: exit_code=%s, output=%s", cmd, exit_code, output)
+        try:
+            exit_code, output = lnd.exec_run(cmd)
+            self.logger.debug("[Execute] %s: exit_code=%s, output=%s", cmd, exit_code, output)
+        except:
+            self.logger.exception("Failed to exec \"%s\" in container %s", cmd, name)
+            return False
+
+
         # [lncli] open /root/.lnd/tls.cert: no such file or directory
         # [lncli] unable to read macaroon path (check the network setting!): open /root/.lnd/data/chain/bitcoin/testnet/admin.macaroon: no such file or directory
         # [lncli] Wallet is encrypted. Please unlock using 'lncli unlock', or set password using 'lncli create' if this is the first time starting lnd.
@@ -187,6 +273,20 @@ class Action:
         if xud_ok:
             return
 
+        nodes = self.config.nodes
+        if self.node_manager.newly_installed:
+            if self.network == "simnet":
+                self.lnd_cfheaders["bitcoin"] = CFHeaderState()
+                self.lnd_cfheaders["litecoin"] = CFHeaderState()
+            if "bitcoind" in nodes and nodes["bitcoind"]["mode"] in ["neutrino", "light"]:
+                self.lnd_cfheaders["bitcoin"] = CFHeaderState()
+            if "litecoind" in nodes and nodes["litecoind"]["mode"] in ["neutrino", "light"]:
+                self.lnd_cfheaders["litecoin"] = CFHeaderState()
+
+            if len(self.lnd_cfheaders) > 0:
+                print("Syncing light clients:")
+                self._print_lnd_cfheaders(erase_last_line=False)
+
         with ThreadPoolExecutor(max_workers=2) as executor:
             f1 = executor.submit(self.ensure_lnd_ready, "bitcoin")
             f2 = executor.submit(self.ensure_lnd_ready, "litecoin")
@@ -200,6 +300,9 @@ class Action:
                 f2.result()
             except Exception as e:
                 raise FatalError("Failed to wait for lndltc to be ready") from e
+
+        if self.node_manager.newly_installed:
+            print()
 
     def xucli_create_wrapper(self, xud):
         counter = 0
