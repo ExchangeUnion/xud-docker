@@ -94,16 +94,16 @@ your issue.""")
                 chain = args[0]
                 args = args[1:]
                 if chain == "btc":
-                    self.node_manager.cli("boltz", "boltzcli", "btc", "deposit", *args)
+                    self.node_manager.cli("boltz", "btc", "deposit", *args)
                 elif chain == "ltc":
-                    self.node_manager.cli("boltz", "boltzcli", "ltc", "deposit", *args)
+                    self.node_manager.cli("boltz", "ltc", "deposit", *args)
             elif arg0 == "withdraw":
                 chain = args[0]
                 args = args[1:]
                 if chain == "btc":
-                    self.node_manager.cli("boltz", "boltzcli", "btc", "withdraw", *args)
+                    self.node_manager.cli("boltz", "btc", "withdraw", *args)
                 elif chain == "ltc":
-                    self.node_manager.cli("boltz", "boltzcli", "ltc", "withdraw", *args)
+                    self.node_manager.cli("boltz", "ltc", "withdraw", *args)
             else:
                 self.delegate_cmd_to_xucli(cmd)
         except NodeNotFound as e:
