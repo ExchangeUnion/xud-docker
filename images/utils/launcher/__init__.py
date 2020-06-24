@@ -90,6 +90,20 @@ your issue.""")
                 self.node_manager.cli("xud", *args)
             elif arg0 == "boltzcli":
                 self.node_manager.cli("boltz", *args)
+            elif arg0 == "deposit":
+                chain = args[0]
+                args = args[1:]
+                if chain == "btc":
+                    self.node_manager.cli("boltz", "boltzcli", "btc", "deposit", *args)
+                elif chain == "ltc":
+                    self.node_manager.cli("boltz", "boltzcli", "ltc", "deposit", *args)
+            elif arg0 == "withdraw":
+                chain = args[0]
+                args = args[1:]
+                if chain == "btc":
+                    self.node_manager.cli("boltz", "boltzcli", "btc", "withdraw", *args)
+                elif chain == "ltc":
+                    self.node_manager.cli("boltz", "boltzcli", "ltc", "withdraw", *args)
             else:
                 self.delegate_cmd_to_xucli(cmd)
         except NodeNotFound as e:
