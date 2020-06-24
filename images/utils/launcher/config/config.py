@@ -425,7 +425,7 @@ class Config:
             if parsed["test-centralized-quoteasset-balance"]:
                 value = parsed["test-centralized-quoteasset-balance"]
                 node["test-centralized-quoteasset-balance"] = value
-        opt = "arby.test-centralized-quoteasset-balance"
+        opt = "arby.test_centralized_quoteasset_balance"
         if hasattr(self.args, opt):
             value = getattr(self.args, opt)
             if value:
