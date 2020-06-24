@@ -19,6 +19,10 @@ class Arby(Node):
             if "binance-api-secret" in self.node_config else "abc"
         margin = self.node_config["margin"] \
             if "margin" in self.node_config else "0.04"
+        test_centralized_baseasset_balance = self.node_config["test-centralized-baseasset-balance"] \
+            if "test-centralized-baseasset-balance" in self.node_config else "123"
+        test_centralized_quoteasset_balance = self.node_config["test-centralized-quoteasset-balance"] \
+            if "test-centralized-baseasset-balance" in self.node_config else "321"
 
         if self.network == "simnet":
             rpc_port = "28886"
@@ -38,6 +42,8 @@ class Arby(Node):
             f'BINANCE_API_SECRET={api_secret}',
             f'BINANCE_API_KEY={api_key}',
             f'MARGIN={margin}',
+            f'TEST_CENTRALIZED_EXCHANGE_BASEASSET_BALANCE={test_centralized_baseasset_balance}',
+            f'TEST_CENTRALIZED_EXCHANGE_QUOTEASSET_BALANCE={test_centralized_quoteasset_balance}',
         ]
 
         self.container_spec.environment.extend(environment)

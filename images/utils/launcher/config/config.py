@@ -104,6 +104,8 @@ class Config:
         parser.add_argument("--connext.expose-ports")
         parser.add_argument("--xud.expose-ports")
 
+        parser.add_argument("--arby.test-centralized-baseasset-balance")
+        parser.add_argument("--arby.test-centralized-quoteasset-balance")
         parser.add_argument("--arby.binance-api-key")
         parser.add_argument("--arby.binance-api-secret")
         parser.add_argument("--arby.margin")
@@ -409,6 +411,26 @@ class Config:
         :param parsed: Parsed xud TOML section
         """
         node = self.nodes["arby"]
+        if "test-centralized-baseasset-balance" in parsed:
+            if parsed["test-centralized-baseasset-balance"]:
+                value = parsed["test-centralized-baseasset-balance"]
+                node["test-centralized-baseasset-balance"] = value
+        opt = "arby.test_centralized_baseasset_balance"
+        if hasattr(self.args, opt):
+            value = getattr(self.args, opt)
+            if value:
+                node["test-centralized-baseasset-balance"] = value
+
+        if "test-centralized-quoteasset-balance" in parsed:
+            if parsed["test-centralized-quoteasset-balance"]:
+                value = parsed["test-centralized-quoteasset-balance"]
+                node["test-centralized-quoteasset-balance"] = value
+        opt = "arby.test_centralized_quoteasset_balance"
+        if hasattr(self.args, opt):
+            value = getattr(self.args, opt)
+            if value:
+                node["test-centralized-quoteasset-balance"] = value
+
         if "binance-api-key" in parsed:
             if parsed["binance-api-key"]:
                 value = parsed["binance-api-key"]
