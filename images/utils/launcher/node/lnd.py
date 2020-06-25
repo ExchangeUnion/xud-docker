@@ -51,10 +51,11 @@ class Lnd(Node):
                 "--maxbackoff=24h",
                 "--bitcoin.active",
                 "--bitcoin.simnet",
-                "--bitcoin.node=neutrino",
-                "--bitcoin.defaultchanconfs=6",
-                "--routing.assumechanvalid",
-                "--neutrino.connect=btcd.simnet.exchangeunion.com:38555",
+                "--bitcoin.node=btcd",
+                "--btcd.rpchost=35.231.222.142",
+                "--btcd.rpcuser=xu",
+                "--btcd.rpcpass=xu",
+                "--btcd.rpccert=/root/.lnd/rpc.cert",
                 "--chan-enable-timeout=0m10s",
                 "--max-cltv-expiry=5000"
             ]
@@ -67,10 +68,11 @@ class Lnd(Node):
                 "--maxbackoff=24h",
                 "--litecoin.active",
                 "--litecoin.simnet",
-                "--litecoin.node=neutrino",
-                "--litecoin.defaultchanconfs=6",
-                "--routing.assumechanvalid",
-                "--neutrino.connect=btcd.simnet.exchangeunion.com:39555",
+                "--litecoin.node=ltcd",
+                "--ltcd.rpchost=35.231.222.142",
+                "--ltcd.rpcuser=xu",
+                "--ltcd.rpcpass=xu",
+                "--ltcd.rpccert=/root/.lnd/rpc.cert",
                 "--chan-enable-timeout=0m10s",
                 "--max-cltv-expiry=20000"
             ]
