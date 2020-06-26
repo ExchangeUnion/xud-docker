@@ -35,6 +35,12 @@ static_resources:
           - name: envoy.grpc_web
           - name: envoy.cors
           - name: envoy.router
+      tls_context:
+        common_tls_context:
+          alpn_protocols: "h2"
+          tls_certificates:
+            - certificate_chain: { filename: "/root/.xud/tls.cert" }
+              private_key: { filename: "/root/.xud/tls.key" }
   clusters:
   - name: xud_service
     connect_timeout: 0.25s

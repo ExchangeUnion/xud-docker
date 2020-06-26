@@ -156,7 +156,12 @@ nodes_config = {
         "envoy": {
             "name": "envoy",
             "image": "exchangeunion/envoy:latest",
-            "volumes": [],
+            "volumes": [
+                {
+                    "host": "$data_dir/xud",
+                    "container": "/root/.xud",
+                },
+            ],
             "ports": [PortPublish("9090")],
             "mode": "native",
             "preserve_config": False,
