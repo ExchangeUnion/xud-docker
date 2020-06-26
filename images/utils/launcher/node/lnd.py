@@ -69,7 +69,7 @@ class Lnd(Node):
                 "--litecoin.active",
                 "--litecoin.simnet",
                 "--litecoin.node=ltcd",
-                "--ltcd.rpchost=35.231.222.142",
+                "--ltcd.rpchost=35.231.222.142:19556",
                 "--ltcd.rpcuser=xu",
                 "--ltcd.rpcpass=xu",
                 "--ltcd.rpccert=/root/.lnd/rpc.cert",
