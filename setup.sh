@@ -5,7 +5,7 @@ set -euo pipefail
 BRANCH=master
 DEV=false
 DOCKER_REGISTRY="https://registry-1.docker.io"
-UTILS_TAG="20.06.17"
+UTILS_TAG="20.06.26"
 
 
 function parse_branch() {
