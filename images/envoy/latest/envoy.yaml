@@ -35,12 +35,7 @@ static_resources:
           - name: envoy.grpc_web
           - name: envoy.cors
           - name: envoy.router
-      tls_context:
-        common_tls_context:
-          alpn_protocols: "h2"
-          tls_certificates:
-            - certificate_chain: { filename: "/root/.xud/tls.cert" }
-              private_key: { filename: "/root/.xud/tls.key" }
+
   clusters:
   - name: xud_service
     connect_timeout: 0.25s
@@ -49,3 +44,11 @@ static_resources:
     lb_policy: round_robin
     # win/mac hosts: Use address: host.docker.internal instead of address: localhost in the line below
     hosts: [{ socket_address: { address: xud, port_value: 28885 }}]
+    transport_socket:
+      name: envoy.transport_sockets.tls
+      typed_config:
+        "@type": type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.UpstreamTlsContext
+        common_tls_context:
+          tls_certificates:
+            - certificate_chain: { filename: "/root/.xud/tls.cert" }
+              private_key: { filename: "/root/.xud/tls.key" }
