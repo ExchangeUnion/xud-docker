@@ -284,7 +284,7 @@ nodes_config = {
                     "container": "/root/.lndltc",
                 },
             ],
-            "ports": [PortPublish("9002"), PortPublish("9003")],
+            "ports": [],
             "mode": "native",
             "preserve_config": False,
             "disabled": False,

@@ -12,15 +12,12 @@ case "$CHAIN" in
         ;;
 
     # Print the help command
+    "")
+        ;&
+    
     "help")
         exec boltzcli help
         exit 0
-        ;;
-
-    # Handle missing/wrong chains
-    "")
-        echo "Missing chain"
-        exit 1
         ;;
 
     *)
