@@ -13,6 +13,8 @@ class Arby(Node):
     def __init__(self, name, ctx):
         super().__init__(name, ctx)
 
+        live_cex = self.node_config["live-cex"] \
+            if "live-cex" in self.node_config else "false"
         api_key = self.node_config["binance-api-key"] \
             if "binance-api-key" in self.node_config else "123"
         api_secret = self.node_config["binance-api-secret"] \
@@ -41,6 +43,7 @@ class Arby(Node):
             f"OPENDEX_RPC_PORT={rpc_port}",
             f'BINANCE_API_SECRET={api_secret}',
             f'BINANCE_API_KEY={api_key}',
+            f'LIVE_CEX={live_cex}',
             f'MARGIN={margin}',
             f'TEST_CENTRALIZED_EXCHANGE_BASEASSET_BALANCE={test_centralized_baseasset_balance}',
             f'TEST_CENTRALIZED_EXCHANGE_QUOTEASSET_BALANCE={test_centralized_quoteasset_balance}',
