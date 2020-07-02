@@ -32,9 +32,9 @@ static_resources:
                 max_age: "1728000"
                 expose_headers: custom-header-1,grpc-status,grpc-message
           http_filters:
-          - name: envoy.cors
-          - name: envoy.grpc_web
-          - name: envoy.router
+          - name: envoy.filters.http.cors
+          - name: envoy.filters.http.grpc_web
+          - name: envoy.filters.http.router
       # If we remove this tls_context section then we will get the error below on grpc-web client
       # upstream connect error or disconnect/reset before headers. reset reason: connection failure
       #
@@ -49,15 +49,6 @@ static_resources:
           tls_certificates:
             - certificate_chain: { filename: "/root/.xud/tls.cert" }
               private_key: { filename: "/root/.xud/tls.key" }
-#      transport_socket:
-#        name: envoy.transport_sockets.tls
-#        typed_config:
-#          "@type": type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.UpstreamTlsContext
-#          common_tls_context:
-#            alpn_protocols: ["h2", "http/1.1"]
-#            tls_certificates:
-#              - certificate_chain: { filename: "/root/.xud/tls.cert" }
-#                private_key: { filename: "/root/.xud/tls.key" }
 
   clusters:
   - name: xud_service
@@ -69,17 +60,17 @@ static_resources:
         keepalive_time: 300
     lb_policy: round_robin
     # win/mac hosts: Use address: host.docker.internal instead of address: localhost in the line below
-    hosts: [{ socket_address: { address: xud, port_value: 28885 }}]
-    transport_socket:
-      name: envoy.transport_sockets.tls
-      typed_config:
-#        "@type": type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.UpstreamTlsContext
-        "@type": type.googleapis.com/envoy.api.v2.auth.UpstreamTlsContext
-        sni: xud
-        common_tls_context:
-#          alpn_protocols: "h2"
-          tls_certificates:
-            - certificate_chain: { filename: "/root/.xud/tls.cert" }
-              private_key: { filename: "/root/.xud/tls.key" }
-#          validation_context:
-#            verify_subject_alt_name: [ xud ]
+    hosts: [{ socket_address: { address: xud, port_value: 28886 }}]
+#    transport_socket:
+#      name: envoy.transport_sockets.tls
+#      typed_config:
+##        "@type": type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.UpstreamTlsContext
+#        "@type": type.googleapis.com/envoy.api.v2.auth.UpstreamTlsContext
+##        sni: xud
+#        common_tls_context:
+##          alpn_protocols: "h2"
+#          tls_certificates:
+#            - certificate_chain: { filename: "/root/.xud/tls.cert" }
+#              private_key: { filename: "/root/.xud/tls.key" }
+##          validation_context:
+##            verify_subject_alt_name: [ xud ]
