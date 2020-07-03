@@ -384,7 +384,7 @@ nodes_config = {
         },
         "connext": {
             "name": "connext",
-            "image": "exchangeunion/connext:latest",
+            "image": "exchangeunion/connext:7.0.0-alpha.10",
             "volumes": [
                 {
                     "host": "$data_dir/connext",
@@ -398,7 +398,7 @@ nodes_config = {
         },
         "arby": {
             "name": "arby",
-            "image": "exchangeunion/arby:latest",
+            "image": "exchangeunion/arby:0.1.0",
             "volumes": [
                 {
                     "host": "$data_dir/arby",
