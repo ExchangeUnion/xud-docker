@@ -77,15 +77,21 @@ def tag_builder_stage(build_tag: str, build_dir:str, build_args: List[str]) -> s
 
 
 def get_metadata(context: Context, name: str, build_tag: str, build_dir: str, build_args: List[str]) -> ApplicationMetadata:
-    project_repo = get_project_repo(name)
-    if not project_repo:
-        return ApplicationMetadata(branch=None, revision=None)
+    try:
+        project_repo = get_project_repo(name)
+        if not project_repo:
+            return ApplicationMetadata(branch=None, revision=None)
 
-    builder_tag = tag_builder_stage(build_tag, build_dir, build_args)
+        builder_tag = tag_builder_stage(build_tag, build_dir, build_args)
 
-    revision = get_git_revision(project_repo, builder_tag)
-    branch = get_git_branch(project_repo, builder_tag)
-    if not branch:
-        branch = get_git_branch_2(project_repo, builder_tag)
+        revision = get_git_revision(project_repo, builder_tag)
+        branch = get_git_branch(project_repo, builder_tag)
+        if not branch:
+            branch = get_git_branch_2(project_repo, builder_tag)
 
-    return ApplicationMetadata(branch=branch, revision=revision)
+        return ApplicationMetadata(branch=branch, revision=revision)
+    except CalledProcessError as e:
+        print(e.cmd)
+        print(e.stdout)
+        print(e.stderr)
+        raise RuntimeError("Failed to get application metadata for " + name) from e
