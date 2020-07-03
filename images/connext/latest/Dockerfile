@@ -6,6 +6,8 @@ RUN apk add --no-cache git bash python3 make g++ python
 ADD https://api.github.com/repos/$REPO/commits/$BRANCH /dev/null
 RUN git clone -b $BRANCH --depth=2 https://github.com/$REPO /connext
 WORKDIR /connext
+# lock connext container down to specific commit hash
+RUN git checkout 58b9227e5c763b60e8c22859a6852d6729af1f72
 RUN npm install
 RUN npm run build
 
