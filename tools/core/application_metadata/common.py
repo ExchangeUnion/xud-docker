@@ -40,6 +40,8 @@ def get_git_revision(project_repo: str, builder_tag: str) -> str:
     cmd = f"docker run -i --rm --workdir {project_repo} --entrypoint git {builder_tag} rev-parse HEAD"
     output = check_output(cmd, shell=True, stderr=PIPE)
     output = output.decode().strip()
+    print(cmd)
+    print(output)
     return output
 
 
