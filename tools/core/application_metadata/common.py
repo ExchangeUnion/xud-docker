@@ -31,6 +31,8 @@ def get_git_branch(project_repo: str, builder_tag: str) -> Optional[str]:
     cmd = f"docker run -i --rm --workdir {project_repo} --entrypoint git {builder_tag} rev-parse --abbrev-ref HEAD"
     output = check_output(cmd, shell=True, stderr=PIPE)
     output = output.decode().strip()
+    print(cmd)
+    print(output)
     if output == "HEAD":
         return None
     return output
