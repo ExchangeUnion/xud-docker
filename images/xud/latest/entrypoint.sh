@@ -108,8 +108,5 @@ cat $XUD_CONF
 
 /xud-backup.sh &
 
-echo '[entrypoint] Detecting localnet IP for xud...'
-XUD_IP=$(getent hosts xud || echo '' | awk '{ print $1 }')
-
 # use exec to properly respond to SIGINT
-exec xud --rpc.tlsextradomains xud --rpc.tlsextraips "$XUD_IP" $@
+exec xud $@
