@@ -333,7 +333,12 @@ nodes_config = {
         "webui": {
             "name": "webui",
             "image": "exchangeunion/webui:latest",
-            "volumes": [],
+            "volumes": [
+                {
+                    "host": "$data_dir/xud",
+                    "container": "/root/.xud",
+                }
+            ],
             "ports": [PortPublish("8080")],
             "mode": "native",
             "preserve_config": False,
@@ -513,7 +518,12 @@ nodes_config = {
         "webui": {
             "name": "webui",
             "image": "exchangeunion/webui:latest",
-            "volumes": [],
+            "volumes": [
+                {
+                    "host": "$data_dir/xud",
+                    "container": "/root/.xud",
+                }
+            ],
             "ports": [PortPublish("8080")],
             "mode": "native",
             "preserve_config": False,
