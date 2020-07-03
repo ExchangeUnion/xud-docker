@@ -27,10 +27,6 @@ def get_project_repo(name: str) -> Optional[str]:
     return None
 
 
-def parse_git_fetch_head():
-    pass
-
-
 def get_git_branch(project_repo: str, builder_tag: str) -> Optional[str]:
     cmd = f"docker run -i --rm --workdir {project_repo} --entrypoint git {builder_tag} rev-parse --abbrev-ref HEAD"
     output = check_output(cmd, shell=True, stderr=PIPE)
