@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import re
 from subprocess import check_output, PIPE, CalledProcessError
-from typing import TYPE_CHECKING, List, Optional
+from typing import TYPE_CHECKING, List, Optional, Tuple
 import logging
 
 from .types import ApplicationMetadata
@@ -27,44 +27,16 @@ def get_project_repo(name: str) -> Optional[str]:
     return None
 
 
-def get_git_branch(project_repo: str, builder_tag: str) -> Optional[str]:
-    cmd = f"docker run -i --rm --workdir {project_repo} --entrypoint git {builder_tag} rev-parse --abbrev-ref HEAD"
+def get_git_revision_branch(project_repo: str, builder_tag: str) -> Tuple[str, str]:
+    cmd = f"docker run -i --rm --workdir {project_repo} --entrypoint git {builder_tag} show HEAD --format='%H%n%D'"
     output = check_output(cmd, shell=True, stderr=PIPE)
     output = output.decode().strip()
-    print(cmd)
-    print(output)
-    if output == "HEAD":
-        return None
-    return output
-
-
-def get_git_revision(project_repo: str, builder_tag: str) -> str:
-    cmd = f"docker run -i --rm --workdir {project_repo} --entrypoint git {builder_tag} rev-parse HEAD"
-    output = check_output(cmd, shell=True, stderr=PIPE)
-    output = output.decode().strip()
-    print(cmd)
-    print(output)
-    return output
-
-
-def get_git_branch_2(project_repo: str, builder_tag: str) -> str:
-    cmd = f"docker run -i --rm --entrypoint cat {builder_tag} {project_repo}/.git/FETCH_HEAD"
-    try:
-        output = check_output(cmd, shell=True, stderr=PIPE)
-    except CalledProcessError as e:
-        logger.exception("Failed to get Git FETCH_HEAD in image %s: %r", builder_tag, e.stderr)
-        raise
-
-    output = output.decode().strip()
-    # output like
-    # 22a3f5135263ab3532b9089de0c4ce910c77b8d3		branch 'master' of https://github.com/ExchangeUnion/market-maker-tools
-    p = re.compile("^(.+)\s+branch '(.+)' of (.+)$")
-    m = p.match(output)
-    assert m, "Regex pattern mismatched. cmd=%r, output=%r, pattern=%r" % (cmd, output, p)
-    revision = m.group(1)
-    branch = m.group(2)
-    repo_url = m.group(3)
-    return branch
+    lines = output.splitlines()
+    revision = lines[0]
+    refs = lines[1].split(", ")
+    branch = [ref for ref in refs if ref.startswith("origin/") and "HEAD" not in ref][0]
+    branch = branch.replace("origin/", "")
+    return revision, branch
 
 
 def tag_builder_stage(build_tag: str, build_dir:str, build_args: List[str]) -> str:
@@ -88,10 +60,7 @@ def get_metadata(context: Context, name: str, build_tag: str, build_dir: str, bu
 
         builder_tag = tag_builder_stage(build_tag, build_dir, build_args)
 
-        revision = get_git_revision(project_repo, builder_tag)
-        branch = get_git_branch(project_repo, builder_tag)
-        if not branch:
-            branch = get_git_branch_2(project_repo, builder_tag)
+        revision, branch = get_git_revision_branch(project_repo, builder_tag)
 
         return ApplicationMetadata(branch=branch, revision=revision)
     except CalledProcessError as e:
