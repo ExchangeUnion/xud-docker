@@ -1,4 +1,4 @@
-FROM golang:1.13-alpine3.12 as builder
+FROM golang:1.14-alpine3.12 as builder
 RUN apk add --no-cache bash git make gcc musl-dev
 ARG VERSION=v0.10.1-beta
 RUN wget https://github.com/lightningnetwork/lnd/releases/download/$VERSION/lnd-source-$VERSION.tar.gz
@@ -9,6 +9,7 @@ RUN tar -xf vendor.tar.gz -C $GOPATH/src/github.com/lightningnetwork/lnd
 WORKDIR $GOPATH/src/github.com/lightningnetwork/lnd
 ENV GO111MODULE=on
 # patching
+RUN apk add --no-cache patch
 ADD patches /patches/
 RUN git apply /patches/limits.patch
 RUN git apply /patches/fundingmanager-btc.patch
