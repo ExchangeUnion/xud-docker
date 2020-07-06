@@ -104,6 +104,7 @@ class Config:
         parser.add_argument("--connext.expose-ports")
         parser.add_argument("--xud.expose-ports")
 
+        parser.add_argument("--arby.live-cex")
         parser.add_argument("--arby.test-centralized-baseasset-balance")
         parser.add_argument("--arby.test-centralized-quoteasset-balance")
         parser.add_argument("--arby.binance-api-key")
@@ -430,6 +431,16 @@ class Config:
             value = getattr(self.args, opt)
             if value:
                 node["test-centralized-quoteasset-balance"] = value
+
+        if "live-cex" in parsed:
+            if parsed["live-cex"]:
+                value = parsed["live-cex"]
+                node["live-cex"] = value
+        opt = "arby.live_cex"
+        if hasattr(self.args, opt):
+            value = getattr(self.args, opt)
+            if value:
+                node["live-cex"] = value
 
         if "binance-api-key" in parsed:
             if parsed["binance-api-key"]:
