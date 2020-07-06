@@ -116,6 +116,7 @@ class Config:
 
         parser.add_argument("--use-local-images")
         parser.add_argument("--dev", action="store_true")
+        parser.add_argument("--webui", action="store_true")
 
         self.args = parser.parse_args()
         self.logger.info("Parsed command-line arguments: %r", self.args)
@@ -406,6 +407,11 @@ class Config:
         """
         node = self.nodes.get("webui", None)
         self.update_ports(node, parsed)
+
+        opt = "webui"
+        if hasattr(self.args, opt):
+            value = getattr(self.args, opt)
+            node["disabled"] = False
 
     def update_raiden(self, parsed):
         """Update raiden related configurations from parsed TOML raiden section

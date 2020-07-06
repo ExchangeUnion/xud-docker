@@ -157,6 +157,7 @@ nodes_config = {
             "mode": "native",
             "preserve_config": False,
             "use_local_image": False,
+            "disabled": True,
         },
     },
     "testnet": {
@@ -343,6 +344,7 @@ nodes_config = {
             "mode": "native",
             "preserve_config": False,
             "use_local_image": False,
+            "disabled": True,
         }
     },
     "mainnet": {
@@ -528,6 +530,7 @@ nodes_config = {
             "mode": "native",
             "preserve_config": False,
             "use_local_image": False,
+            "disabled": True,
         }
     }
 }
