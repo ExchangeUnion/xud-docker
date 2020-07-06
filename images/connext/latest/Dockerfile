@@ -1,7 +1,7 @@
 FROM node:12-alpine3.12 AS builder
 ARG REPO=connext/rest-api-client
 ARG BRANCH=master
-RUN apk add --no-cache git bash python3 make g++ python
+RUN apk add --no-cache git bash python3 make g++
 # This is a "hack" to automatically invalidate the cache in case there are new commits
 ADD https://api.github.com/repos/$REPO/commits/$BRANCH /dev/null
 RUN git clone -b $BRANCH --depth=2 https://github.com/$REPO /connext
