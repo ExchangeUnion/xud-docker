@@ -28,14 +28,16 @@ def get_project_repo(name: str) -> Optional[str]:
 
 
 def get_git_revision_branch(project_repo: str, builder_tag: str) -> Tuple[str, str]:
-    cmd = f"docker run -i --rm --workdir {project_repo} --entrypoint git {builder_tag} show HEAD --format='%H%n%D'"
+    cmd = f"docker run -i --rm --workdir {project_repo} --entrypoint git {builder_tag} show HEAD --format='%H%n%D' -s"
     output = check_output(cmd, shell=True, stderr=PIPE)
     output = output.decode().strip()
     lines = output.splitlines()
     revision = lines[0]
     refs = lines[1].split(", ")
-    branch = [ref for ref in refs if ref.startswith("origin/") and "HEAD" not in ref][0]
+    # e.g. HEAD, tag: v1.0.0-beta.4
+    branch = [ref for ref in refs if (ref.startswith("origin/") or ref.startswith("tag: "))and "HEAD" not in ref][0]
     branch = branch.replace("origin/", "")
+    branch = branch.replace("tag: ", "")
     return revision, branch
 
 
