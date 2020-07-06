@@ -6,6 +6,8 @@ RUN apk add --no-cache git rsync bash musl-dev go python3 make g++
 # Pre-built binaries not found for sqlite3@4.1.0 and node@12.16.1 (node-v72 ABI, musl) (falling back to source compile with node-gyp)
 # python: not found
 RUN apk add --no-cache python
+# This is a "hack" to automatically invalidate the cache in case there are new commits
+ADD https://api.github.com/repos/$REPO/commits/$BRANCH /dev/null
 RUN git clone -b $BRANCH --depth=2 https://github.com/$REPO
 WORKDIR /xud
 RUN cp package.json /tmp/package.json

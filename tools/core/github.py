@@ -28,22 +28,14 @@ class GithubClient:
         except Exception as e:
             raise RuntimeError(e, "Failed to get GitHub repository {} branch {} revision".format(repo, branch))
 
-    def get_revision(self, name, branch):
-        if name == "xud":
-            repo = "ExchangeUnion/xud"
-        elif name == "arby":
-            repo = "ExchangeUnion/market-maker-tools"
+    def get_revision(self, repo: str, branch_or_tag: str) -> Optional[str]:
+        if not repo:
+            return None
+        tag = self.get_tag(repo, branch_or_tag)
+        if tag:
+            return tag
         else:
-            return None
-
-        try:
-            tag = self.get_tag(repo, branch)
-            if tag:
-                return tag
-            else:
-                return self.get_branch_revision(repo, branch)
-        except:
-            return None
+            return self.get_branch_revision(repo, branch_or_tag)
 
     def get_commit(self, ref: str) -> Dict:
         r = urlopen(f"https://api.github.com/repos/ExchangeUnion/xud/commits/{ref}")
@@ -66,8 +58,8 @@ class GithubTemplate:
         self.context = context
         self._client = GithubClient()
 
-    def get_branch_head_revision(self, name: str, branch: str) -> Optional[str]:
-        return self._client.get_revision(name, branch)
+    def get_branch_head_revision(self, repo: str, branch: str) -> Optional[str]:
+        return self._client.get_revision(repo, branch)
 
     def expand_short_sha(self, sha: str) -> str:
         return self._client.get_commit(sha)["sha"]

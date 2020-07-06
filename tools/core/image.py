@@ -4,7 +4,7 @@ import logging
 import os
 import sys
 from shutil import copyfile
-from subprocess import Popen, check_output, PIPE, STDOUT
+from subprocess import Popen, PIPE, STDOUT
 from typing import TYPE_CHECKING, List, Optional
 import re
 
@@ -129,6 +129,20 @@ class Image:
             else:
                 return self.get_existed_dockerfile(f)
 
+    @property
+    def repo(self) -> Optional[str]:
+        # TODO improve name repo association
+        repo = None
+        if self.name == "xud":
+            repo = "ExchangeUnion/xud"
+        elif self.name == "arby":
+            repo = "ExchangeUnion/market-maker-tools"
+        elif self.name == "boltz":
+            repo = "BoltzExchange/boltz-lnd"
+        elif self.name == "connext":
+            repo = "connext/rest-api-client"
+        return repo
+
     def _skip_build(self, platform: Platform, unmodified_history: List[str]) -> bool:
         prefix = "[_skip_build] ({})".format(platform)
         build_tag = self.get_build_tag(self.branch, None)
@@ -159,8 +173,10 @@ class Image:
                 application_branch = "master"
             elif self.name == "xud" and self.tag == "latest":
                 application_branch = "master"
+            elif self.name == "connext" and self.tag == "latest":
+                application_branch = "master"
         if application_branch:
-            upstream_revision = self.context.github_template.get_branch_head_revision(self.name, application_branch)
+            upstream_revision = self.context.github_template.get_branch_head_revision(self.repo, application_branch)
         else:
             upstream_revision = None
         self._logger.debug("%s application_revision=%r application_branch=%r, upstream_revision=%r",
@@ -174,7 +190,7 @@ class Image:
         cmd = "docker build {} {}".format(" ".join(args), build_dir)
         self.run_command(cmd, "Failed to build {}".format(build_tag))
 
-        metadata = get_application_metadata(self.name, build_tag, self.context)
+        metadata = get_application_metadata(self.context, self.name, build_tag, build_dir, args)
         labels = []
         if metadata.revision:
             labels.append(f"--label {self.label_prefix}.application.revision={metadata.revision}")
@@ -190,12 +206,16 @@ class Image:
             .format(platform, " ".join(args), build_dir)
         self.run_command(cmd, "Failed to build {}".format(build_tag))
 
-        metadata = get_application_metadata(self.name, build_tag, self.context)
+        metadata = get_application_metadata(self.context, self.name, build_tag, build_dir, args)
         labels = []
         if metadata.revision:
             labels.append(f"--label {self.label_prefix}.application.revision={metadata.revision}")
+        else:
+            print("Warning: No application revision detected for " + build_tag)
         if metadata.branch:
             labels.append(f"--label {self.label_prefix}.application.branch={metadata.branch}")
+        else:
+            print("Warning: No application branch detected for " + build_tag)
         if len(labels) > 0:
             cmd = "echo FROM {} | docker buildx build {} -t {} -".format(build_tag, " ".join(labels), build_tag)
             errmsg = "Failed to append application branch and revision labels to the image: {}".format(build_tag)

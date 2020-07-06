@@ -1,14 +1,13 @@
 FROM node:12-alpine3.11 AS builder
 ARG REPO=connext/rest-api-client
 ARG BRANCH=master
-# Use pure JS implemented secp256k1 bindings
 RUN apk add --no-cache git bash python3 make g++ python
 # This is a "hack" to automatically invalidate the cache in case there are new commits
 ADD https://api.github.com/repos/$REPO/commits/$BRANCH /dev/null
 RUN git clone -b $BRANCH --depth=2 https://github.com/$REPO /connext
-# lock connext container down to specific commit hash
 WORKDIR /connext
-RUN git checkout 58b9227e5c763b60e8c22859a6852d6729af1f72
+# lock connext container down to specific commit hash
+RUN git checkout f66093525b5f64a9dcbb1a29ebe64517bdc0698b
 RUN npm install
 RUN npm run build
 

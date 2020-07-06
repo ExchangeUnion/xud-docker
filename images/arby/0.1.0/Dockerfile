@@ -1,13 +1,10 @@
 FROM node:12-alpine3.11 AS builder
 ARG REPO=ExchangeUnion/market-maker-tools
 ARG BRANCH=master
-# RUN apk add --no-cache git bash python3 make g++ python
 RUN apk add --no-cache git bash
-# This is a "hack" to automatically invalidate the cache in case there are new commits
-ADD https://api.github.com/repos/$REPO/commits/$BRANCH /dev/null
 RUN git clone -b $BRANCH --depth=2 https://github.com/$REPO /arby
-# lock arby container down to specific commit hash
 WORKDIR /arby
+RUN git fetch && git checkout 22a3f5135263ab3532b9089de0c4ce910c77b8d3
 RUN npm install
 
 FROM node:12-alpine3.11

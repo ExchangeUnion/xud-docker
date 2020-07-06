@@ -1,17 +1,11 @@
 from __future__ import annotations
-from typing import TYPE_CHECKING
-from .xud import get_metadata as get_xud_metadata
-from .arby import get_metadata as get_arby_metadata
+from typing import TYPE_CHECKING, List
+from .common import get_metadata
 from .types import ApplicationMetadata
 
 if TYPE_CHECKING:
     from ..toolkit import Context
 
 
-def get_application_metadata(name: str, build_tag: str, context: Context) -> ApplicationMetadata:
-    if name == "xud":
-        return get_xud_metadata(build_tag, context)
-    elif name == "arby":
-        return get_arby_metadata(build_tag, context)
-    else:
-        return ApplicationMetadata(branch=None, revision=None)
+def get_application_metadata(context: Context, name: str, build_tag: str, build_dir: str, args: List[str]) -> ApplicationMetadata:
+    return get_metadata(context, name, build_tag, build_dir, args)
