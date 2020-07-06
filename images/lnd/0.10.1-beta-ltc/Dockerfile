@@ -1,4 +1,4 @@
-FROM golang:1.14-alpine3.12 as builder
+FROM golang:1.13-alpine3.12 as builder
 RUN apk add --no-cache bash git make gcc musl-dev
 RUN git clone -b v0.10.1-beta https://github.com/ltcsuite/lnd $GOPATH/src/github.com/ltcsuite/lnd
 WORKDIR $GOPATH/src/github.com/ltcsuite/lnd
