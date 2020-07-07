@@ -59,7 +59,7 @@ nodes_config = {
     "simnet": {
         "lndbtc": {
             "name": "lndbtc",
-            "image": "exchangeunion/lnd:0.10.1-beta-simnet",
+            "image": "exchangeunion/lnd:0.10.2-beta-simnet",
             "volumes": [
                 {
                     "host": "$data_dir/lndbtc",
@@ -208,7 +208,7 @@ nodes_config = {
         },
         "lndbtc": {
             "name": "lndbtc",
-            "image": "exchangeunion/lnd:0.10.1-beta",
+            "image": "exchangeunion/lnd:0.10.2-beta",
             "volumes": [
                 {
                     "host": "$data_dir/lndbtc",
@@ -379,7 +379,7 @@ nodes_config = {
         },
         "lndbtc": {
             "name": "lndbtc",
-            "image": "exchangeunion/lnd:0.10.1-beta",
+            "image": "exchangeunion/lnd:0.10.2-beta",
             "volumes": [
                 {
                     "host": "$data_dir/lndbtc",
