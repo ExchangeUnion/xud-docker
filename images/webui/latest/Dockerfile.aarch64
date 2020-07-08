@@ -11,6 +11,7 @@ RUN git clone -b dev https://github.com/ExchangeUnion/xud-socketio /src/backend
 WORKDIR /src/backend
 RUN git fetch && git checkout a3fd8648
 RUN sed -Ei 's/^.*grpc-tools.*$//g' package.json
+RUN apk --no-cache add python3 make g++
 RUN yarn install
 RUN apk --no-cache add bash
 RUN yarn build
