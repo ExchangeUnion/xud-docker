@@ -3,13 +3,13 @@ RUN apk --no-cache add git
 
 RUN git clone -b socketio https://github.com/ExchangeUnion/xud-webui-poc /src/frontend
 WORKDIR /src/frontend
-RUN git fetch && git checkout f3d34f02
+RUN git fetch && git checkout fa70b2ba
 RUN yarn install
 RUN yarn build
 
 RUN git clone -b dev https://github.com/ExchangeUnion/xud-socketio /src/backend
 WORKDIR /src/backend
-RUN git fetch && git checkout 186cbb38
+RUN git fetch && git checkout a3fd8648
 RUN sed -Ei 's/^.*grpc-tools.*$//g' package.json
 RUN yarn install
 RUN apk --no-cache add bash
