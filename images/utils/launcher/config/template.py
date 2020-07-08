@@ -118,6 +118,21 @@ nodes_config = {
             "disabled": True,
             "use_local_image": False,
         },
+        "webui": {
+            "name": "webui",
+            "image": "exchangeunion/webui:latest",
+            "volumes": [
+                {
+                    "host": "$data_dir/xud",
+                    "container": "/root/.xud",
+                }
+            ],
+            "ports": [],
+            "mode": "native",
+            "preserve_config": False,
+            "use_local_image": False,
+            "disabled": True,
+        },
         "xud": {
             "name": "xud",
             "image": "exchangeunion/xud:latest",
@@ -143,21 +158,6 @@ nodes_config = {
             "mode": "native",
             "preserve_config": False,
             "use_local_image": False,
-        },
-        "webui": {
-            "name": "webui",
-            "image": "exchangeunion/webui:latest",
-            "volumes": [
-                {
-                    "host": "$data_dir/xud",
-                    "container": "/root/.xud",
-                }
-            ],
-            "ports": [],
-            "mode": "native",
-            "preserve_config": False,
-            "use_local_image": False,
-            "disabled": True,
         },
     },
     "testnet": {
@@ -305,6 +305,21 @@ nodes_config = {
             "disabled": False,
             "use_local_image": False,
         },
+        "webui": {
+            "name": "webui",
+            "image": "exchangeunion/webui:latest",
+            "volumes": [
+                {
+                    "host": "$data_dir/xud",
+                    "container": "/root/.xud",
+                }
+            ],
+            "ports": [],
+            "mode": "native",
+            "preserve_config": False,
+            "use_local_image": False,
+            "disabled": True,
+        },
         "xud": {
             "name": "xud",
             "image": "exchangeunion/xud:latest",
@@ -331,21 +346,6 @@ nodes_config = {
             "preserve_config": False,
             "use_local_image": False,
         },
-        "webui": {
-            "name": "webui",
-            "image": "exchangeunion/webui:latest",
-            "volumes": [
-                {
-                    "host": "$data_dir/xud",
-                    "container": "/root/.xud",
-                }
-            ],
-            "ports": [],
-            "mode": "native",
-            "preserve_config": False,
-            "use_local_image": False,
-            "disabled": True,
-        }
     },
     "mainnet": {
         "bitcoind": {
@@ -491,6 +491,21 @@ nodes_config = {
             "disabled": False,
             "use_local_image": False,
         },
+        "webui": {
+            "name": "webui",
+            "image": "exchangeunion/webui:latest",
+            "volumes": [
+                {
+                    "host": "$data_dir/xud",
+                    "container": "/root/.xud",
+                }
+            ],
+            "ports": [],
+            "mode": "native",
+            "preserve_config": False,
+            "use_local_image": False,
+            "disabled": True,
+        },
         "xud": {
             "name": "xud",
             "image": "exchangeunion/xud:1.0.0-beta.4",
@@ -517,21 +532,6 @@ nodes_config = {
             "preserve_config": False,
             "use_local_image": False,
         },
-        "webui": {
-            "name": "webui",
-            "image": "exchangeunion/webui:latest",
-            "volumes": [
-                {
-                    "host": "$data_dir/xud",
-                    "container": "/root/.xud",
-                }
-            ],
-            "ports": [],
-            "mode": "native",
-            "preserve_config": False,
-            "use_local_image": False,
-            "disabled": True,
-        }
     }
 }
 
