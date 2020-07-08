@@ -35,9 +35,14 @@ def get_git_revision_branch(project_repo: str, builder_tag: str) -> Tuple[str, s
     revision = lines[0]
     refs = lines[1].split(", ")
     # e.g. HEAD, tag: v1.0.0-beta.4
-    branch = [ref for ref in refs if (ref.startswith("origin/") or ref.startswith("tag: "))and "HEAD" not in ref][0]
-    branch = branch.replace("origin/", "")
-    branch = branch.replace("tag: ", "")
+    targets = [ref for ref in refs if (ref.startswith("origin/") or ref.startswith("tag: "))and "HEAD" not in ref]
+    if len(targets) > 0:
+        branch = targets[0]
+        branch = branch.replace("origin/", "")
+        branch = branch.replace("tag: ", "")
+    else:
+        # FIXME parse BRANCH from Dockerfile
+        branch = "master"
     return revision, branch
 
 
