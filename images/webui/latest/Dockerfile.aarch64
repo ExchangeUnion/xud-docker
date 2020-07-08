@@ -3,7 +3,7 @@ RUN apk --no-cache add git
 
 RUN git clone -b socketio https://github.com/ExchangeUnion/xud-webui-poc /src/frontend
 WORKDIR /src/frontend
-RUN git fetch && git checkout 69abd2ac
+RUN git fetch && git checkout b94cb330
 RUN yarn install
 RUN yarn build
 
