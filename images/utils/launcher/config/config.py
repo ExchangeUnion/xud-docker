@@ -114,9 +114,10 @@ class Config:
 
         parser.add_argument("--boltz.disabled", nargs='?')
 
-        parser.add_argument("--use-local-images")
+        parser.add_argument("--webui.disabled", nargs='?')
+        parser.add_argument("--webui.expose-ports")
+
         parser.add_argument("--dev", action="store_true")
-        parser.add_argument("--webui", action="store_true")
 
         self.args = parser.parse_args()
         self.logger.info("Parsed command-line arguments: %r", self.args)
@@ -162,10 +163,12 @@ class Config:
             target = target[0]
             target["host"] = host_dir
 
-    def update_ports(self, node, parsed):
+    def update_ports(self, node, parsed, mapping=None):
         if "expose-ports" in parsed:
             value = parsed["expose-ports"]
             for p in value:
+                if mapping and p in mapping:
+                    p = mapping[p]
                 p = PortPublish(str(p))
                 if p not in node["ports"]:
                     node["ports"].append(p)
@@ -173,6 +176,8 @@ class Config:
         if hasattr(self.args, opt):
             value = getattr(self.args, opt)
             for p in value.split(","):
+                if mapping and p in mapping:
+                    p = mapping[p]
                 p = PortPublish(p.strip())
                 if p not in node["ports"]:
                     node["ports"].append(p)
@@ -401,26 +406,28 @@ class Config:
         node = self.nodes["connext"]
         self.update_ports(node, parsed)
 
-    def update_webui(self, parsed):
-        """Update webui related configurations from parsed TOML webui section
-        :param parsed: Parsed raiden TOML section
+    def update_xud(self, parsed):
+        """Update xud related configurations from parsed TOML xud section
+        :param parsed: Parsed xud TOML section
         """
-        node = self.nodes.get("webui", None)
+        node = self.nodes["xud"]
         self.update_ports(node, parsed)
 
-        opt = "webui"
+    def update_disabled(self, node, parsed, opt):
+        if "disabled" in parsed:
+            value = parsed["disabled"]
+            assert isinstance(value, bool)
+            node["disabled"] = value
         if hasattr(self.args, opt):
-            value = getattr(self.args, opt)
-            node["disabled"] = False
-
-    def update_raiden(self, parsed):
-        """Update raiden related configurations from parsed TOML raiden section
-        :param parsed: Parsed raiden TOML section
-        """
-        if self.network in ["simnet", "testnet", "mainnet"]:
-            return
-        node = self.nodes["raiden"]
-        self.update_ports(node, parsed)
+            value: str = getattr(self.args, opt)
+            if value:
+                value = value.strip().lower()
+            if not value or value == "true" or value == "":
+                node["disabled"] = True
+            elif value == "false":
+                node["disabled"] = False
+            else:
+                raise ValueError("Invalid value of option \"{}\": {}".format(opt, value))
 
     def update_arby(self, parsed):
         """Update arby related configurations from parsed TOML arby section
@@ -487,41 +494,28 @@ class Config:
             if value:
                 node["margin"] = value
 
-        if "disabled" in parsed:
-            value = parsed["disabled"]
-            assert isinstance(value, bool)
-            node["disabled"] = value
-        opt = "arby.disabled"
-        if hasattr(self.args, opt):
-            value: str = getattr(self.args, opt)
-            if value:
-                value = value.strip().lower()
-            if not value or value == "true" or value == "":
-                node["disabled"] = True
-            elif value == "false":
-                node["disabled"] = False
-            else:
-                raise ValueError("Invalid value of option \"arby.disabled\": {}".format(value))
-
-        self.update_ports(node, parsed)
-
-    def update_xud(self, parsed):
-        """Update xud related configurations from parsed TOML xud section
-        :param parsed: Parsed xud TOML section
-        """
-        node = self.nodes["xud"]
-        self.update_ports(node, parsed)
-
-    def update_ltcd(self, parsed):
-        """Update ltcd related configurations from parsed TOML ltcd section
-        :param parsed: Parsed ltcd TOML section
-        """
-        node = self.nodes["ltcd"]
+        self.update_disabled(node, parsed, "arby.disabled")
         self.update_ports(node, parsed)
 
     def update_boltz(self, parsed):
+        """Update webui related configurations from parsed TOML boltz section
+        :param parsed: Parsed raiden TOML section
+        """
         node = self.nodes["boltz"]
+        self.update_disabled(node, parsed, "boltz.disabled")
         self.update_ports(node, parsed)
+
+    def update_webui(self, parsed):
+        """Update webui related configurations from parsed TOML webui section
+        :param parsed: Parsed raiden TOML section
+        """
+        node = self.nodes["webui"]
+        self.update_disabled(node, parsed, "webui.disabled")
+        self.update_ports(node, parsed, mapping={
+            "8888": "8888:8080",
+            "18888": "18888:8080",
+            "28888": "28888:8080",
+        })
 
     def parse_network_config(self):
         network = self.network

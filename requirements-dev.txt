@@ -5,3 +5,5 @@ pytest-html
 pytest-integration
 pytest-timeout
 pytest-dotenv
+toml
+demjson
