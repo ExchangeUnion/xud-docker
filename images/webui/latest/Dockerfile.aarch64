@@ -24,4 +24,6 @@ COPY --from=builder /src/backend/bin /app/bin
 COPY --from=builder /src/frontend/build /app/public
 COPY entrypoint.sh /
 WORKDIR /app
-ENTRYPOINT ["/entrypoint.sh"]
+RUN apk --no-cache add supervisor
+COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+ENTRYPOINT ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]
