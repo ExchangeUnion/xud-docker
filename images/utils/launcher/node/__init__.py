@@ -19,6 +19,7 @@ from .connext import Connext
 from .geth import Geth
 from .image import Image, ImageManager
 from .lnd import Lndbtc, Lndltc
+from .webui import Webui
 from .xud import Xud, XudApiError
 from ..config import Config
 from ..errors import FatalError
