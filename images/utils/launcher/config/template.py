@@ -127,7 +127,7 @@ nodes_config = {
                     "container": "/root/.xud",
                 }
             ],
-            "ports": [],
+            "ports": [PortPublish("28888:8080")],
             "mode": "native",
             "preserve_config": False,
             "use_local_image": False,
@@ -314,7 +314,7 @@ nodes_config = {
                     "container": "/root/.xud",
                 }
             ],
-            "ports": [],
+            "ports": [PortPublish("18888:8080")],
             "mode": "native",
             "preserve_config": False,
             "use_local_image": False,
@@ -500,7 +500,7 @@ nodes_config = {
                     "container": "/root/.xud",
                 }
             ],
-            "ports": [],
+            "ports": [PortPublish("8888:8080")],
             "mode": "native",
             "preserve_config": False,
             "use_local_image": False,
