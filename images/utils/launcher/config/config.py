@@ -118,6 +118,7 @@ class Config:
         parser.add_argument("--webui.expose-ports")
 
         parser.add_argument("--dev", action="store_true")
+        parser.add_argument("--use-local-images")
 
         self.args = parser.parse_args()
         self.logger.info("Parsed command-line arguments: %r", self.args)
