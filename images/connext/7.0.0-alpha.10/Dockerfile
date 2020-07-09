@@ -2,7 +2,7 @@ FROM node:12-alpine3.11 AS builder
 ARG REPO=connext/rest-api-client
 ARG BRANCH=master
 RUN apk add --no-cache git bash python3 make g++ python
-RUN git clone -b $BRANCH --depth=2 https://github.com/$REPO /connext
+RUN git clone -b $BRANCH https://github.com/$REPO /connext
 WORKDIR /connext
 RUN git fetch && git checkout f66093525b5f64a9dcbb1a29ebe64517bdc0698b
 RUN npm install
