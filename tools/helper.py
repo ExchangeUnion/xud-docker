@@ -1,6 +1,7 @@
 from argparse import ArgumentParser
 import os
 from core import Toolkit
+import subprocess
 
 
 def main():
@@ -44,4 +45,15 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except subprocess.CalledProcessError as e:
+        print("Error: Failed to execute command: " + e.cmd)
+        print("[OUTPUT]")
+        print(e.output)
+        print("[RETURN CODE]")
+        print(e.returncode)
+        print("[STDOUT]")
+        print(e.stdout)
+        print("[STDERR]")
+        print(e.stderr)
