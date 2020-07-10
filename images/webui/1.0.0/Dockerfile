@@ -1,15 +1,13 @@
 FROM node:14-alpine as builder
 RUN apk --no-cache add git
 
-RUN git clone -b socketio https://github.com/ExchangeUnion/xud-webui-poc /src/frontend
+RUN git clone -b v1.0.0 https://github.com/ExchangeUnion/xud-webui-poc /src/frontend
 WORKDIR /src/frontend
-RUN git fetch && git checkout b94cb330
 RUN yarn install
 RUN yarn build
 
-RUN git clone -b dev https://github.com/ExchangeUnion/xud-socketio /src/backend
+RUN git clone -b v1.0.0 https://github.com/ExchangeUnion/xud-socketio /src/backend
 WORKDIR /src/backend
-RUN git fetch && git checkout a3fd8648
 RUN sed -Ei 's/^.*grpc-tools.*$//g' package.json
 RUN yarn install
 RUN apk --no-cache add bash
