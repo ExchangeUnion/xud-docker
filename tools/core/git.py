@@ -55,7 +55,10 @@ class GitTemplate:
 
         b = os.popen("git rev-parse --abbrev-ref HEAD").read().strip()
         if b == "HEAD":
-            b = os.environ["TRAVIS_BRANCH"]
+            b = os.environ.get("TRAVIS_BRANCH", None)
+            if not b:
+                b = os.environ.get("GITHUB_REF", None)
+            assert b, "The branch name should not be None"
         if b == "local":
             print("ERROR: Git branch name (local) is reserved", file=sys.stderr)
             exit(1)
