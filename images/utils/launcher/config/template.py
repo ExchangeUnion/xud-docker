@@ -493,7 +493,7 @@ nodes_config = {
         },
         "webui": {
             "name": "webui",
-            "image": "exchangeunion/webui:latest",
+            "image": "exchangeunion/webui:1.0.0",
             "volumes": [
                 {
                     "host": "$data_dir/xud",
