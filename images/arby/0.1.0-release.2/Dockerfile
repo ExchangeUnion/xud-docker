@@ -4,7 +4,7 @@ ARG BRANCH=master
 RUN apk add --no-cache git bash
 RUN git clone -b $BRANCH https://github.com/$REPO /arby
 WORKDIR /arby
-RUN git fetch && git checkout 22a3f5135263ab3532b9089de0c4ce910c77b8d3
+RUN git fetch && git checkout 17d150c9fc5fd221c81ed3a478b0882bce49303a
 RUN npm install
 
 FROM node:12-alpine3.11
