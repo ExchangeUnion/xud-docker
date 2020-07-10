@@ -1,10 +1,9 @@
 FROM node:12-alpine3.11 AS builder
 ARG REPO=ExchangeUnion/market-maker-tools
-ARG BRANCH=master
+ARG BRANCH=v0.2.0
 RUN apk add --no-cache git bash
 RUN git clone -b $BRANCH https://github.com/$REPO /arby
 WORKDIR /arby
-RUN git fetch && git checkout 17d150c9fc5fd221c81ed3a478b0882bce49303a
 RUN npm install
 
 FROM node:12-alpine3.11
