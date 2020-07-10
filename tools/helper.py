@@ -3,7 +3,7 @@ import os
 import sys
 from core import Toolkit
 import subprocess
-from traceback import print_exc
+import traceback
 
 
 def main():
@@ -50,8 +50,8 @@ if __name__ == "__main__":
     try:
         main()
     except subprocess.CalledProcessError as e:
-        print_exc()
-        print()
+        traceback.print_exc()
+        print("-"*80)
         print("Error: Failed to execute command: " + e.cmd)
         print("[EXIT CODE]")
         print(e.returncode)
