@@ -1,5 +1,5 @@
 FROM golang:1.14-alpine as builder
-ARG VERSION=v1.9.15
+ARG VERSION=v1.9.16
 RUN apk add --no-cache make gcc musl-dev linux-headers git
 RUN apk add --no-cache alpine-sdk
 RUN git clone -b $VERSION https://github.com/ethereum/go-ethereum.git /go-ethereum
