@@ -1,7 +1,9 @@
 from argparse import ArgumentParser
 import os
+import sys
 from core import Toolkit
 import subprocess
+from traceback import print_exc
 
 
 def main():
@@ -48,12 +50,13 @@ if __name__ == "__main__":
     try:
         main()
     except subprocess.CalledProcessError as e:
+        print_exc()
+        print()
         print("Error: Failed to execute command: " + e.cmd)
-        print("[OUTPUT]")
-        print(e.output)
-        print("[RETURN CODE]")
+        print("[EXIT CODE]")
         print(e.returncode)
         print("[STDOUT]")
-        print(e.stdout)
+        print(e.stdout.decode())
         print("[STDERR]")
-        print(e.stderr)
+        print(e.stderr.decode())
+        sys.exit(1)
