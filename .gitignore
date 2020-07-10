@@ -19,3 +19,6 @@ tools/logs
 
 # dotenv
 .env
+
+# project source code
+images/*/.src

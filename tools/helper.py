@@ -1,5 +1,6 @@
 from argparse import ArgumentParser
 import os
+import sys
 from core import Toolkit
 
 
@@ -32,6 +33,8 @@ def main():
     os.chdir(project_dir)
 
     toolkit = Toolkit(project_dir, ["linux/amd64", "linux/arm64"])
+    sys.path.append(project_dir)
+    sys.path.append(".")
 
     if args.command == "build":
         toolkit.build(args.images, args.dry_run, args.no_cache, args.cross_build, args.force)
@@ -44,4 +47,7 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except KeyboardInterrupt:
+        print()

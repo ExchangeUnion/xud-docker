@@ -4,12 +4,15 @@ import logging
 import os
 import sys
 from shutil import copyfile
-from subprocess import Popen, PIPE, STDOUT
+from subprocess import Popen, PIPE, STDOUT, check_output
 from typing import TYPE_CHECKING, List, Optional
 import re
+import importlib
+import time
+import threading
 
-from .application_metadata import get_application_metadata
 from .docker import ManifestList
+from .src import SourceManager
 
 if TYPE_CHECKING:
     from .toolkit import Platform, Context
@@ -17,7 +20,6 @@ if TYPE_CHECKING:
 
 class Image:
     def __init__(self, context: Context, name: str):
-        self._logger = logging.getLogger("core.Image(%s)" % name)
         self.context = context
         p = re.compile(r"^(.+):(.+)$")
         m = p.match(name)
@@ -32,6 +34,7 @@ class Image:
                 self.tag = "latest"
             else:
                 raise SyntaxError(name)
+        self._logger = logging.getLogger("core.Image(%s:%s)" % (self.name, self.tag))
 
     @property
     def group(self) -> str:
@@ -51,10 +54,7 @@ class Image:
 
     @property
     def image_folder(self) -> str:
-        if self.name == "utils":
-            return "utils"
-        else:
-            return "{}/{}".format(self.name, self.tag)
+        return self.context.project_dir + "/images/" + self.name
 
     def get_build_tag(self, branch: str, platform: Platform = None) -> str:
         tag = "{}/{}:{}".format(self.group, self.name, self.tag)
@@ -64,44 +64,37 @@ class Image:
             tag += "__" + platform.tag_suffix
         return tag
 
-    def get_build_dir(self):
-        if self.name == "utils":
-            return "utils"
-        else:
-            return "{}/{}".format(self.name, self.tag)
-
     def get_shared_dir(self):
         return "{}/shared".format(self.name)
 
-    def get_labels(self, unmodified_history):
-        label_prefix = self.label_prefix
-        labels = [
-            "--label {}.image.created={}".format(label_prefix, self.context.timestamp.strftime('%Y-%m-%dT%H:%M:%SZ')),
-            "--label {}.image.branch={}".format(label_prefix, self.branch)
-        ]
+    def get_labels(self, unmodified_history, application_revision) -> List[str]:
+        image_revision = ""
+        image_source = ""
+        image_travis = ""
+
         if self.revision:
             if "HEAD" in unmodified_history and len(unmodified_history) > 1:
                 revision = self.revision.replace("-dirty", "")
             else:
                 revision = self.revision
-            labels.append("--label {}.image.revision={}".format(label_prefix, revision))
+
+            image_revision = revision
 
             if not revision.endswith("-dirty"):
-                if self.name == "utils":
-                    source = "{}/blob/{}/images/utils/Dockerfile".format(
-                        self.context.project_repo, revision)
-                else:
-                    source = "{}/blob/{}/images/{}/{}/Dockerfile".format(
-                        self.context.project_repo, revision, self.name, self.tag)
-                labels.append("--label {}.image.source='{}'".format(label_prefix, source))
-        else:
-            labels.extend([
-                "--label {}.revision=".format(label_prefix),
-                "--label {}.source=".format(label_prefix),
-            ])
+                source = "{}/blob/{}/images/{}/Dockerfile".format(self.context.project_repo, revision, self.name)
+                image_source = source
+
         if "TRAVIS_BUILD_WEB_URL" in os.environ:
-            labels.append("--label {}.image.travis='{}'".format(label_prefix, os.environ["TRAVIS_BUILD_WEB_URL"]))
-        return labels
+            image_travis = os.environ["TRAVIS_BUILD_WEB_URL"]
+
+        prefix = self.label_prefix
+
+        return [
+            f"--label {prefix}.image.revision='{image_revision}'",
+            f"--label {prefix}.image.source='{image_source}'",
+            f"--label {prefix}.image.travis='{image_travis}'",
+            f"--label {prefix}.application.revision='{application_revision}'"
+        ]
 
     def print_title(self, title, badge):
         print("-" * 80)
@@ -118,8 +111,8 @@ class Image:
             exit(1)
         return file
 
-    def get_dockerfile(self, build_dir, platform: Platform):
-        f = "{}/Dockerfile".format(build_dir)
+    def get_dockerfile(self, build_dir, platform: Platform, dockerfile):
+        f = "{}/{}".format(build_dir, dockerfile)
         if platform.tag_suffix == "x86_64":
             return self.get_existed_dockerfile(f)
         elif platform.tag_suffix == "aarch64":
@@ -143,17 +136,12 @@ class Image:
             repo = "connext/rest-api-client"
         return repo
 
-    def _skip_build(self, platform: Platform, unmodified_history: List[str]) -> bool:
+    def _skip_build(self, platform: Platform, unmodified_history: List[str], source_manager) -> bool:
         prefix = "[_skip_build] ({})".format(platform)
         build_tag = self.get_build_tag(self.branch, None)
         manifest = self.context.docker_template.get_manifest(build_tag, platform)
         self._logger.debug(f"%s manifest=%r", prefix, manifest)
         if not manifest:
-            return False
-
-        image_branch = manifest.image_branch
-        self._logger.debug("%s image_branch=%r", prefix, image_branch)
-        if image_branch != self.context.branch:
             return False
 
         image_revision = manifest.image_revision
@@ -164,79 +152,58 @@ class Image:
             return False
 
         application_revision = manifest.application_revision
-        application_branch = manifest.application_branch
         # TODO improve application_branch association
-        if not application_branch:
-            if self.name == "arby" and self.tag == "latest":
-                application_branch = "master"
-            elif self.name == "boltz" and self.tag == "latest":
-                application_branch = "master"
-            elif self.name == "xud" and self.tag == "latest":
-                application_branch = "master"
-            elif self.name == "connext" and self.tag == "latest":
-                application_branch = "master"
-        if application_branch:
-            upstream_revision = self.context.github_template.get_branch_head_revision(self.repo, application_branch)
-        else:
-            upstream_revision = None
-        self._logger.debug("%s application_revision=%r application_branch=%r, upstream_revision=%r",
-                           prefix, application_revision, application_branch, upstream_revision)
-        if not upstream_revision:
-            return True
+        assert application_revision, "application revision should not be None"
+        upstream_revision = source_manager.get_application_revision(self.tag)
+        self._logger.info("Revisions\n%s (DockerHub)\n%s (GitHub)", application_revision, upstream_revision)
 
         return application_revision == upstream_revision
 
+    def _run_command(self, cmd):
+        self._logger.info(cmd)
+        running = True
+
+        def f():
+            nonlocal running
+            while running:
+                print(".", end="", flush=True)
+                time.sleep(1)
+            print("Done!")
+        print("$", cmd)
+        threading.Thread(target=f).start()
+        try:
+            output = check_output(cmd, shell=True)
+        finally:
+            running = False
+        # print(output.decode(), end="", flush=True)
+
     def _build(self, args: List[str], build_dir: str, build_tag: str) -> None:
         cmd = "docker build {} {}".format(" ".join(args), build_dir)
-        self.run_command(cmd, "Failed to build {}".format(build_tag))
-
-        metadata = get_application_metadata(self.context, self.name, build_tag, build_dir, args)
-        labels = []
-        if metadata.revision:
-            labels.append(f"--label {self.label_prefix}.application.revision={metadata.revision}")
-        if metadata.branch:
-            labels.append(f"--label {self.label_prefix}.application.branch={metadata.branch}")
-        if len(labels) > 0:
-            cmd = "echo FROM {} | docker build {} -t {} -".format(build_tag, " ".join(labels), build_tag)
-            errmsg = "Failed to append application branch and revision labels to the image: {}".format(build_tag)
-            self.run_command(cmd, errmsg)
+        # self.run_command(cmd, "Failed to build {}".format(build_tag))
+        self._run_command(cmd)
 
     def _buildx_build(self, args: List[str], build_dir: str, build_tag: str, platform: Platform) -> None:
         cmd = "docker buildx build --platform {} --progress plain --load {} {}" \
             .format(platform, " ".join(args), build_dir)
-        self.run_command(cmd, "Failed to build {}".format(build_tag))
+        # self.run_command(cmd, "Failed to build {}".format(build_tag))
+        self._run_command(cmd)
 
-        metadata = get_application_metadata(self.context, self.name, build_tag, build_dir, args)
-        labels = []
-        if metadata.revision:
-            labels.append(f"--label {self.label_prefix}.application.revision={metadata.revision}")
-        else:
-            print("Warning: No application revision detected for " + build_tag)
-        if metadata.branch:
-            labels.append(f"--label {self.label_prefix}.application.branch={metadata.branch}")
-        else:
-            print("Warning: No application branch detected for " + build_tag)
-        if len(labels) > 0:
-            cmd = "echo FROM {} | docker buildx build {} -t {} -".format(build_tag, " ".join(labels), build_tag)
-            errmsg = "Failed to append application branch and revision labels to the image: {}".format(build_tag)
-            self.run_command(cmd, errmsg)
-
-    def _build_platform(self, platform: Platform, no_cache: bool, force: bool) -> bool:
+    def _build_platform(self, platform: Platform, no_cache: bool, force: bool, source_manager) -> bool:
         prefix = "[_build_platform] ({})".format(platform)
         build_tag = self.get_build_tag(self.branch, platform)
 
         unmodified_history = self.context.get_unmodified_history(self)
         self._logger.debug("%s unmodified_history=%r", prefix, unmodified_history)
 
-        self.print_title("Building {}".format(self.name), "{} ({})".format(self.tag, platform.tag_suffix))
+        print("Build {}:{} ({})".format(self.name, self.tag, platform.tag_suffix))
 
-        if not force and self._skip_build(platform, unmodified_history):
-            print("Image is up-to-date. Skip building.")
-            self._logger.debug("%s Skip building", prefix)
+        if not force and self._skip_build(platform, unmodified_history, source_manager):
+            # print("Image is up-to-date. Skip building.")
+            self._logger.info("Skip building")
             return False
 
-        build_labels = self.get_labels(unmodified_history)
-        build_dir = self.get_build_dir()
+        build_labels = self.get_labels(unmodified_history, source_manager.get_application_revision(self.tag))
+        build_dir = "."
 
         if not os.path.exists(build_dir):
             print("ERROR: Missing build directory: " + build_dir, file=sys.stderr)
@@ -249,7 +216,9 @@ class Image:
             for f in shared_files:
                 copyfile("{}/{}".format(shared_dir, f), "{}/{}".format(build_dir, f))
 
-        dockerfile = self.get_dockerfile(build_dir, platform)
+        dockerfile = self.get_dockerfile(build_dir, platform, source_manager.get_dockerfile(self.tag))
+
+        build_args = [f"--build-arg {key}='{value}'" for key, value in source_manager.get_build_args(self.tag).items()]
 
         args = [
             f"-f {dockerfile}",
@@ -259,14 +228,17 @@ class Image:
             args.append("--no-cache")
 
         args.extend(build_labels)
+        args.extend(build_args)
 
         try:
             if self.context.current_platform == platform:
                 self._build(args, build_dir, build_tag)
 
                 build_tag_without_arch = self.get_build_tag(self.branch, None)
-                self.run_command("docker tag {} {}".format(build_tag, build_tag_without_arch),
-                                 "Failed to tag {}".format(build_tag_without_arch))
+                # self.run_command("docker tag {} {}".format(build_tag, build_tag_without_arch),
+                #                  "Failed to tag {}".format(build_tag_without_arch))
+                cmd = "docker tag {} {}".format(build_tag, build_tag_without_arch)
+                check_output(cmd, shell=True, stderr=PIPE)
             else:
                 self._buildx_build(args, build_dir, build_tag, platform)
         finally:
@@ -275,11 +247,35 @@ class Image:
 
         return True
 
+    def prepare(self):
+        self._logger.info("Prepare")
+        try:
+            os.chdir(self.image_folder)
+            m = importlib.import_module("src")
+            importlib.reload(m)
+            if hasattr(m, "SourceManager"):
+                source_manager = m.SourceManager()
+            else:
+                assert hasattr(m, "REPO_URL"), "REPO_URL is required in src.py"
+                repo_url = m.REPO_URL
+                source_manager = SourceManager(repo_url)
+
+            version = self.tag
+
+            source_manager.ensure(version)
+
+            return source_manager
+        finally:
+            os.chdir(self.image_folder)
+
     def build(self, no_cache: bool = False, force: bool = False) -> [Platform]:
-        os.chdir(self.context.project_dir + "/images")
+        self._logger.info("Build %s:%s", self.name, self.tag)
+
+        source_manager = self.prepare()
+
         result = []
         for p in self.context.platforms:
-            if self._build_platform(p, no_cache=no_cache, force=force):
+            if self._build_platform(p, no_cache=no_cache, force=force, source_manager=source_manager):
                 result.append(p)
         return result
 

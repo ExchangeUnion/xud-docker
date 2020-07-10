@@ -101,7 +101,7 @@ class GitTemplate:
         return self.commit_before_travis
 
     def _process_lines(self, lines: List[str]) -> List[str]:
-        p = re.compile(r"^images/([^/]+)/([^/]+)/.+$")
+        p = re.compile(r"^images/([^/]+)/.+$")
         folders = set()
         for line in lines:
             if line.startswith("images/utils"):
@@ -109,7 +109,7 @@ class GitTemplate:
             else:
                 m = p.match(line)
                 assert m
-                folders.add("{}/{}".format(m.group(1), m.group(2)))
+                folders.add(m.group(1))
 
         folders = [folder for folder in folders if os.path.exists("images/" + folder)]
 

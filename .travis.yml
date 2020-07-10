@@ -11,7 +11,26 @@ services:
 before_script:
   - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
   - pip install -r requirements-dev.txt
-script: tools/push
+script: >
+  tools/push \
+  bitcoind:0.20.0 \
+  litecoind:0.18.1 \
+  geth:1.9.16 \
+  lnd:0.10.1-beta-ltc \
+  lnd:0.10.1-beta-ltc-simnet \
+  lnd:0.10.2-beta \
+  lnd:0.10.2-beta-simnet \
+  connext \
+  connext:7.0.0-alpha.14 \
+  xud \
+  xud:1.0.0-beta.5 \
+  arby \
+  arby:0.2.0 \
+  boltz \
+  boltz:1.0.0 \
+  webui \
+  webui:1.0.0
+#script: tools/push bitcoind:0.20.0 litecoind:0.18.1 geth:1.9.16
 notifications:
   webhooks:
     urls:
@@ -21,3 +40,28 @@ notifications:
     on_start: always
     on_cancel: always
     on_error: always
+
+cache:
+  directories:
+  - docker_images
+  - images/bitcoind/.src
+  - images/litecoind/.src
+  - images/geth/.src
+  - images/lnd/.src
+  - images/connext/.src
+  - images/xud/.src
+  - images/arby/.src
+  - images/boltz/.src
+  - images/webui/.src
+
+before_install:
+- docker info
+- |
+  if [ -e docker_images/images.tar ]; then
+    docker load -i docker_images/images.tar
+  else
+    echo "no images.tar"
+  fi
+
+before_cache:
+- docker save -o docker_images/images.tar $(docker images -a -q)
