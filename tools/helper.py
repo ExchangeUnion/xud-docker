@@ -50,8 +50,6 @@ if __name__ == "__main__":
     try:
         main()
     except subprocess.CalledProcessError as e:
-        traceback.print_exc()
-        print("-"*80)
         print("Error: Failed to execute command: " + e.cmd)
         print("[EXIT CODE]")
         print(e.returncode)
@@ -59,4 +57,4 @@ if __name__ == "__main__":
         print(e.stdout.decode())
         print("[STDERR]")
         print(e.stderr.decode())
-        sys.exit(1)
+        raise e
