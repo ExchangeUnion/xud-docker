@@ -11,25 +11,24 @@ services:
 before_script:
   - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
   - pip install -r requirements-dev.txt
-script: >
-  tools/push \
-  bitcoind:0.20.0 \
-  litecoind:0.18.1 \
-  geth:1.9.16 \
-  lnd:0.10.1-beta-ltc \
-  lnd:0.10.1-beta-ltc-simnet \
-  lnd:0.10.2-beta \
-  lnd:0.10.2-beta-simnet \
-  connext \
-  connext:7.0.0-alpha.14 \
-  xud \
-  xud:1.0.0-beta.5 \
-  arby \
-  arby:0.2.0 \
-  boltz \
-  boltz:1.0.0 \
-  webui \
-  webui:1.0.0
+script:
+  - tools/push bitcoind:0.20.0
+  - tools/push litecoind:0.18.1
+  - tools/push geth:1.9.16
+  - tools/push lnd:0.10.1-beta-ltc
+  - tools/push lnd:0.10.1-beta-ltc-simnet
+  - tools/push lnd:0.10.2-beta
+  - tools/push lnd:0.10.2-beta-simnet
+  - tools/push connext
+  - tools/push connext:7.0.0-alpha.14
+  - tools/push xud
+  - tools/push xud:1.0.0-beta.5
+  - tools/push arby
+  - tools/push arby:0.2.0
+  - tools/push boltz
+  - tools/push boltz:1.0.0
+  - tools/push webui
+  - tools/push webui:1.0.0
 #script: tools/push bitcoind:0.20.0 litecoind:0.18.1 geth:1.9.16
 notifications:
   webhooks:
