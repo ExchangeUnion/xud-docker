@@ -170,6 +170,10 @@ class Image:
         def f():
             nonlocal stop
             while not stop.is_set():
+                if "TRAVIS_BRANCH" in os.environ:
+                    print("Still building...")
+                    stop.wait(10)
+                    continue
                 print(".", end="", flush=True)
                 stop.wait(1)
             print()
