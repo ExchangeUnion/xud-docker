@@ -12,23 +12,23 @@ before_script:
   - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
   - pip install -r requirements-dev.txt
 script:
-  - tools/push -f bitcoind:0.20.0
-  - tools/push -f litecoind:0.18.1
-  - tools/push -f geth:1.9.16
-  - tools/push -f lnd:0.10.1-beta-ltc
-  - tools/push -f lnd:0.10.1-beta-ltc-simnet
-  - tools/push -f lnd:0.10.2-beta
-  - tools/push -f lnd:0.10.2-beta-simnet
-  - tools/push -f connext
-  - tools/push -f connext:7.0.0-alpha.14
-  - tools/push -f xud
-  - tools/push -f xud:1.0.0-beta.5
-  - tools/push -f arby
-  - tools/push -f arby:0.2.0
-  - tools/push -f boltz
-  - tools/push -f boltz:1.0.0
-  - tools/push -f webui
-  - tools/push -f webui:1.0.0
+  - tools/push bitcoind:0.20.0
+  - tools/push litecoind:0.18.1
+  - tools/push geth:1.9.16
+  - tools/push lnd:0.10.1-beta-ltc
+  - tools/push lnd:0.10.1-beta-ltc-simnet
+  - tools/push lnd:0.10.2-beta
+  - tools/push lnd:0.10.2-beta-simnet
+  - tools/push connext
+  - tools/push connext:7.0.0-alpha.14
+  - tools/push xud
+  - tools/push xud:1.0.0-beta.5
+  - tools/push arby
+  - tools/push arby:0.2.0
+  - tools/push boltz
+  - tools/push boltz:1.0.0
+  - tools/push webui
+  - tools/push webui:1.0.0
 #script: tools/push bitcoind:0.20.0 litecoind:0.18.1 geth:1.9.16
 notifications:
   webhooks:
@@ -42,7 +42,6 @@ notifications:
 
 cache:
   directories:
-  - docker_images
   - images/bitcoind/.src
   - images/litecoind/.src
   - images/geth/.src
@@ -52,15 +51,3 @@ cache:
   - images/arby/.src
   - images/boltz/.src
   - images/webui/.src
-
-before_install:
-- docker info
-- |
-  if [ -e docker_images/images.tar ]; then
-    docker load -i docker_images/images.tar
-  else
-    echo "no images.tar"
-  fi
-
-before_cache:
-- docker save -o docker_images/images.tar $(docker images -a -q)
