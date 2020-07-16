@@ -93,7 +93,10 @@ class Image:
             f"--label {prefix}.image.revision='{image_revision}'",
             f"--label {prefix}.image.source='{image_source}'",
             f"--label {prefix}.image.travis='{image_travis}'",
-            f"--label {prefix}.application.revision='{application_revision}'"
+            f"--label {prefix}.application.revision='{application_revision}'",
+            # TODO remove labels below
+            f"--label {prefix}.image.branch='master'",
+            f"--label {prefix}.application.branch='master'",
         ]
 
     def print_title(self, title, badge):
