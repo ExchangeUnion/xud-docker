@@ -169,8 +169,7 @@ class Manifest:
 
     @property
     def image_branch(self):
-        key = f"{self.context.label_prefix}.image.branch"
-        return self.labels[key]
+        return None
 
     @property
     def image_revision(self) -> str:

@@ -1,5 +1,6 @@
 from argparse import ArgumentParser
 import os
+import sys
 from core import Toolkit
 
 
@@ -20,6 +21,7 @@ def main():
     push_parser.add_argument("--dry-run", action="store_true")
     push_parser.add_argument("--cross-build", action="store_true")
     push_parser.add_argument("--no-cache", action="store_true")
+    push_parser.add_argument("-f", "--force", action="store_true")
     push_parser.add_argument("images", type=str, nargs="*")
 
     subparsers.add_parser("test")
@@ -32,11 +34,13 @@ def main():
     os.chdir(project_dir)
 
     toolkit = Toolkit(project_dir, ["linux/amd64", "linux/arm64"])
+    sys.path.append(project_dir)
+    sys.path.append(".")
 
     if args.command == "build":
         toolkit.build(args.images, args.dry_run, args.no_cache, args.cross_build, args.force)
     elif args.command == "push":
-        toolkit.push(args.images, args.dry_run, args.no_cache, args.cross_build, args.dirty_push)
+        toolkit.push(args.images, args.dry_run, args.no_cache, args.cross_build, args.dirty_push, args.force)
     elif args.command == "test":
         toolkit.test()
     elif args.command == "release":
@@ -44,4 +48,7 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except KeyboardInterrupt:
+        print()
