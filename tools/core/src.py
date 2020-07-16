@@ -57,19 +57,19 @@ class SourceManager:
             os.chdir(repo_dir)
 
             print("$ git fetch")
-            output = check_output(f"git fetch", shell=True, stderr=PIPE)
+            output = check_output(f"git fetch", shell=True)
             print(output.decode(), end="", flush=True)
 
             print("$ git checkout " + ref)
-            output = check_output(f"git checkout {ref}", shell=True, stderr=PIPE)
+            output = check_output(f"git checkout {ref}", shell=True)
             print(output.decode(), end="", flush=True)
 
             print("$ git pull origin " + ref)
-            output = check_output(f"git pull origin {ref}", shell=True, stderr=PIPE)
+            output = check_output(f"git pull origin {ref}", shell=True)
             print(output.decode(), end="", flush=True)
 
             print("$ git clean -xfd")
-            output = check_output(f"git clean -xfd", shell=True, stderr=PIPE)
+            output = check_output(f"git clean -xfd", shell=True)
             print(output.decode(), end="", flush=True)
 
             # FIXME handle rebased case
