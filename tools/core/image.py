@@ -148,12 +148,12 @@ class Image:
         if not manifest:
             return False
 
-        image_revision = manifest.image_revision
-        self._logger.debug("%s image_revision=%r", prefix, image_revision)
-        if image_revision.endswith("-dirty"):
-            return False
-        if image_revision not in unmodified_history:
-            return False
+        # image_revision = manifest.image_revision
+        # self._logger.debug("%s image_revision=%r", prefix, image_revision)
+        # if image_revision.endswith("-dirty"):
+        #     return False
+        # if image_revision not in unmodified_history:
+        #     return False
 
         application_revision = manifest.application_revision
         # TODO improve application_branch association
