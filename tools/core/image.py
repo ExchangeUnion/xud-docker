@@ -290,8 +290,8 @@ class Image:
                 result.append(p)
         return result
 
-    def push(self, no_cache: bool = False, dirty_push: bool = False) -> None:
-        platforms = self.build(no_cache=no_cache)
+    def push(self, no_cache: bool = False, dirty_push: bool = False, force: bool = False) -> None:
+        platforms = self.build(no_cache=no_cache, force=force)
 
         for platform in platforms:
             tag = self.get_build_tag(self.branch, platform)

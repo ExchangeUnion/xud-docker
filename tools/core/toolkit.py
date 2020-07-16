@@ -146,11 +146,12 @@ class Toolkit:
              dry_run: bool = False,
              no_cache: bool = False,
              cross_build: bool = False,
-             dirty_push: bool = False
+             dirty_push: bool = False,
+             force: bool = False,
              ) -> None:
 
-        self._logger.debug("Build with images=%r, dry_run=%r, no_cache=%r, cross_build=%r, dirty_push=%r",
-                           images, dry_run, no_cache, cross_build, dirty_push)
+        self._logger.debug("Build with images=%r, dry_run=%r, no_cache=%r, cross_build=%r, dirty_push=%r, force=%r",
+                           images, dry_run, no_cache, cross_build, dirty_push, force)
 
         if cross_build:
             platforms = self.platforms
@@ -161,7 +162,7 @@ class Toolkit:
 
         if images:
             for name in images:
-                Image(ctx, name).push(no_cache=no_cache)
+                Image(ctx, name).push(no_cache=no_cache, force=force)
         else:
             for image in self.git_template.get_modified_images(ctx):
                 image.push(no_cache=no_cache)
