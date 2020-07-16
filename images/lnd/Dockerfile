@@ -9,8 +9,11 @@ RUN make tags="autopilotrpc chainrpc experimental invoicesrpc routerrpc signrpc 
 FROM alpine:3.11
 RUN apk add --no-cache bash expect supervisor tor
 COPY --from=builder /go/bin/lnd /go/bin/lncli /usr/local/bin/
-COPY entrypoint.sh wait-file.sh start_tor.sh /
-COPY lnd.conf /root
+ARG ENTRYPOINT_FILE
+COPY $ENTRYPOINT_FILE /entrypoint.sh
+COPY wait-file.sh start_tor.sh /
+ARG LND_CONF_FILE
+COPY $LND_CONF_FILE /root/lnd.conf
 COPY supervisord.conf /etc/supervisor/conf.d/
 COPY torrc /etc/tor/
 RUN mkdir -p /root/.lnd/tor

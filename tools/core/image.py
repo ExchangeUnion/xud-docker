@@ -4,7 +4,7 @@ import logging
 import os
 import sys
 from shutil import copyfile
-from subprocess import Popen, PIPE, STDOUT, check_output
+from subprocess import Popen, PIPE, STDOUT, check_output, CalledProcessError
 from typing import TYPE_CHECKING, List, Optional
 import re
 import importlib
@@ -161,21 +161,28 @@ class Image:
 
     def _run_command(self, cmd):
         self._logger.info(cmd)
-        running = True
+
+        stop = threading.Event()
 
         def f():
-            nonlocal running
-            while running:
+            nonlocal stop
+            while not stop.is_set():
                 print(".", end="", flush=True)
-                time.sleep(1)
-            print("Done!")
+                stop.wait(1)
+            print()
         print("$", cmd)
         threading.Thread(target=f).start()
         try:
-            output = check_output(cmd, shell=True)
-        finally:
-            running = False
-        # print(output.decode(), end="", flush=True)
+            check_output(cmd, shell=True, stderr=STDOUT)
+            stop.set()
+            print()
+        except CalledProcessError as e:
+            stop.set()
+            print(e.output.decode(), end="", flush=True)
+            raise SystemExit(1)
+        except:
+            stop.set()
+            raise
 
     def _build(self, args: List[str], build_dir: str, build_tag: str) -> None:
         cmd = "docker build {} {}".format(" ".join(args), build_dir)
