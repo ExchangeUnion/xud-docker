@@ -97,6 +97,7 @@ class Image:
             # TODO remove labels below
             f"--label {prefix}.image.branch='master'",
             f"--label {prefix}.application.branch='master'",
+            "--label {}.image.created={}".format(prefix, self.context.timestamp.strftime('%Y-%m-%dT%H:%M:%SZ')),
         ]
 
     def print_title(self, title, badge):
