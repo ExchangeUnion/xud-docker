@@ -209,7 +209,7 @@ class Image:
         print("Build {}:{} ({})".format(self.name, self.tag, platform.tag_suffix))
 
         if not force and self._skip_build(platform, unmodified_history, source_manager):
-            # print("Image is up-to-date. Skip building.")
+            print("Image is up-to-date. Skip building.")
             self._logger.info("Skip building")
             return False
 
