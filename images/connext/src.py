@@ -7,6 +7,7 @@ class SourceManager(src.SourceManager):
 
     def get_ref(self, version):
         if version == "latest":
-            return "master"
+            # connext commit lock
+            return "fe1876a0411e0b9928825ae51104e16a9fd7b787"
         elif version == "7.0.0-alpha.14":
             return "fe1876a0411e0b9928825ae51104e16a9fd7b787"
