@@ -2,6 +2,7 @@ from argparse import ArgumentParser
 import os
 import sys
 from core import Toolkit
+from subprocess import CalledProcessError
 
 
 def main():
@@ -52,3 +53,12 @@ if __name__ == "__main__":
         main()
     except KeyboardInterrupt:
         print()
+    except CalledProcessError as e:
+        print("$ %s" % e.cmd)
+        print("[Exit Code]\n%s" % e.returncode)
+        print("[Output]")
+        if e.stdout:
+            print(e.stdout.decode(), flush=True)
+        print("[Error]")
+        if e.stderr:
+            print(e.stderr.decode(), flush=True)

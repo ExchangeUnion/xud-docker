@@ -149,19 +149,21 @@ class Image:
         if not manifest:
             return False
 
-        # image_revision = manifest.image_revision
-        # self._logger.debug("%s image_revision=%r", prefix, image_revision)
-        # if image_revision.endswith("-dirty"):
-        #     return False
-        # if image_revision not in unmodified_history:
-        #     return False
-
         application_revision = manifest.application_revision
         assert application_revision, "application revision should not be None"
         upstream_revision = source_manager.get_application_revision(self.tag)
         self._logger.info("Revisions\n%s (DockerHub)\n%s (GitHub)", application_revision, upstream_revision)
 
-        return application_revision == upstream_revision
+        if application_revision != upstream_revision:
+            return False
+
+        image_revision = manifest.image_revision
+        if image_revision.endswith("-dirty"):
+            return False
+        if image_revision not in unmodified_history:
+            return False
+
+        return True
 
     def _run_command(self, cmd):
         self._logger.info(cmd)
@@ -293,8 +295,13 @@ class Image:
             return
 
         tag = self.get_build_tag(self.branch, platform)
+
+        print("Push {}".format(tag))
+
         cmd = "docker push {}".format(tag)
-        output = self.run_command(cmd, "Failed to push " + tag)
+        output = check_output(cmd, shell=True, stderr=PIPE)
+        output = output.decode()
+        self._logger.debug("$ %s\n%s", cmd, output)
         last_line = output.splitlines()[-1]
         p = re.compile(r"^(.*): digest: (.*) size: (\d+)$")
         m = p.match(last_line)
@@ -320,36 +327,24 @@ class Image:
             cmd = f"docker manifest create {t0} {new_manifest}"
             if len(tags) > 0:
                 cmd += " " + tags
-            self.run_command(cmd, "Failed to create manifest list")
-            self.run_command(f"docker manifest push -p {t0}", "Failed to push manifest list")
+            output = check_output(cmd, shell=True, stderr=PIPE)
+            output = output.decode()
+            self._logger.debug("$ %s\n%s", cmd, output)
+
+            cmd = f"docker manifest push -p {t0}"
+            output = check_output(cmd, shell=True, stderr=PIPE)
+            output = output.decode()
+            self._logger.debug("$ %s\n%s", cmd, output)
         else:
-            self.run_command(f"docker manifest create {t0} {new_manifest}",
-                             "Failed to create manifest list")
-            self.run_command(f"docker manifest push -p {t0}", "Failed to push manifest list")
+            cmd = f"docker manifest create {t0} {new_manifest}"
+            output = check_output(cmd, shell=True, stderr=PIPE)
+            output = output.decode()
+            self._logger.debug("$ %s\n%s", cmd, output)
 
-    def run_command(self, cmd, errmsg) -> str:
-        if self.context.dry_run:
-            print("[dry-run] $ " + cmd)
-            return ""
-        else:
-            print("$ " + cmd, flush=True)
-
-        p = Popen(cmd, shell=True, stdout=PIPE, stderr=STDOUT)
-
-        output = bytearray()
-
-        for data in p.stdout:
-            output.extend(data)
-            os.write(sys.stdout.fileno(), data)
-            sys.stdout.flush()
-
-        exit_code = p.wait()
-
-        if exit_code != 0:
-            print("ERROR: {}, exit_code={}".format(errmsg, exit_code), file=sys.stderr)
-            sys.exit(1)
-
-        return output.decode()
+            cmd = f"docker manifest push -p {t0}"
+            output = check_output(cmd, shell=True, stderr=PIPE)
+            output = output.decode()
+            self._logger.debug("$ %s\n%s", cmd, output)
 
     def __repr__(self):
         return "<Image name=%r tag=%r branch=%r>" % (self.name, self.tag, self.branch)
