@@ -1,43 +1,52 @@
-from subprocess import check_output, CalledProcessError, PIPE
+from subprocess import check_output, CalledProcessError, PIPE, STDOUT
 import os
 import shutil
+import logging
 
 
 class SourceManager:
     def __init__(self, repo_url):
         self.repo_url = repo_url
         self.src_dir = os.path.abspath(".src")
+        self.logger = logging.getLogger("core.SourceManager")
 
-    def check(self, repo_url):
-        try:
-            check_output(f"git status", shell=True)
-        except CalledProcessError:
+    def check(self, repo_url, repo_dir):
+        if not os.path.exists(repo_dir) or not os.path.isdir(repo_dir):
             return False
-
-        output = check_output(f"git remote get-url origin", shell=True)
-        output = output.decode().strip()
-        return output == repo_url
-
-    def ensure_repo(self, repo_url, repo_dir):
-        print("Ensure Git repository {} ({})".format(self.src_dir, self.repo_url))
         wd = os.getcwd()
         try:
-            if os.path.exists(repo_dir):
-                os.chdir(repo_dir)
-                if not self.check(repo_url):
-                    os.chdir(wd)
-                    shutil.rmtree(repo_dir)
-            else:
-                print(repo_dir, "is not existed")
+            os.chdir(repo_dir)
+            try:
+                self._execute(f"git status")
+            except CalledProcessError:
+                return False
 
-            if not os.path.exists(repo_dir):
-                check_output(f"git clone {repo_url} {repo_dir}", shell=True)
+            return self._get_origin_url() == repo_url
         finally:
             os.chdir(wd)
 
+    def _get_origin_url(self):
+        cmd = f"git remote get-url origin"
+        output = check_output(cmd, shell=True, stderr=PIPE)
+        output = output.decode()
+        self.logger.debug("$ %s\n%s", cmd, output)
+        return output.strip()
+
+    def _clone_repo(self, repo_url, repo_dir):
+        self._execute(f"git clone {repo_url} {repo_dir}")
+
+    def ensure_repo(self, repo_url, repo_dir):
+        if not self.check(repo_url, repo_dir):
+            if os.path.exists(repo_dir):
+                shutil.rmtree(repo_dir)
+
+        if not os.path.exists(repo_dir):
+            self._clone_repo(repo_url, repo_dir)
+
     def ensure(self, version):
-        self.ensure_repo(self.repo_url, self.src_dir)
-        self.checkout(self.src_dir, version)
+        repo_dir = self.src_dir
+        self.ensure_repo(self.repo_url, repo_dir)
+        self.checkout(repo_dir, version)
 
     def get_ref(self, version):
         if version == "latest":
@@ -51,35 +60,23 @@ class SourceManager:
     def get_build_args(self, version):
         return {}
 
+    def _execute(self, cmd):
+        output = check_output(cmd, shell=True, stderr=STDOUT)
+        self.logger.debug("$ %s\n%s", cmd, output.decode())
+
     def checkout_repo(self, repo_dir, ref):
         wd = os.getcwd()
         try:
             os.chdir(repo_dir)
-
-            print("$ git fetch")
-            output = check_output(f"git fetch", shell=True)
-            print(output.decode(), end="", flush=True)
-
-            print("$ git checkout " + ref)
-            output = check_output(f"git checkout {ref}", shell=True)
-            print(output.decode(), end="", flush=True)
-
-            print("$ git pull origin " + ref)
-            output = check_output(f"git pull origin {ref}", shell=True)
-            print(output.decode(), end="", flush=True)
-
-            print("$ git clean -xfd")
-            output = check_output(f"git clean -xfd", shell=True)
-            print(output.decode(), end="", flush=True)
-
-            # FIXME handle rebased case
-
+            self._execute(f"git fetch")
+            self._execute(f"git checkout {ref}")
+            self._execute(f"git pull origin {ref}")
+            self._execute(f"git clean -xfd")
         finally:
             os.chdir(wd)
 
     def checkout(self, repo_dir, version):
         ref = self.get_ref(version)
-        print("Checkout version {}({}) on {}".format(version, ref, repo_dir))
         self.checkout_repo(repo_dir, ref)
 
     def get_revision(self, repo_dir):

@@ -2,6 +2,7 @@ from argparse import ArgumentParser
 import os
 import sys
 from core import Toolkit
+from subprocess import CalledProcessError
 
 
 def main():
@@ -9,19 +10,19 @@ def main():
     parser.add_argument("-d", "--debug", action="store_true")
     subparsers = parser.add_subparsers(dest="command")
 
-    build_parser = subparsers.add_parser("build")
+    build_parser = subparsers.add_parser("build", prog="build")
     build_parser.add_argument("--dry-run", action="store_true")
-    build_parser.add_argument("--cross-build", action="store_true")
     build_parser.add_argument("--no-cache", action="store_true")
     build_parser.add_argument("-f", "--force", action="store_true")
+    build_parser.add_argument("--platform", action="append")
     build_parser.add_argument("images", type=str, nargs="*")
 
     push_parser = subparsers.add_parser("push")
     push_parser.add_argument("--dirty-push", action="store_true")
     push_parser.add_argument("--dry-run", action="store_true")
-    push_parser.add_argument("--cross-build", action="store_true")
     push_parser.add_argument("--no-cache", action="store_true")
     push_parser.add_argument("-f", "--force", action="store_true")
+    push_parser.add_argument("--platform", action="append")
     push_parser.add_argument("images", type=str, nargs="*")
 
     subparsers.add_parser("test")
@@ -38,9 +39,9 @@ def main():
     sys.path.append(".")
 
     if args.command == "build":
-        toolkit.build(args.images, args.dry_run, args.no_cache, args.cross_build, args.force)
+        toolkit.build(args.images, args.dry_run, args.no_cache, args.force, args.platform)
     elif args.command == "push":
-        toolkit.push(args.images, args.dry_run, args.no_cache, args.cross_build, args.dirty_push, args.force)
+        toolkit.push(args.images, args.dry_run, args.no_cache, args.force, args.platform, args.dirty_push)
     elif args.command == "test":
         toolkit.test()
     elif args.command == "release":
@@ -52,3 +53,12 @@ if __name__ == "__main__":
         main()
     except KeyboardInterrupt:
         print()
+    except CalledProcessError as e:
+        print("$ %s" % e.cmd)
+        print("[Exit Code]\n%s" % e.returncode)
+        print("[Output]")
+        if e.stdout:
+            print(e.stdout.decode(), flush=True)
+        print("[Error]")
+        if e.stderr:
+            print(e.stderr.decode(), flush=True)

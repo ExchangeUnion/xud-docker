@@ -22,6 +22,7 @@ class Image:
     def __init__(self, context: Context, name: str):
         self.context = context
         p = re.compile(r"^(.+):(.+)$")
+        name = name.strip()
         m = p.match(name)
         if m:
             self.name = m.group(1)
@@ -148,19 +149,21 @@ class Image:
         if not manifest:
             return False
 
-        # image_revision = manifest.image_revision
-        # self._logger.debug("%s image_revision=%r", prefix, image_revision)
-        # if image_revision.endswith("-dirty"):
-        #     return False
-        # if image_revision not in unmodified_history:
-        #     return False
-
         application_revision = manifest.application_revision
         assert application_revision, "application revision should not be None"
         upstream_revision = source_manager.get_application_revision(self.tag)
         self._logger.info("Revisions\n%s (DockerHub)\n%s (GitHub)", application_revision, upstream_revision)
 
-        return application_revision == upstream_revision
+        if application_revision != upstream_revision:
+            return False
+
+        image_revision = manifest.image_revision
+        if image_revision.endswith("-dirty"):
+            return False
+        if image_revision not in unmodified_history:
+            return False
+
+        return True
 
     def _run_command(self, cmd):
         self._logger.info(cmd)
@@ -169,20 +172,21 @@ class Image:
 
         def f():
             nonlocal stop
+            counter = 0
             while not stop.is_set():
+                counter = counter + 1
                 if "TRAVIS_BRANCH" in os.environ:
-                    print("Still building...")
+                    print("Still building... ({})".format(counter), flush=True)
                     stop.wait(10)
                     continue
                 print(".", end="", flush=True)
                 stop.wait(1)
             print()
-        print("$", cmd)
         threading.Thread(target=f).start()
         try:
-            check_output(cmd, shell=True, stderr=STDOUT)
+            output = check_output(cmd, shell=True, stderr=STDOUT)
+            self._logger.debug("$ %s\n%s", cmd, output.decode())
             stop.set()
-            print()
         except CalledProcessError as e:
             stop.set()
             print(e.output.decode(), end="", flush=True)
@@ -202,14 +206,16 @@ class Image:
         # self.run_command(cmd, "Failed to build {}".format(build_tag))
         self._run_command(cmd)
 
-    def _build_platform(self, platform: Platform, no_cache: bool, force: bool, source_manager) -> bool:
-        prefix = "[_build_platform] ({})".format(platform)
-        build_tag = self.get_build_tag(self.branch, platform)
+    def build(self, platform: Platform, no_cache: bool, force: bool) -> bool:
+        self._logger.info("Build %s:%s (%s)", self.name, self.tag, platform.tag_suffix)
+        print("Build %s:%s (%s)" % (self.name, self.tag, platform.tag_suffix))
 
         unmodified_history = self.context.get_unmodified_history(self)
-        self._logger.debug("%s unmodified_history=%r", prefix, unmodified_history)
+        self._logger.debug("Unmodified history:\n%s", "\n".join([f"- {commit}" for commit in unmodified_history]))
 
-        print("Build {}:{} ({})".format(self.name, self.tag, platform.tag_suffix))
+        source_manager = self.prepare()
+
+        build_tag = self.get_build_tag(self.branch, platform)
 
         if not force and self._skip_build(platform, unmodified_history, source_manager):
             print("Image is up-to-date. Skip building.")
@@ -264,9 +270,11 @@ class Image:
     def prepare(self):
         self._logger.info("Prepare")
         try:
+            os.chdir(self.context.project_dir)
+            m = importlib.import_module(f"images.{self.name}.src")
+            # m = importlib.reload(m)
+            # print(m, dir(m))
             os.chdir(self.image_folder)
-            m = importlib.import_module("src")
-            importlib.reload(m)
             if hasattr(m, "SourceManager"):
                 source_manager = m.SourceManager()
             else:
@@ -282,79 +290,61 @@ class Image:
         finally:
             os.chdir(self.image_folder)
 
-    def build(self, no_cache: bool = False, force: bool = False) -> [Platform]:
-        self._logger.info("Build %s:%s", self.name, self.tag)
+    def push(self, platform: Platform, no_cache: bool = False, dirty_push: bool = False, force: bool = False) -> None:
+        if not self.build(platform = platform, no_cache=no_cache, force=force):
+            return
 
-        source_manager = self.prepare()
+        tag = self.get_build_tag(self.branch, platform)
 
-        result = []
-        for p in self.context.platforms:
-            if self._build_platform(p, no_cache=no_cache, force=force, source_manager=source_manager):
-                result.append(p)
-        return result
+        print("Push {}".format(tag))
 
-    def push(self, no_cache: bool = False, dirty_push: bool = False, force: bool = False) -> None:
-        platforms = self.build(no_cache=no_cache, force=force)
+        cmd = "docker push {}".format(tag)
+        output = check_output(cmd, shell=True, stderr=PIPE)
+        output = output.decode()
+        self._logger.debug("$ %s\n%s", cmd, output)
+        last_line = output.splitlines()[-1]
+        p = re.compile(r"^(.*): digest: (.*) size: (\d+)$")
+        m = p.match(last_line)
+        assert m
+        assert m.group(1) in tag
 
-        for platform in platforms:
-            tag = self.get_build_tag(self.branch, platform)
-            cmd = "docker push {}".format(tag)
-            output = self.run_command(cmd, "Failed to push " + tag)
-            last_line = output.splitlines()[-1]
-            p = re.compile(r"^(.*): digest: (.*) size: (\d+)$")
-            m = p.match(last_line)
-            assert m
-            assert m.group(1) in tag
+        new_manifest = "{}/{}@{}".format(self.group, self.name, m.group(2))
 
-            new_manifest = "{}/{}@{}".format(self.group, self.name, m.group(2))
+        # append to manifest list
+        os.environ["DOCKER_CLI_EXPERIMENTAL"] = "enabled"
+        t0 = self.get_build_tag(self.branch, None)
+        repo, _ = t0.split(":")
+        manifest_list = self.context.docker_template.get_manifest(t0)
+        if manifest_list:
+            assert isinstance(manifest_list, ManifestList)
+            # try to update manifests
+            tags = []
+            for m in manifest_list.manifests:
+                print(m.platform, platform)
+                if m.platform != platform:
+                    tags.append("{}@{}".format(repo, m.digest))
+            tags = " ".join(tags)
+            cmd = f"docker manifest create {t0} {new_manifest}"
+            if len(tags) > 0:
+                cmd += " " + tags
+            output = check_output(cmd, shell=True, stderr=PIPE)
+            output = output.decode()
+            self._logger.debug("$ %s\n%s", cmd, output)
 
-            # append to manifest list
-            os.environ["DOCKER_CLI_EXPERIMENTAL"] = "enabled"
-            t0 = self.get_build_tag(self.branch, None)
-            repo, _ = t0.split(":")
-            manifest_list = self.context.docker_template.get_manifest(t0)
-            if manifest_list:
-                assert isinstance(manifest_list, ManifestList)
-                # try to update manifests
-                tags = []
-                for m in manifest_list.manifests:
-                    print(m.platform, platform)
-                    if m.platform != platform:
-                        tags.append("{}@{}".format(repo, m.digest))
-                tags = " ".join(tags)
-                cmd = f"docker manifest create {t0} {new_manifest}"
-                if len(tags) > 0:
-                    cmd += " " + tags
-                self.run_command(cmd, "Failed to create manifest list")
-                self.run_command(f"docker manifest push -p {t0}", "Failed to push manifest list")
-            else:
-                self.run_command(f"docker manifest create {t0} {new_manifest}",
-                                 "Failed to create manifest list")
-                self.run_command(f"docker manifest push -p {t0}", "Failed to push manifest list")
-
-    def run_command(self, cmd, errmsg) -> str:
-        if self.context.dry_run:
-            print("[dry-run] $ " + cmd)
-            return ""
+            cmd = f"docker manifest push -p {t0}"
+            output = check_output(cmd, shell=True, stderr=PIPE)
+            output = output.decode()
+            self._logger.debug("$ %s\n%s", cmd, output)
         else:
-            print("$ " + cmd, flush=True)
+            cmd = f"docker manifest create {t0} {new_manifest}"
+            output = check_output(cmd, shell=True, stderr=PIPE)
+            output = output.decode()
+            self._logger.debug("$ %s\n%s", cmd, output)
 
-        p = Popen(cmd, shell=True, stdout=PIPE, stderr=STDOUT)
-
-        output = bytearray()
-
-        for data in p.stdout:
-            output.extend(data)
-            os.write(sys.stdout.fileno(), data)
-            sys.stdout.flush()
-
-        exit_code = p.wait()
-
-        if exit_code != 0:
-            print("ERROR: {}, exit_code={}".format(errmsg, exit_code), file=sys.stderr)
-            sys.exit(1)
-
-        return output.decode()
+            cmd = f"docker manifest push -p {t0}"
+            output = check_output(cmd, shell=True, stderr=PIPE)
+            output = output.decode()
+            self._logger.debug("$ %s\n%s", cmd, output)
 
     def __repr__(self):
         return "<Image name=%r tag=%r branch=%r>" % (self.name, self.tag, self.branch)
