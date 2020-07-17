@@ -169,9 +169,11 @@ class Image:
 
         def f():
             nonlocal stop
+            counter = 0
             while not stop.is_set():
+                counter = counter + 1
                 if "TRAVIS_BRANCH" in os.environ:
-                    print("Still building...")
+                    print("Still building... ({})".format(counter), flush=True)
                     stop.wait(10)
                     continue
                 print(".", end="", flush=True)
