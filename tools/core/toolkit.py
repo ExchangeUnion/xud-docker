@@ -76,7 +76,7 @@ class Context:
 
     def get_unmodified_history(self, image: Image) -> List[str]:
         for i, commit in enumerate(self.history):
-            if image.image_folder in self.history[commit]:
+            if image.name in self.history[commit]:
                 return list(self.history)[:i + 1]
         return list(self.history)
 

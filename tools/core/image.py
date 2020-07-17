@@ -142,10 +142,8 @@ class Image:
         return repo
 
     def _skip_build(self, platform: Platform, unmodified_history: List[str], source_manager) -> bool:
-        prefix = "[_skip_build] ({})".format(platform)
         build_tag = self.get_build_tag(self.branch, None)
         manifest = self.context.docker_template.get_manifest(build_tag, platform)
-        self._logger.debug(f"%s manifest=%r", prefix, manifest)
         if not manifest:
             return False
 
