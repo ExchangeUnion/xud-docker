@@ -22,6 +22,7 @@ class Image:
     def __init__(self, context: Context, name: str):
         self.context = context
         p = re.compile(r"^(.+):(.+)$")
+        name = name.strip()
         m = p.match(name)
         if m:
             self.name = m.group(1)
