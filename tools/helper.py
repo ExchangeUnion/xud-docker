@@ -9,19 +9,19 @@ def main():
     parser.add_argument("-d", "--debug", action="store_true")
     subparsers = parser.add_subparsers(dest="command")
 
-    build_parser = subparsers.add_parser("build")
+    build_parser = subparsers.add_parser("build", prog="build")
     build_parser.add_argument("--dry-run", action="store_true")
-    build_parser.add_argument("--cross-build", action="store_true")
     build_parser.add_argument("--no-cache", action="store_true")
     build_parser.add_argument("-f", "--force", action="store_true")
+    build_parser.add_argument("--platform", action="append")
     build_parser.add_argument("images", type=str, nargs="*")
 
     push_parser = subparsers.add_parser("push")
     push_parser.add_argument("--dirty-push", action="store_true")
     push_parser.add_argument("--dry-run", action="store_true")
-    push_parser.add_argument("--cross-build", action="store_true")
     push_parser.add_argument("--no-cache", action="store_true")
     push_parser.add_argument("-f", "--force", action="store_true")
+    push_parser.add_argument("--platform", action="append")
     push_parser.add_argument("images", type=str, nargs="*")
 
     subparsers.add_parser("test")
@@ -38,9 +38,9 @@ def main():
     sys.path.append(".")
 
     if args.command == "build":
-        toolkit.build(args.images, args.dry_run, args.no_cache, args.cross_build, args.force)
+        toolkit.build(args.images, args.dry_run, args.no_cache, args.force, args.platform)
     elif args.command == "push":
-        toolkit.push(args.images, args.dry_run, args.no_cache, args.cross_build, args.dirty_push, args.force)
+        toolkit.push(args.images, args.dry_run, args.no_cache, args.force, args.platform, args.dirty_push)
     elif args.command == "test":
         toolkit.test()
     elif args.command == "release":

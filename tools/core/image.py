@@ -177,12 +177,11 @@ class Image:
                 print(".", end="", flush=True)
                 stop.wait(1)
             print()
-        print("$", cmd)
         threading.Thread(target=f).start()
         try:
-            check_output(cmd, shell=True, stderr=STDOUT)
+            output = check_output(cmd, shell=True, stderr=STDOUT)
+            self._logger.debug("$ %s\n%s", cmd, output.decode())
             stop.set()
-            print()
         except CalledProcessError as e:
             stop.set()
             print(e.output.decode(), end="", flush=True)
@@ -202,14 +201,16 @@ class Image:
         # self.run_command(cmd, "Failed to build {}".format(build_tag))
         self._run_command(cmd)
 
-    def _build_platform(self, platform: Platform, no_cache: bool, force: bool, source_manager) -> bool:
-        prefix = "[_build_platform] ({})".format(platform)
-        build_tag = self.get_build_tag(self.branch, platform)
+    def build(self, platform: Platform, no_cache: bool, force: bool) -> bool:
+        self._logger.info("Build %s:%s (%s)", self.name, self.tag, platform.tag_suffix)
+        print("Build %s:%s (%s)" % (self.name, self.tag, platform.tag_suffix))
 
         unmodified_history = self.context.get_unmodified_history(self)
-        self._logger.debug("%s unmodified_history=%r", prefix, unmodified_history)
+        self._logger.debug("Unmodified history:\n%s", "\n".join([f"- {commit}" for commit in unmodified_history]))
 
-        print("Build {}:{} ({})".format(self.name, self.tag, platform.tag_suffix))
+        source_manager = self.prepare()
+
+        build_tag = self.get_build_tag(self.branch, platform)
 
         if not force and self._skip_build(platform, unmodified_history, source_manager):
             print("Image is up-to-date. Skip building.")
@@ -264,9 +265,11 @@ class Image:
     def prepare(self):
         self._logger.info("Prepare")
         try:
+            os.chdir(self.context.project_dir)
+            m = importlib.import_module(f"images.{self.name}.src")
+            # m = importlib.reload(m)
+            # print(m, dir(m))
             os.chdir(self.image_folder)
-            m = importlib.import_module("src")
-            importlib.reload(m)
             if hasattr(m, "SourceManager"):
                 source_manager = m.SourceManager()
             else:
@@ -282,55 +285,43 @@ class Image:
         finally:
             os.chdir(self.image_folder)
 
-    def build(self, no_cache: bool = False, force: bool = False) -> [Platform]:
-        self._logger.info("Build %s:%s", self.name, self.tag)
+    def push(self, platform: Platform, no_cache: bool = False, dirty_push: bool = False, force: bool = False) -> None:
+        self.build(platform = platform, no_cache=no_cache, force=force)
 
-        source_manager = self.prepare()
+        tag = self.get_build_tag(self.branch, platform)
+        cmd = "docker push {}".format(tag)
+        output = self.run_command(cmd, "Failed to push " + tag)
+        last_line = output.splitlines()[-1]
+        p = re.compile(r"^(.*): digest: (.*) size: (\d+)$")
+        m = p.match(last_line)
+        assert m
+        assert m.group(1) in tag
 
-        result = []
-        for p in self.context.platforms:
-            if self._build_platform(p, no_cache=no_cache, force=force, source_manager=source_manager):
-                result.append(p)
-        return result
+        new_manifest = "{}/{}@{}".format(self.group, self.name, m.group(2))
 
-    def push(self, no_cache: bool = False, dirty_push: bool = False, force: bool = False) -> None:
-        platforms = self.build(no_cache=no_cache, force=force)
-
-        for platform in platforms:
-            tag = self.get_build_tag(self.branch, platform)
-            cmd = "docker push {}".format(tag)
-            output = self.run_command(cmd, "Failed to push " + tag)
-            last_line = output.splitlines()[-1]
-            p = re.compile(r"^(.*): digest: (.*) size: (\d+)$")
-            m = p.match(last_line)
-            assert m
-            assert m.group(1) in tag
-
-            new_manifest = "{}/{}@{}".format(self.group, self.name, m.group(2))
-
-            # append to manifest list
-            os.environ["DOCKER_CLI_EXPERIMENTAL"] = "enabled"
-            t0 = self.get_build_tag(self.branch, None)
-            repo, _ = t0.split(":")
-            manifest_list = self.context.docker_template.get_manifest(t0)
-            if manifest_list:
-                assert isinstance(manifest_list, ManifestList)
-                # try to update manifests
-                tags = []
-                for m in manifest_list.manifests:
-                    print(m.platform, platform)
-                    if m.platform != platform:
-                        tags.append("{}@{}".format(repo, m.digest))
-                tags = " ".join(tags)
-                cmd = f"docker manifest create {t0} {new_manifest}"
-                if len(tags) > 0:
-                    cmd += " " + tags
-                self.run_command(cmd, "Failed to create manifest list")
-                self.run_command(f"docker manifest push -p {t0}", "Failed to push manifest list")
-            else:
-                self.run_command(f"docker manifest create {t0} {new_manifest}",
-                                 "Failed to create manifest list")
-                self.run_command(f"docker manifest push -p {t0}", "Failed to push manifest list")
+        # append to manifest list
+        os.environ["DOCKER_CLI_EXPERIMENTAL"] = "enabled"
+        t0 = self.get_build_tag(self.branch, None)
+        repo, _ = t0.split(":")
+        manifest_list = self.context.docker_template.get_manifest(t0)
+        if manifest_list:
+            assert isinstance(manifest_list, ManifestList)
+            # try to update manifests
+            tags = []
+            for m in manifest_list.manifests:
+                print(m.platform, platform)
+                if m.platform != platform:
+                    tags.append("{}@{}".format(repo, m.digest))
+            tags = " ".join(tags)
+            cmd = f"docker manifest create {t0} {new_manifest}"
+            if len(tags) > 0:
+                cmd += " " + tags
+            self.run_command(cmd, "Failed to create manifest list")
+            self.run_command(f"docker manifest push -p {t0}", "Failed to push manifest list")
+        else:
+            self.run_command(f"docker manifest create {t0} {new_manifest}",
+                             "Failed to create manifest list")
+            self.run_command(f"docker manifest push -p {t0}", "Failed to push manifest list")
 
     def run_command(self, cmd, errmsg) -> str:
         if self.context.dry_run:

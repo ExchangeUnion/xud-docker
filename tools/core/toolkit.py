@@ -66,7 +66,13 @@ class Context:
         self.revision = git_info.revision
         self.branch = git_info.branch
 
-        self._logger.debug("branch %s history: %r", self.branch, self.history)
+        self._logger.debug("Current branch is \"%s\"\n%s", self.branch, self._display_history(self.history))
+
+    def _display_history(self, history):
+        lines = []
+        for commit, images in history.items():
+            lines.append("- {}: {}".format(commit, images))
+        return "\n".join(lines)
 
     def get_unmodified_history(self, image: Image) -> List[str]:
         for i, commit in enumerate(self.history):
@@ -84,7 +90,7 @@ class Toolkit:
 
     def __init__(self,
                  project_dir: str,
-                 platforms: List[SupportedPlatform],
+                 platforms: List[str],
                  group: str = "exchangeunion",
                  label_prefix: str = "com.exchangeunion",
                  project_repo: str = "https://github.com/exchangeunion/xud-docker",
@@ -120,15 +126,11 @@ class Toolkit:
               images: List[str] = None,
               dry_run: bool = False,
               no_cache: bool = False,
-              cross_build: bool = False,
               force: bool = False,
+              platforms: List[str] = None,
               ) -> None:
-
-        self._logger.debug("Build with images=%r, dry_run=%r, no_cache=%r, cross_build=%r",
-                           images, dry_run, no_cache, cross_build)
-
-        if cross_build:
-            platforms = self.platforms
+        if platforms:
+            platforms = [Platforms.get(name) for name in platforms]
         else:
             platforms = [self.current_platform]
 
@@ -136,25 +138,23 @@ class Toolkit:
 
         if images:
             for name in images:
-                Image(ctx, name).build(no_cache=no_cache, force=force)
+                for p in platforms:
+                    Image(ctx, name).build(platform=p, no_cache=no_cache, force=force)
         else:
             for image in self.git_template.get_modified_images(ctx):
-                image.build(no_cache=no_cache, force=force)
+                for p in platforms:
+                    image.build(platform=p, no_cache=no_cache, force=force)
 
     def push(self,
              images: List[str] = None,
              dry_run: bool = False,
              no_cache: bool = False,
-             cross_build: bool = False,
-             dirty_push: bool = False,
              force: bool = False,
+             platforms: List[str] = None,
+             dirty_push: bool = False,
              ) -> None:
-
-        self._logger.debug("Build with images=%r, dry_run=%r, no_cache=%r, cross_build=%r, dirty_push=%r, force=%r",
-                           images, dry_run, no_cache, cross_build, dirty_push, force)
-
-        if cross_build:
-            platforms = self.platforms
+        if platforms:
+            platforms = [Platforms.get(name) for name in platforms]
         else:
             platforms = [self.current_platform]
 
@@ -162,10 +162,12 @@ class Toolkit:
 
         if images:
             for name in images:
-                Image(ctx, name).push(no_cache=no_cache, force=force)
+                for p in platforms:
+                    Image(ctx, name).push(platform=p, no_cache=no_cache, force=force, dirty_push=dirty_push)
         else:
             for image in self.git_template.get_modified_images(ctx):
-                image.push(no_cache=no_cache)
+                for p in platforms:
+                    image.push(platform=p, no_cache=no_cache, force=force, dirty_push=dirty_push)
 
     def test(self):
         os.chdir(self.project_dir)

@@ -74,7 +74,7 @@ class Platforms:
     @staticmethod
     def get_current() -> Platform:
         m = platform.machine()
-        if m == "x86_64":
+        if m == "x86_64" or m == "AMD64":
             return LINUX_AMD64
         elif m == "aarch64":
             return LINUX_ARM64
