@@ -289,7 +289,8 @@ class Image:
             os.chdir(self.image_folder)
 
     def push(self, platform: Platform, no_cache: bool = False, dirty_push: bool = False, force: bool = False) -> None:
-        self.build(platform = platform, no_cache=no_cache, force=force)
+        if not self.build(platform = platform, no_cache=no_cache, force=force):
+            return
 
         tag = self.get_build_tag(self.branch, platform)
         cmd = "docker push {}".format(tag)
