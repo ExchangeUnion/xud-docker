@@ -148,7 +148,8 @@ class Image:
             return False
 
         application_revision = manifest.application_revision
-        assert application_revision, "application revision should not be None"
+        if not application_revision:
+            application_revision = ""
         upstream_revision = source_manager.get_application_revision(self.tag)
         self._logger.info("Revisions\n%s (DockerHub)\n%s (GitHub)", application_revision, upstream_revision)
 
