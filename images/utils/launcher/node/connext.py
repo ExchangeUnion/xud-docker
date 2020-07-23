@@ -30,11 +30,11 @@ class Connext(Node):
             ]
         elif self.network == "testnet":
             environment = [
-                "CONNEXT_NODE_URL=https://connext.testnet.odex.dev",
+                "CONNEXT_NODE_URL=https://connext.testnet.boltz.exchange",
             ]
         elif self.network == "mainnet":
             environment = [
-                "CONNEXT_NODE_URL=https://connext.odex.dev/api",
+                "CONNEXT_NODE_URL=https://connext.boltz.exchange",
             ]
 
         if self.network in ["testnet", "mainnet"]:
