@@ -68,21 +68,17 @@ class Image:
     def get_shared_dir(self):
         return "{}/shared".format(self.name)
 
-    def get_labels(self, unmodified_history, application_revision) -> List[str]:
+    def get_labels(self, application_revision) -> List[str]:
         image_revision = ""
         image_source = ""
         image_travis = ""
 
         if self.revision:
-            if "HEAD" in unmodified_history and len(unmodified_history) > 1:
-                revision = self.revision.replace("-dirty", "")
-            else:
-                revision = self.revision
 
-            image_revision = revision
+            image_revision = self.revision
 
-            if not revision.endswith("-dirty"):
-                source = "{}/blob/{}/images/{}/Dockerfile".format(self.context.project_repo, revision, self.name)
+            if not image_revision.endswith("-dirty"):
+                source = "{}/blob/{}/images/{}/Dockerfile".format(self.context.project_repo, image_revision, self.name)
                 image_source = source
 
         if "TRAVIS_BUILD_WEB_URL" in os.environ:
@@ -141,29 +137,6 @@ class Image:
             repo = "connext/rest-api-client"
         return repo
 
-    def _skip_build(self, platform: Platform, unmodified_history: List[str], source_manager) -> bool:
-        build_tag = self.get_build_tag(self.branch, None)
-        manifest = self.context.docker_template.get_manifest(build_tag, platform)
-        if not manifest:
-            return False
-
-        application_revision = manifest.application_revision
-        if not application_revision:
-            application_revision = ""
-        upstream_revision = source_manager.get_application_revision(self.tag)
-        self._logger.info("Revisions\n%s (DockerHub)\n%s (GitHub)", application_revision, upstream_revision)
-
-        if application_revision != upstream_revision:
-            return False
-
-        image_revision = manifest.image_revision
-        if image_revision.endswith("-dirty"):
-            return False
-        if image_revision not in unmodified_history:
-            return False
-
-        return True
-
     def _run_command(self, cmd):
         self._logger.info(cmd)
 
@@ -205,23 +178,15 @@ class Image:
         # self.run_command(cmd, "Failed to build {}".format(build_tag))
         self._run_command(cmd)
 
-    def build(self, platform: Platform, no_cache: bool, force: bool) -> bool:
+    def build(self, platform: Platform, no_cache: bool) -> None:
         self._logger.info("Build %s:%s (%s)", self.name, self.tag, platform.tag_suffix)
         print("Build %s:%s (%s)" % (self.name, self.tag, platform.tag_suffix))
-
-        unmodified_history = self.context.get_unmodified_history(self)
-        self._logger.debug("Unmodified history:\n%s", "\n".join([f"- {commit}" for commit in unmodified_history]))
 
         source_manager = self.prepare()
 
         build_tag = self.get_build_tag(self.branch, platform)
 
-        if not force and self._skip_build(platform, unmodified_history, source_manager):
-            print("Image is up-to-date. Skip building.")
-            self._logger.info("Skip building")
-            return False
-
-        build_labels = self.get_labels(unmodified_history, source_manager.get_application_revision(self.tag))
+        build_labels = self.get_labels(source_manager.get_application_revision(self.tag))
         build_dir = "."
 
         if not os.path.exists(build_dir):
@@ -264,8 +229,6 @@ class Image:
             for f in shared_files:
                 os.remove("{}/{}".format(build_dir, f))
 
-        return True
-
     def prepare(self):
         self._logger.info("Prepare")
         try:
@@ -289,9 +252,8 @@ class Image:
         finally:
             os.chdir(self.image_folder)
 
-    def push(self, platform: Platform, no_cache: bool = False, dirty_push: bool = False, force: bool = False) -> None:
-        if not self.build(platform = platform, no_cache=no_cache, force=force):
-            return
+    def push(self, platform: Platform, no_cache: bool = False, dirty_push: bool = False) -> None:
+        self.build(platform = platform, no_cache=no_cache)
 
         tag = self.get_build_tag(self.branch, platform)
 

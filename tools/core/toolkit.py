@@ -1,20 +1,14 @@
-from __future__ import annotations
-
 import logging
 import os
-import platform
 import sys
 from datetime import datetime
-from typing import TYPE_CHECKING, Optional, List
+from typing import Optional, List
 
 from .docker import DockerTemplate, Platform, Platforms
 from .git import GitTemplate
 from .github import GithubTemplate
 from .image import Image
 from .travis import TravisTemplate
-
-if TYPE_CHECKING:
-    from .docker import SupportedPlatform
 
 
 class Context:
@@ -74,12 +68,6 @@ class Context:
             lines.append("- {}: {}".format(commit, images))
         return "\n".join(lines)
 
-    def get_unmodified_history(self, image: Image) -> List[str]:
-        for i, commit in enumerate(self.history):
-            if image.name in self.history[commit]:
-                return list(self.history)[:i + 1]
-        return list(self.history)
-
 
 class Toolkit:
     group: str
@@ -126,7 +114,6 @@ class Toolkit:
               images: List[str] = None,
               dry_run: bool = False,
               no_cache: bool = False,
-              force: bool = False,
               platforms: List[str] = None,
               ) -> None:
         if platforms:
@@ -139,17 +126,16 @@ class Toolkit:
         if images:
             for name in images:
                 for p in platforms:
-                    Image(ctx, name).build(platform=p, no_cache=no_cache, force=force)
+                    Image(ctx, name).build(platform=p, no_cache=no_cache)
         else:
             for image in self.git_template.get_modified_images(ctx):
                 for p in platforms:
-                    image.build(platform=p, no_cache=no_cache, force=force)
+                    image.build(platform=p, no_cache=no_cache)
 
     def push(self,
              images: List[str] = None,
              dry_run: bool = False,
              no_cache: bool = False,
-             force: bool = False,
              platforms: List[str] = None,
              dirty_push: bool = False,
              ) -> None:
@@ -163,11 +149,11 @@ class Toolkit:
         if images:
             for name in images:
                 for p in platforms:
-                    Image(ctx, name).push(platform=p, no_cache=no_cache, force=force, dirty_push=dirty_push)
+                    Image(ctx, name).push(platform=p, no_cache=no_cache, dirty_push=dirty_push)
         else:
             for image in self.git_template.get_modified_images(ctx):
                 for p in platforms:
-                    image.push(platform=p, no_cache=no_cache, force=force, dirty_push=dirty_push)
+                    image.push(platform=p, no_cache=no_cache, dirty_push=dirty_push)
 
     def test(self):
         os.chdir(self.project_dir)
