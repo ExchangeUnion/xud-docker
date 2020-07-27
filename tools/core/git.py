@@ -72,17 +72,17 @@ class GitTemplate:
             r = r + "-dirty"
         master = get_master_commit_hash()
         branch = b
-        if branch == "master":
-            history = self.get_branch_history(self.commit_before_travis)
-        else:
-            history = self.get_branch_history(master)
+        # if branch == "master":
+        #     history = self.get_branch_history(self.commit_before_travis)
+        # else:
+        #     history = self.get_branch_history(master)
 
-        output = check_output("git diff --name-only", shell=True, stderr=PIPE)
-        output = output.decode().strip()
-        if len(output) > 0:
-            history.insert(0, "HEAD")
+        # output = check_output("git diff --name-only", shell=True, stderr=PIPE)
+        # output = output.decode().strip()
+        # if len(output) > 0:
+        #     history.insert(0, "HEAD")
 
-        return GitInfo(b, r, master, history)
+        return GitInfo(b, r, master, [])
 
     def get_modified_images(self, context: Context) -> List[Image]:
         branch = context.branch
