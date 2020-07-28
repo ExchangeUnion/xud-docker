@@ -131,9 +131,15 @@ class Toolkit:
                         print()
                     for p in platforms:
                         Image(ctx, name).build(platform=p, no_cache=no_cache)
-        except CalledProcessError as e:
-            print("$ %s", e.cmd)
-            print(e.output.decode().strip())
+        except Exception as e:
+            p = e
+            while p:
+                if isinstance(p, CalledProcessError):
+                    print("$ %s", p.cmd)
+                    print(p.output.decode().strip())
+                    break
+                p = e.__cause__
+            raise
 
     def push(self,
              images: List[str] = None,
@@ -156,9 +162,16 @@ class Toolkit:
                         print()
                     for p in platforms:
                         Image(ctx, name).push(platform=p, no_cache=no_cache, dirty_push=dirty_push)
-        except CalledProcessError as e:
-            print("$ %s", e.cmd)
-            print(e.output.decode().strip())
+        except Exception as e:
+            p = e
+            while p:
+                if isinstance(p, CalledProcessError):
+                    print("$ %s", p.cmd)
+                    print(p.output.decode().strip())
+                    break
+                p = e.__cause__
+            raise
+
 
     def test(self):
         os.chdir(self.project_dir)

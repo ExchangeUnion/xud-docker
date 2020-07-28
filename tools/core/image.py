@@ -4,7 +4,7 @@ import logging
 import os
 import sys
 from shutil import copyfile
-from subprocess import PIPE, STDOUT, check_output, CalledProcessError
+from subprocess import CalledProcessError
 from typing import TYPE_CHECKING, List, Optional
 import re
 import importlib
@@ -12,6 +12,7 @@ import threading
 
 from .docker import ManifestList
 from .src import SourceManager
+from .utils import execute
 
 if TYPE_CHECKING:
     from .toolkit import Platform, Context
@@ -159,8 +160,8 @@ class Image:
                 print()
         threading.Thread(target=f).start()
         try:
-            output = check_output(cmd, shell=True, stderr=STDOUT)
-            self._logger.debug("$ %s\n%s", cmd, output.decode())
+            output = execute(cmd)
+            self._logger.debug("$ %s\n%s", cmd, output)
             stop.set()
         except CalledProcessError as e:
             stop.set()
@@ -223,7 +224,7 @@ class Image:
 
                 build_tag_without_arch = self.get_build_tag(self.branch, None)
                 cmd = "docker tag {} {}".format(build_tag, build_tag_without_arch)
-                check_output(cmd, shell=True, stderr=PIPE)
+                execute(cmd)
             else:
                 self._buildx_build(args, build_dir, build_tag, platform)
         finally:
@@ -259,8 +260,7 @@ class Image:
         print("Push {}".format(tag))
 
         cmd = "docker push {}".format(tag)
-        output = check_output(cmd, shell=True, stderr=PIPE)
-        output = output.decode()
+        output = execute(cmd)
         self._logger.debug("$ %s\n%s", cmd, output)
         last_line = output.splitlines()[-1]
         p = re.compile(r"^(.*): digest: (.*) size: (\d+)$")
@@ -286,23 +286,19 @@ class Image:
             cmd = f"docker manifest create {t0} {new_manifest}"
             if len(tags) > 0:
                 cmd += " " + tags
-            output = check_output(cmd, shell=True, stderr=STDOUT)
-            output = output.decode()
+            output = execute(cmd)
             self._logger.debug("$ %s\n%s", cmd, output)
 
             cmd = f"docker manifest push -p {t0}"
-            output = check_output(cmd, shell=True, stderr=STDOUT)
-            output = output.decode()
+            output = execute(cmd)
             self._logger.debug("$ %s\n%s", cmd, output)
         else:
             cmd = f"docker manifest create {t0} {new_manifest}"
-            output = check_output(cmd, shell=True, stderr=STDOUT)
-            output = output.decode()
+            output = execute(cmd)
             self._logger.debug("$ %s\n%s", cmd, output)
 
             cmd = f"docker manifest push -p {t0}"
-            output = check_output(cmd, shell=True, stderr=STDOUT)
-            output = output.decode()
+            output = execute(cmd)
             self._logger.debug("$ %s\n%s", cmd, output)
 
     def __repr__(self):
