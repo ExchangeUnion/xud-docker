@@ -183,7 +183,7 @@ class Image:
 
     def build(self, platform: Platform, no_cache: bool) -> None:
         self._logger.info("Build %s:%s (%s)", self.name, self.tag, platform.tag_suffix)
-        print("\nBuild %s:%s (%s)" % (self.name, self.tag, platform.tag_suffix))
+        print("Build %s:%s (%s)" % (self.name, self.tag, platform.tag_suffix))
 
         source_manager = self.prepare()
 

@@ -126,13 +126,11 @@ class Toolkit:
             ctx = self._create_context(dry_run, platforms)
 
             if images:
-                for name in images:
+                for i, name in enumerate(images):
+                    if i > 0:
+                        print()
                     for p in platforms:
                         Image(ctx, name).build(platform=p, no_cache=no_cache)
-            else:
-                for image in self.git_template.get_modified_images(ctx):
-                    for p in platforms:
-                        image.build(platform=p, no_cache=no_cache)
         except CalledProcessError as e:
             print("$ %s", e.cmd)
             print(e.output.decode().strip())
@@ -153,13 +151,11 @@ class Toolkit:
             ctx = self._create_context(dry_run, platforms)
 
             if images:
-                for name in images:
+                for i, name in enumerate(images):
+                    if i > 0:
+                        print()
                     for p in platforms:
                         Image(ctx, name).push(platform=p, no_cache=no_cache, dirty_push=dirty_push)
-            else:
-                for image in self.git_template.get_modified_images(ctx):
-                    for p in platforms:
-                        image.push(platform=p, no_cache=no_cache, dirty_push=dirty_push)
         except CalledProcessError as e:
             print("$ %s", e.cmd)
             print(e.output.decode().strip())
