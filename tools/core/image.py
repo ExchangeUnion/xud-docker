@@ -4,11 +4,10 @@ import logging
 import os
 import sys
 from shutil import copyfile
-from subprocess import Popen, PIPE, STDOUT, check_output, CalledProcessError
+from subprocess import PIPE, STDOUT, check_output, CalledProcessError
 from typing import TYPE_CHECKING, List, Optional
 import re
 import importlib
-import time
 import threading
 
 from .docker import ManifestList
@@ -219,8 +218,6 @@ class Image:
                 self._build(args, build_dir, build_tag)
 
                 build_tag_without_arch = self.get_build_tag(self.branch, None)
-                # self.run_command("docker tag {} {}".format(build_tag, build_tag_without_arch),
-                #                  "Failed to tag {}".format(build_tag_without_arch))
                 cmd = "docker tag {} {}".format(build_tag, build_tag_without_arch)
                 check_output(cmd, shell=True, stderr=PIPE)
             else:
@@ -234,8 +231,6 @@ class Image:
         try:
             os.chdir(self.context.project_dir)
             m = importlib.import_module(f"images.{self.name}.src")
-            # m = importlib.reload(m)
-            # print(m, dir(m))
             os.chdir(self.image_folder)
             if hasattr(m, "SourceManager"):
                 source_manager = m.SourceManager()
@@ -253,7 +248,7 @@ class Image:
             os.chdir(self.image_folder)
 
     def push(self, platform: Platform, no_cache: bool = False, dirty_push: bool = False) -> None:
-        self.build(platform = platform, no_cache=no_cache)
+        self.build(platform=platform, no_cache=no_cache)
 
         tag = self.get_build_tag(self.branch, platform)
 
@@ -281,29 +276,28 @@ class Image:
             # try to update manifests
             tags = []
             for m in manifest_list.manifests:
-                print(m.platform, platform)
                 if m.platform != platform:
                     tags.append("{}@{}".format(repo, m.digest))
             tags = " ".join(tags)
             cmd = f"docker manifest create {t0} {new_manifest}"
             if len(tags) > 0:
                 cmd += " " + tags
-            output = check_output(cmd, shell=True, stderr=PIPE)
+            output = check_output(cmd, shell=True, stderr=STDOUT)
             output = output.decode()
             self._logger.debug("$ %s\n%s", cmd, output)
 
             cmd = f"docker manifest push -p {t0}"
-            output = check_output(cmd, shell=True, stderr=PIPE)
+            output = check_output(cmd, shell=True, stderr=STDOUT)
             output = output.decode()
             self._logger.debug("$ %s\n%s", cmd, output)
         else:
             cmd = f"docker manifest create {t0} {new_manifest}"
-            output = check_output(cmd, shell=True, stderr=PIPE)
+            output = check_output(cmd, shell=True, stderr=STDOUT)
             output = output.decode()
             self._logger.debug("$ %s\n%s", cmd, output)
 
             cmd = f"docker manifest push -p {t0}"
-            output = check_output(cmd, shell=True, stderr=PIPE)
+            output = check_output(cmd, shell=True, stderr=STDOUT)
             output = output.decode()
             self._logger.debug("$ %s\n%s", cmd, output)
 
