@@ -135,7 +135,7 @@ class Toolkit:
             p = e
             while p:
                 if isinstance(p, CalledProcessError):
-                    print("$ %s", p.cmd)
+                    print("$ %s" % p.cmd)
                     print(p.output.decode().strip())
                     break
                 p = e.__cause__
@@ -166,7 +166,7 @@ class Toolkit:
             p = e
             while p:
                 if isinstance(p, CalledProcessError):
-                    print("$ %s", p.cmd)
+                    print("$ %s" % p.cmd)
                     print(p.output.decode().strip())
                     break
                 p = e.__cause__
