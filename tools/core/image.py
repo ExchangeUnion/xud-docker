@@ -144,15 +144,19 @@ class Image:
         def f():
             nonlocal stop
             counter = 0
+            on_travis = "TRAVIS_BRANCH" in os.environ
             while not stop.is_set():
                 counter = counter + 1
-                if "TRAVIS_BRANCH" in os.environ:
+
+                if on_travis:
                     print("Still building... ({})".format(counter), flush=True)
                     stop.wait(10)
                     continue
+
                 print(".", end="", flush=True)
                 stop.wait(1)
-            print()
+            if not on_travis:
+                print()
         threading.Thread(target=f).start()
         try:
             output = check_output(cmd, shell=True, stderr=STDOUT)
@@ -179,7 +183,7 @@ class Image:
 
     def build(self, platform: Platform, no_cache: bool) -> None:
         self._logger.info("Build %s:%s (%s)", self.name, self.tag, platform.tag_suffix)
-        print("Build %s:%s (%s)" % (self.name, self.tag, platform.tag_suffix))
+        print("\nBuild %s:%s (%s)" % (self.name, self.tag, platform.tag_suffix))
 
         source_manager = self.prepare()
 

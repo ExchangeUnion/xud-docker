@@ -3,6 +3,7 @@ import os
 import sys
 from datetime import datetime
 from typing import Optional, List
+from subprocess import CalledProcessError
 
 from .docker import DockerTemplate, Platform, Platforms
 from .git import GitTemplate
@@ -116,21 +117,25 @@ class Toolkit:
               no_cache: bool = False,
               platforms: List[str] = None,
               ) -> None:
-        if platforms:
-            platforms = [Platforms.get(name) for name in platforms]
-        else:
-            platforms = [self.current_platform]
+        try:
+            if platforms:
+                platforms = [Platforms.get(name) for name in platforms]
+            else:
+                platforms = [self.current_platform]
 
-        ctx = self._create_context(dry_run, platforms)
+            ctx = self._create_context(dry_run, platforms)
 
-        if images:
-            for name in images:
-                for p in platforms:
-                    Image(ctx, name).build(platform=p, no_cache=no_cache)
-        else:
-            for image in self.git_template.get_modified_images(ctx):
-                for p in platforms:
-                    image.build(platform=p, no_cache=no_cache)
+            if images:
+                for name in images:
+                    for p in platforms:
+                        Image(ctx, name).build(platform=p, no_cache=no_cache)
+            else:
+                for image in self.git_template.get_modified_images(ctx):
+                    for p in platforms:
+                        image.build(platform=p, no_cache=no_cache)
+        except CalledProcessError as e:
+            print("$ %s", e.cmd)
+            print(e.output.decode().strip())
 
     def push(self,
              images: List[str] = None,
@@ -139,21 +144,25 @@ class Toolkit:
              platforms: List[str] = None,
              dirty_push: bool = False,
              ) -> None:
-        if platforms:
-            platforms = [Platforms.get(name) for name in platforms]
-        else:
-            platforms = [self.current_platform]
+        try:
+            if platforms:
+                platforms = [Platforms.get(name) for name in platforms]
+            else:
+                platforms = [self.current_platform]
 
-        ctx = self._create_context(dry_run, platforms)
+            ctx = self._create_context(dry_run, platforms)
 
-        if images:
-            for name in images:
-                for p in platforms:
-                    Image(ctx, name).push(platform=p, no_cache=no_cache, dirty_push=dirty_push)
-        else:
-            for image in self.git_template.get_modified_images(ctx):
-                for p in platforms:
-                    image.push(platform=p, no_cache=no_cache, dirty_push=dirty_push)
+            if images:
+                for name in images:
+                    for p in platforms:
+                        Image(ctx, name).push(platform=p, no_cache=no_cache, dirty_push=dirty_push)
+            else:
+                for image in self.git_template.get_modified_images(ctx):
+                    for p in platforms:
+                        image.push(platform=p, no_cache=no_cache, dirty_push=dirty_push)
+        except CalledProcessError as e:
+            print("$ %s", e.cmd)
+            print(e.output.decode().strip())
 
     def test(self):
         os.chdir(self.project_dir)
