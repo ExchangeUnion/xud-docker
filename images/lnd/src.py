@@ -66,3 +66,9 @@ class SourceManager(src.SourceManager):
             return self.get_revision(self.lnd_ltc_dir)
         else:
             return self.get_revision(self.lnd_dir)
+
+    def get_ref(self, version):
+        if version == "latest":
+            return "v0.10.2-beta"
+        else:
+            return super().get_ref(version)
