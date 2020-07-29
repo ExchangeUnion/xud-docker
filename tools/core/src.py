@@ -2,6 +2,7 @@ from subprocess import check_output, CalledProcessError, PIPE, STDOUT
 import os
 import shutil
 import logging
+from .utils import execute
 
 
 class SourceManager:
@@ -27,8 +28,7 @@ class SourceManager:
 
     def _get_origin_url(self):
         cmd = f"git remote get-url origin"
-        output = check_output(cmd, shell=True, stderr=PIPE)
-        output = output.decode()
+        output = execute(cmd)
         self.logger.debug("$ %s\n%s", cmd, output)
         return output.strip()
 
@@ -61,8 +61,8 @@ class SourceManager:
         return {}
 
     def _execute(self, cmd):
-        output = check_output(cmd, shell=True, stderr=STDOUT)
-        self.logger.debug("$ %s\n%s", cmd, output.decode())
+        output = execute(cmd)
+        self.logger.debug("$ %s\n%s", cmd, output)
 
     def checkout_repo(self, repo_dir, ref):
         wd = os.getcwd()
@@ -83,8 +83,8 @@ class SourceManager:
         wd = os.getcwd()
         try:
             os.chdir(repo_dir)
-            output = check_output(f"git rev-parse HEAD", shell=True)
-            return output.decode().strip()
+            output = execute(f"git rev-parse HEAD")
+            return output.strip()
         finally:
             os.chdir(wd)
 

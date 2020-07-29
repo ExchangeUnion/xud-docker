@@ -5,10 +5,11 @@ import os
 import re
 import sys
 from dataclasses import dataclass
-from subprocess import check_output, PIPE, CalledProcessError
+from subprocess import CalledProcessError
 from typing import TYPE_CHECKING, List, Dict
 
 from .image import Image
+from .utils import execute
 
 if TYPE_CHECKING:
     from .toolkit import Context
@@ -24,10 +25,10 @@ class GitInfo:
 
 def get_master_commit_hash():
     try:
-        return check_output("git rev-parse master", shell=True, stderr=PIPE).decode().splitlines()[0]
+        return execute("git rev-parse master").splitlines()[0]
     except CalledProcessError:
         # <hash> refs/heads/master
-        return check_output("git ls-remote origin master", shell=True, stderr=PIPE).decode().split()[0]
+        return execute("git ls-remote origin master").split()[0]
 
 
 
@@ -37,7 +38,7 @@ def get_commit_message(commit):
     if commit == "HEAD":
         return ""
     cmd = "git show -s --format=%B {}".format(commit)
-    return check_output(cmd, shell=True, stderr=PIPE).decode().splitlines()[0]
+    return execute(cmd).splitlines()[0]
 
 
 class GitTemplate:
@@ -49,8 +50,7 @@ class GitTemplate:
 
     def get_branch_history(self, from_commit):
         cmd = f"git log --oneline --pretty=format:%h --abbrev=-1 {from_commit}.."
-        output = check_output(cmd, shell=True, stderr=PIPE)
-        output = output.decode()
+        output = execute(cmd)
         self._logger.debug("$ %s\n%s", cmd, output)
         return output.splitlines()
 
@@ -72,17 +72,17 @@ class GitTemplate:
             r = r + "-dirty"
         master = get_master_commit_hash()
         branch = b
-        if branch == "master":
-            history = self.get_branch_history(self.commit_before_travis)
-        else:
-            history = self.get_branch_history(master)
+        # if branch == "master":
+        #     history = self.get_branch_history(self.commit_before_travis)
+        # else:
+        #     history = self.get_branch_history(master)
 
-        output = check_output("git diff --name-only", shell=True, stderr=PIPE)
-        output = output.decode().strip()
-        if len(output) > 0:
-            history.insert(0, "HEAD")
+        # output = check_output("git diff --name-only", shell=True, stderr=PIPE)
+        # output = output.decode().strip()
+        # if len(output) > 0:
+        #     history.insert(0, "HEAD")
 
-        return GitInfo(b, r, master, history)
+        return GitInfo(b, r, master, [])
 
     def get_modified_images(self, context: Context) -> List[Image]:
         branch = context.branch
@@ -122,18 +122,18 @@ class GitTemplate:
 
     def _get_modified_since_commit(self, commit: str) -> List[str]:
         cmd = "git diff --name-only {} -- images".format(commit)
-        output = check_output(cmd, shell=True, stderr=PIPE)
-        lines = output.decode().splitlines()
+        output = execute(cmd)
+        lines = output.splitlines()
         return self._process_lines(lines)
 
     def _get_modified_at_head(self):
         cmd = "git diff --name-only -- images"
-        output = check_output(cmd, shell=True, stderr=PIPE)
-        lines1 = output.decode().splitlines()
+        output = execute(cmd)
+        lines1 = output.splitlines()
 
         cmd = "git diff --name-only --cached -- images"
-        output = check_output(cmd, shell=True, stderr=PIPE)
-        lines2 = output.decode().splitlines()
+        output = execute(cmd)
+        lines2 = output.splitlines()
 
         return self._process_lines(lines1 + lines2)
 
@@ -142,8 +142,7 @@ class GitTemplate:
             return self._get_modified_at_head()
 
         cmd = f"git diff-tree --no-commit-id --name-only -r {commit} -- images"
-        output = check_output(cmd, shell=True, stderr=PIPE)
-        output = output.decode()
+        output = execute(cmd)
         self._logger.debug("$ %s\n%s", cmd, output)
         lines = output.splitlines()
 
