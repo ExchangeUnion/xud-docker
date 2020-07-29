@@ -59,7 +59,7 @@ nodes_config = {
     "simnet": {
         "lndbtc": {
             "name": "lndbtc",
-            "image": "exchangeunion/lnd:0.10.2-beta-simnet",
+            "image": "exchangeunion/lndbtc-simnet:latest",
             "volumes": [
                 {
                     "host": "$data_dir/lndbtc",
@@ -73,7 +73,7 @@ nodes_config = {
         },
         "lndltc": {
             "name": "lndltc",
-            "image": "exchangeunion/lnd:0.10.1-beta-ltc-simnet",
+            "image": "exchangeunion/lndltc-simnet:latest",
             "volumes": [
                 {
                     "host": "$data_dir/lndltc",
@@ -163,7 +163,7 @@ nodes_config = {
     "testnet": {
         "bitcoind": {
             "name": "bitcoind",
-            "image": "exchangeunion/bitcoind:0.20.0",
+            "image": "exchangeunion/bitcoind:latest",
             "volumes": [
                 {
                     "host": "$data_dir/bitcoind",
@@ -183,7 +183,7 @@ nodes_config = {
         },
         "litecoind": {
             "name": "litecoind",
-            "image": "exchangeunion/litecoind:0.18.1",
+            "image": "exchangeunion/litecoind:latest",
             "volumes": [
                 {
                     "host": "$data_dir/litecoind",
@@ -203,7 +203,7 @@ nodes_config = {
         },
         "geth": {
             "name": "geth",
-            "image": "exchangeunion/geth:1.9.17",
+            "image": "exchangeunion/geth:latest",
             "volumes": [
                 {
                     "host": "$data_dir/geth",
@@ -223,7 +223,7 @@ nodes_config = {
         },
         "lndbtc": {
             "name": "lndbtc",
-            "image": "exchangeunion/lnd:0.10.2-beta",
+            "image": "exchangeunion/lndbtc:latest",
             "volumes": [
                 {
                     "host": "$data_dir/lndbtc",
@@ -237,7 +237,7 @@ nodes_config = {
         },
         "lndltc": {
             "name": "lndltc",
-            "image": "exchangeunion/lnd:0.10.1-beta-ltc",
+            "image": "exchangeunion/lndltc:latest",
             "volumes": [
                 {
                     "host": "$data_dir/lndltc",
@@ -409,7 +409,7 @@ nodes_config = {
         },
         "lndbtc": {
             "name": "lndbtc",
-            "image": "exchangeunion/lnd:0.10.2-beta",
+            "image": "exchangeunion/lndbtc:0.10.2-beta",
             "volumes": [
                 {
                     "host": "$data_dir/lndbtc",
@@ -423,7 +423,7 @@ nodes_config = {
         },
         "lndltc": {
             "name": "lndltc",
-            "image": "exchangeunion/lnd:0.10.1-beta-ltc",
+            "image": "exchangeunion/lndltc:0.10.1-beta",
             "volumes": [
                 {
                     "host": "$data_dir/lndltc",
