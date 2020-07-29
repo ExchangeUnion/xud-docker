@@ -470,7 +470,7 @@ nodes_config = {
         },
         "boltz": {
             "name": "boltz",
-            "image": "exchangeunion/boltz:1.0.0",
+            "image": "exchangeunion/boltz:1.1.0",
             "volumes": [
                 {
                     "host": "$data_dir/boltz",
@@ -485,7 +485,7 @@ nodes_config = {
                     "container": "/root/.lndltc",
                 },
             ],
-            "ports": [PortPublish("9002"), PortPublish("9003")],
+            "ports": [],
             "mode": "native",
             "preserve_config": False,
             "disabled": False,
