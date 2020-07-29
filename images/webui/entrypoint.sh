@@ -20,4 +20,5 @@ while ! [ -e /root/.xud/tls.cert ]; do
     sleep 1
 done
 
-exec bin/server --xud.rpchost=xud --xud.rpcport=$RPCPORT --xud.rpccert=/root/.xud/tls.cert
+exec bin/server --xud.rpchost=xud --xud.rpcport=$RPCPORT --xud.rpccert=/root/.xud/tls.cert \
+--pairs.weight eth_btc:2,ltc_btc:1

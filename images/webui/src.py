@@ -16,7 +16,7 @@ class SourceManager(src.SourceManager):
             self.checkout_repo(self.backend_dir, "master")
         elif version == "1.0.0":
             self.checkout_repo(self.frontend_dir, "v1.0.0")
-            self.checkout_repo(self.backend_dir, "v1.0.0")
+            self.checkout_repo(self.backend_dir, "v1.1.0")
 
     def get_application_revision(self, version):
         r1 = self.get_revision(self.frontend_dir)
