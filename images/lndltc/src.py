@@ -7,6 +7,7 @@ class SourceManager(src.SourceManager):
 
     def get_build_args(self, version):
         tags = [
+            "autopilotrpc",
             "chainrpc",
             "invoicesrpc",
             "routerrpc",
