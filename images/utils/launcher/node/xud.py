@@ -40,7 +40,13 @@ class Xud(Node):
     def __init__(self, name, ctx):
         super().__init__(name, ctx)
 
-        self.container_spec.environment.append("NODE_ENV=production")
+        environment = [
+            "GRPC_TRACE=all",
+            "GRPC_VERBOSITY=DEBUG",
+            "NODE_ENV=production",
+        ]
+        self.container_spec.environment.extend(environment)
+
 
         self._cli = "xucli"
 
