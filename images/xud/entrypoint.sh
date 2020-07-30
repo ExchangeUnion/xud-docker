@@ -108,6 +108,5 @@ cat $XUD_CONF
 
 /xud-backup.sh &
 
-echo "KILIAN=true"
 # use exec to properly respond to SIGINT
 exec xud $@
