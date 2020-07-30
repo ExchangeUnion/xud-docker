@@ -44,6 +44,7 @@ class Xud(Node):
             "GRPC_TRACE=all",
             "GRPC_VERBOSITY=DEBUG",
             "NODE_ENV=production",
+            "KILIAN=true",
         ]
         self.container_spec.environment.extend(environment)
 
