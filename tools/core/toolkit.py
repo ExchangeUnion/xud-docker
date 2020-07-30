@@ -1,20 +1,15 @@
-from __future__ import annotations
-
 import logging
 import os
-import platform
 import sys
 from datetime import datetime
-from typing import TYPE_CHECKING, Optional, List
+from typing import Optional, List
+from subprocess import CalledProcessError
 
 from .docker import DockerTemplate, Platform, Platforms
 from .git import GitTemplate
 from .github import GithubTemplate
 from .image import Image
 from .travis import TravisTemplate
-
-if TYPE_CHECKING:
-    from .docker import SupportedPlatform
 
 
 class Context:
@@ -66,13 +61,13 @@ class Context:
         self.revision = git_info.revision
         self.branch = git_info.branch
 
-        self._logger.debug("branch %s history: %r", self.branch, self.history)
+        self._logger.debug("Current branch is \"%s\"\n%s", self.branch, self._display_history(self.history))
 
-    def get_unmodified_history(self, image: Image) -> List[str]:
-        for i, commit in enumerate(self.history):
-            if image.image_folder in self.history[commit]:
-                return list(self.history)[:i + 1]
-        return list(self.history)
+    def _display_history(self, history):
+        lines = []
+        for commit, images in history.items():
+            lines.append("- {}: {}".format(commit, images))
+        return "\n".join(lines)
 
 
 class Toolkit:
@@ -84,7 +79,7 @@ class Toolkit:
 
     def __init__(self,
                  project_dir: str,
-                 platforms: List[SupportedPlatform],
+                 platforms: List[str],
                  group: str = "exchangeunion",
                  label_prefix: str = "com.exchangeunion",
                  project_repo: str = "https://github.com/exchangeunion/xud-docker",
@@ -120,51 +115,63 @@ class Toolkit:
               images: List[str] = None,
               dry_run: bool = False,
               no_cache: bool = False,
-              cross_build: bool = False,
-              force: bool = False,
+              platforms: List[str] = None,
               ) -> None:
+        try:
+            if platforms:
+                platforms = [Platforms.get(name) for name in platforms]
+            else:
+                platforms = [self.current_platform]
 
-        self._logger.debug("Build with images=%r, dry_run=%r, no_cache=%r, cross_build=%r",
-                           images, dry_run, no_cache, cross_build)
+            ctx = self._create_context(dry_run, platforms)
 
-        if cross_build:
-            platforms = self.platforms
-        else:
-            platforms = [self.current_platform]
-
-        ctx = self._create_context(dry_run, platforms)
-
-        if images:
-            for name in images:
-                Image(ctx, name).build(no_cache=no_cache, force=force)
-        else:
-            for image in self.git_template.get_modified_images(ctx):
-                image.build(no_cache=no_cache, force=force)
+            if images:
+                for i, name in enumerate(images):
+                    if i > 0:
+                        print()
+                    for p in platforms:
+                        Image(ctx, name).build(platform=p, no_cache=no_cache)
+        except Exception as e:
+            p = e
+            while p:
+                if isinstance(p, CalledProcessError):
+                    print("$ %s" % p.cmd)
+                    print(p.output.decode().strip())
+                    break
+                p = e.__cause__
+            raise
 
     def push(self,
              images: List[str] = None,
              dry_run: bool = False,
              no_cache: bool = False,
-             cross_build: bool = False,
-             dirty_push: bool = False
+             platforms: List[str] = None,
+             dirty_push: bool = False,
              ) -> None:
+        try:
+            if platforms:
+                platforms = [Platforms.get(name) for name in platforms]
+            else:
+                platforms = [self.current_platform]
 
-        self._logger.debug("Build with images=%r, dry_run=%r, no_cache=%r, cross_build=%r, dirty_push=%r",
-                           images, dry_run, no_cache, cross_build, dirty_push)
+            ctx = self._create_context(dry_run, platforms)
 
-        if cross_build:
-            platforms = self.platforms
-        else:
-            platforms = [self.current_platform]
+            if images:
+                for i, name in enumerate(images):
+                    if i > 0:
+                        print()
+                    for p in platforms:
+                        Image(ctx, name).push(platform=p, no_cache=no_cache, dirty_push=dirty_push)
+        except Exception as e:
+            p = e
+            while p:
+                if isinstance(p, CalledProcessError):
+                    print("$ %s" % p.cmd)
+                    print(p.output.decode().strip())
+                    break
+                p = e.__cause__
+            raise
 
-        ctx = self._create_context(dry_run, platforms)
-
-        if images:
-            for name in images:
-                Image(ctx, name).push(no_cache=no_cache)
-        else:
-            for image in self.git_template.get_modified_images(ctx):
-                image.push(no_cache=no_cache)
 
     def test(self):
         os.chdir(self.project_dir)

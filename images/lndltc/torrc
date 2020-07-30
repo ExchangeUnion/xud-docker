@@ -1,0 +1,5 @@
+DataDirectory /root/.lnd/tor-data
+ExitPolicy reject *:* # no exits allowed
+HiddenServiceDir /root/.lnd/tor
+HiddenServicePort <port> 127.0.0.1:<port>
+HiddenServiceVersion 3

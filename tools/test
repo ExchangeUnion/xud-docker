@@ -1,7 +1,3 @@
 #!/bin/bash
 
-set -euo pipefail
-
-cd "$(dirname "$0")"
-
-python3 helper.py test "$@"
+python $(dirname "$0")/helper.py test "$@"

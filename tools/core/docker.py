@@ -74,7 +74,7 @@ class Platforms:
     @staticmethod
     def get_current() -> Platform:
         m = platform.machine()
-        if m == "x86_64":
+        if m == "x86_64" or m == "AMD64":
             return LINUX_AMD64
         elif m == "aarch64":
             return LINUX_ARM64
@@ -169,8 +169,7 @@ class Manifest:
 
     @property
     def image_branch(self):
-        key = f"{self.context.label_prefix}.image.branch"
-        return self.labels[key]
+        return None
 
     @property
     def image_revision(self) -> str:
