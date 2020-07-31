@@ -219,9 +219,9 @@ class NodeManager:
         diff_keys = [key for key, value in details.items() if not value.same]
         return ", ".join(diff_keys)
 
-    def update(self):
+    def update(self) -> bool:
         if self.config.disable_update:
-            return
+            return True
 
         outdated = False
 
@@ -277,7 +277,7 @@ class NodeManager:
 
         if not outdated:
             print("All up-to-date.")
-            return
+            return True
 
         all_containers_missing = functools.reduce(lambda a, b: a and b[0] in ["missing", "external", "disabled"], container_check_result.values(), True)
 
@@ -297,6 +297,8 @@ class NodeManager:
             # 2.2) recreate outdated containers
             for container, result in container_check_result.items():
                 container.update(result)
+        else:
+            return False
 
     def logs(self, *args):
         self.cmd_logs.execute(args)
