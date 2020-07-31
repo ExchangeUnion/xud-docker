@@ -34,6 +34,7 @@ class Arby(Node):
             rpc_port = "8886"
 
         environment = [
+            "NODE_ENV=production",
             "LOG_LEVEL=trace",
             "BASEASSET=ETH",
             "QUOTEASSET=BTC",
