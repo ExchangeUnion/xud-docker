@@ -350,7 +350,7 @@ nodes_config = {
     "mainnet": {
         "bitcoind": {
             "name": "bitcoind",
-            "image": "exchangeunion/bitcoind:0.20.0",
+            "image": "exchangeunion/bitcoind:0.20.1",
             "volumes": [
                 {
                     "host": "$data_dir/bitcoind",
