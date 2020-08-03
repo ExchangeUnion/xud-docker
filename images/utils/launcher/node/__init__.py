@@ -281,7 +281,7 @@ class NodeManager:
 
         all_containers_missing = functools.reduce(lambda a, b: a and b[0] in ["missing", "external", "disabled"], container_check_result.values(), True)
 
-        if all_containers_missing:
+        if all_containers_missing and self.newly_installed:
             answer = "yes"
         else:
             answer = self.shell.yes_or_no("A new version is available. Would you like to upgrade (Warning: this may restart your environment and cancel all open orders)?")
