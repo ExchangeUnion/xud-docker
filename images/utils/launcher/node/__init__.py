@@ -297,6 +297,7 @@ class NodeManager:
             # 2.2) recreate outdated containers
             for container, result in container_check_result.items():
                 container.update(result)
+            return True
         else:
             return False
 
