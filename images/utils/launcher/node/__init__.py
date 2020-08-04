@@ -176,7 +176,7 @@ class NodeManager:
         nodes = self.valid_nodes.values()
 
         def print_failed(failed):
-            print("Failed to start these nodes.")
+            print("Failed to start these services:")
             for f in failed:
                 print(f"- {f[0].name}: {str(f[1])}")
 
@@ -224,6 +224,7 @@ class NodeManager:
             return True
 
         outdated = False
+        image_outdated = False
 
         # Step 1. check all images
         print("🌍 Checking for updates...")
@@ -237,6 +238,7 @@ class NodeManager:
             if status in ["LOCAL_MISSING", "LOCAL_OUTDATED"]:
                 print("- Image %s: %s" % (image.name, image.status_message))
                 outdated = True
+                image_outdated = True
             elif status == "UNAVAILABLE":
                 all_unavailable_images = [x for x in images if x.status == "UNAVAILABLE"]
                 raise FatalError("Image(s) not available: %r" % all_unavailable_images)
@@ -281,8 +283,14 @@ class NodeManager:
 
         all_containers_missing = functools.reduce(lambda a, b: a and b[0] in ["missing", "external", "disabled"], container_check_result.values(), True)
 
-        if all_containers_missing and self.newly_installed:
-            answer = "yes"
+        if all_containers_missing:
+            if self.newly_installed:
+                answer = "yes"
+            else:
+                if image_outdated:
+                    answer = "yes"
+                else:
+                    return True  # FIXME unintended containers (configuration) update
         else:
             answer = self.shell.yes_or_no("A new version is available. Would you like to upgrade (Warning: this may restart your environment and cancel all open orders)?")
 
