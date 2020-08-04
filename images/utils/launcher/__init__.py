@@ -15,6 +15,84 @@ from .warm_up import Action as WarmUpAction
 from .errors import FatalError, ConfigError, ConfigErrorScope
 
 
+HELP = """\
+General commands
+  status                                    show service status
+  report                                    report issue
+  logs                                      show service log
+  start                                     start service
+  stop                                      stop service
+  restart                                   restart service
+  down                                      shutdown the environment
+  up                                        bring up the environment
+  help                                      show this help
+  exit                                      exit xud-ctl shell
+
+CLI commands
+  bitcoin-cli                               bitcoind cli
+  litecoin-cli                              litecoind cli
+  lndbtc-lncli                              lnd cli
+  lndltc-lncli                              lnd cli
+  geth                                      geth cli
+  xucli                                     xud cli
+  boltzcli                                  boltz cli
+
+Boltzcli shortcut commands
+  deposit                                   deposit from boltz
+  withdraw                                  withdraw to boltz
+
+Xucli shortcut commands
+  addcurrency <currency>                    add a currency
+  <swap_client> [decimal_places]
+  [token_address]
+  addpair <pair_id|base_currency>           add a trading pair
+  [quote_currency]
+  ban <node_identifier>                     ban a remote node
+  buy <quantity> <pair_id> <price>          place a buy order
+  [order_id]
+  closechannel <currency>                   close any payment channels with a
+  [node_identifier ] [--force]              peer
+  connect <node_uri>                        connect to a remote node
+  create                                    create a new xud instance and set a
+                                            password
+  discovernodes <node_identifier>           discover nodes from a specific peer
+  getbalance [currency]                     get total balance for a given
+                                            currency
+  getinfo                                   get general info from the local xud
+                                            node
+  getnodeinfo <node_identifier>             get general information about a
+                                            known node
+  listcurrencies                            list available currencies
+  listorders [pair_id] [owner]              list orders from the order book
+  [limit]
+  listpairs                                 get order book's available pairs
+  listpeers                                 list connected peers
+  openchannel <currency> <amount>           open a payment channel with a peer
+  [node_identifier] [push_amount]
+  orderbook [pair_id] [precision]           display the order book, with orders
+                                            aggregated per price point
+  removecurrency <currency>                 remove a currency
+  removeorder <order_id> [quantity]         remove an order
+  removepair <pair_id>                      remove a trading pair
+  restore [backup_directory]                restore an xud instance from seed
+  [raiden_database_path]
+  sell <quantity> <pair_id> <price>         place a sell order
+  [order_id]
+  shutdown                                  gracefully shutdown local xud node
+  streamorders [existing]                   stream order added, removed, and
+                                            swapped events (DEMO)
+  tradehistory [limit]                      list completed trades
+  tradinglimits [currency]                  trading limits for a given currency
+  unban <node_identifier>                   unban a previously banned remote
+  [--reconnect]                             node
+  unlock                                    unlock local xud node
+  walletdeposit <currency>                  gets an address to deposit funds to
+                                            xud
+  walletwithdraw [amount] [currency]        withdraws on-chain funds from xud
+  [destination] [fee]
+"""
+
+
 def init_logging():
     fmt = "%(asctime)s.%(msecs)03d %(levelname)s %(process)d --- [%(threadName)s] %(name)s: %(message)s"
     datefmt = "%Y-%m-%d %H:%M:%S"
@@ -108,6 +186,8 @@ your issue.""")
                     self.node_manager.cli("boltz", "btc", "withdraw", *args)
                 elif chain == "ltc":
                     self.node_manager.cli("boltz", "ltc", "withdraw", *args)
+            elif arg0 == "help":
+                print(HELP)
             else:
                 self.delegate_cmd_to_xucli(cmd)
         except NodeNotFound as e:
