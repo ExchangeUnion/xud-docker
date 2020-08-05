@@ -390,10 +390,24 @@ class Node:
             return CompareResult(False, "Volumes are different", old, new)
         return CompareResult(True, "", old, new)
 
+    def _normalize_docker_port_bindings(self, port_bindings):
+        result = []
+        for key, value in port_bindings.items():
+            if value:
+                mapping = []
+                for p in value:
+                    host_ip = p["HostIp"]
+                    if host_ip == "":
+                        host_ip = "0.0.0.0"
+                    host_port = p["HostPort"]
+                    mapping.append(host_ip + ":" + host_port)
+                result.append(key + "-" + ",".join(mapping))
+        return result
+
     def compare_ports(self, container: Container) -> CompareResult:
         attrs = container.attrs
-        ports = attrs["NetworkSettings"]["Ports"]
-        old_ports = [key + "-" + ",".join([p["HostIp"] + ":" + p["HostPort"] for p in value]) for key, value in ports.items() if value is not None]
+        port_bindings = attrs["HostConfig"]["PortBindings"]
+        old_ports = self._normalize_docker_port_bindings(port_bindings)
 
         def normalize(value):
             if isinstance(value, int):
