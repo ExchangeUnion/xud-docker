@@ -25,15 +25,18 @@ class Connext(Node):
 
         if self.network == "simnet":
             environment = [
+                "LEGACY_MODE=true",
                 "CONNEXT_ETH_PROVIDER_URL=http://connext.simnet.exchangeunion.com:8545",
                 "CONNEXT_NODE_URL=https://connext.simnet.exchangeunion.com",
             ]
         elif self.network == "testnet":
             environment = [
+                "LEGACY_MODE=true",
                 "CONNEXT_NODE_URL=https://connext.testnet.odex.dev",
             ]
         elif self.network == "mainnet":
             environment = [
+                "LEGACY_MODE=true",
                 "CONNEXT_NODE_URL=https://connext.boltz.exchange",
             ]
 
