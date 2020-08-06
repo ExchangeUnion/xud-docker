@@ -25,6 +25,10 @@ class Arby(Node):
             if "test-centralized-baseasset-balance" in self.node_config else "123"
         test_centralized_quoteasset_balance = self.node_config["test-centralized-quoteasset-balance"] \
             if "test-centralized-baseasset-balance" in self.node_config else "321"
+        base_asset = self.node_config["base-asset"] \
+            if "base-asset" in self.node_config else "ETH"
+        quote_asset = self.node_config["quote-asset"] \
+            if "quote-asset" in self.node_config else "BTC"
 
         if self.network == "simnet":
             rpc_port = "28886"
@@ -36,11 +40,11 @@ class Arby(Node):
         environment = [
             "NODE_ENV=production",
             "LOG_LEVEL=trace",
-            "BASEASSET=ETH",
-            "QUOTEASSET=BTC",
             "DATA_DIR=/root/.arby",
             "OPENDEX_CERT_PATH=/root/.xud/tls.cert",
             "OPENDEX_RPC_HOST=xud",
+            f"BASEASSET={base_asset}",
+            f"QUOTEASSET={quote_asset}",
             f"OPENDEX_RPC_PORT={rpc_port}",
             f'BINANCE_API_SECRET={api_secret}',
             f'BINANCE_API_KEY={api_key}',
