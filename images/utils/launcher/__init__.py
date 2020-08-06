@@ -144,16 +144,9 @@ your issue.""")
         self.close_other_utils()
 
     def start(self):
-        up_env = True
-        try:
-            up_env = self.node_manager.update()
-        except ParallelExecutionError:
-            pass
-
-        if up_env:
-            self.node_manager.up()
-            self.pre_start()
-
+        self.node_manager.update()
+        self.node_manager.ensure()
+        self.pre_start()
         self.shell.start(f"{self.config.network} > ", self.handle_command)
 
 
