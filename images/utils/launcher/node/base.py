@@ -161,7 +161,7 @@ class Node:
         spec = self.container_spec
         api = self.client.api
         resp = api.create_container(
-            image=spec.image.use_image,
+            image=spec.image,
             command=spec.command,
             hostname=spec.hostname,
             detach=True,

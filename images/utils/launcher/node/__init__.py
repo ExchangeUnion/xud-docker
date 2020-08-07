@@ -171,7 +171,7 @@ class NodeManager:
         network = self.client.networks.create(name, driver="bridge", ipam=ipam_config)
         return network
 
-    def get_node(self, name):
+    def get_node(self, name) -> Node:
         try:
             return self.valid_nodes[name]
         except KeyError:
@@ -213,7 +213,7 @@ class NodeManager:
             self.wait_for_channels()
 
     def ensure(self):
-        pass  # TODO ensure all services are running
+        self.up()
 
     def down(self):
         nodes = self.valid_nodes

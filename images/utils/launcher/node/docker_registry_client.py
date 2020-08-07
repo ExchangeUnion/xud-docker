@@ -165,7 +165,7 @@ class DockerTemplate:
         metadata = ImageMetadata(
             repo=repo,
             tag=tag,
-            digest=res.digest,
+            digest=digest,
             revision=labels["com.exchangeunion.image.revision"],
             application_revision=labels["com.exchangeunion.application.revision"],
             created_at=created_at,
@@ -219,3 +219,9 @@ class DockerTemplate:
             return self.docker_client.containers.get(name)
         except docker.errors.NotFound:
             return None
+
+    def pull_image(self, repo, tag):
+        self.docker_client.images.pull(repo, tag)
+
+    def get_image(self, name):
+        return self.docker_client.images.get(name)

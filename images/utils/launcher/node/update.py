@@ -6,6 +6,7 @@ from concurrent.futures import ThreadPoolExecutor, wait
 import time
 from yaml import load
 import logging
+import traceback
 
 try:
     from yaml import CLoader as Loader
@@ -85,7 +86,7 @@ class UpdateDetails:
         elif status == ServiceStatus.OUTDATED:
             return "\033[33moutdated"
         elif status == ServiceStatus.MISSING:
-            return "\033[21mmissing"
+            return "\033[31mmissing"
         elif status == ServiceStatus.DISABLED:
             return "disabled"
 
@@ -112,7 +113,6 @@ class UpdateDetails:
                 lines.append(f"  * image: new version available (%s, %s -> %s)" % (service.image_pull.name, old_digest, new_digest))
             for aspect in service.diff:
                 lines.append(f"  * {aspect}: changed")
-        lines.append("")
         return "\n".join(lines)
 
 
@@ -292,32 +292,73 @@ class UpdateManager:
                 if c is None:
                     s.status = ServiceStatus.MISSING
 
+
+        # handle down/restart all missing case
+        all_missing = True
+        for service in result.services.values():
+            if service.status != ServiceStatus.MISSING and len(service.diff) == 0:
+                all_missing = False
+                break
+        for image in result.images.values():
+            if image.pull is not None:
+                all_missing = False
+        if all_missing:
+            network = self.node_manager.config.network
+            for name, service in result.services.items():
+                container_name = f"{network}_{name}_1"
+                print(f"📦 Creating container {container_name}...")
+                self.node_manager.get_node(name).create_container()
+            return None
+
         up_to_date = True
         for service in result.services.values():
             if service.status != ServiceStatus.UP_TO_DATE:
                 up_to_date = False
                 break
         if up_to_date:
-            result = None
+            return None
 
         return result
 
     def apply(self, updates: UpdateDetails) -> None:
-        # TODO update images
-        for image in updates.images.values():
+        for name, image in updates.images.items():
             if image.pull is not None:
-                # TODO pull image
-                print("Pulling %s..." % image.name)
-                # TODO Re-tag image
+                pull_name = image.pull.name
+                pull_digest = image.pull.digest
+                try:
+                    print("💿 Pulling image %s..." % pull_name)
+                    repo, tag = pull_name.split(":")
+                    self.docker_template.pull_image(repo, tag)
+                    pulled_image = self.docker_template.get_image(pull_name)
+                    assert pulled_image.id == pull_digest
+                    if "__" in tag:
+                        parts = tag.split("__")
+                        tag = parts[0]
+                        pulled_image.tag(repo, tag)
+                except:
+                    traceback.print_exc()
+                    print("⚠️ Failed to pull %s" % pull_name)
 
-        # TODO update containers
-        for service in updates.services.values():
-            if service.status == ServiceStatus.MISSING:
-                print("Create container")
-                pass  # TODO create container
-            elif service.status == ServiceStatus.DISABLED:
-                print("Stop & Remove container")
-                pass  # TODO stop & remove container
-            elif service.status == ServiceStatus.OUTDATED:
-                print("Stop & Recreate container")
-                pass  # TODO stop & recreate container
+        network = self.node_manager.config.network
+        for name, service in updates.services.items():
+            try:
+                container_name = f"{network}_{name}_1"
+                if service.status == ServiceStatus.MISSING:
+                    print(f"📦 Creating container {container_name}...")
+                    self.node_manager.get_node(name).create_container()
+                elif service.status == ServiceStatus.DISABLED:
+                    c = self.docker_template.get_container(container_name)
+                    print(f"📦 Stopping container {container_name}...")
+                    c.stop()
+                    print(f"📦 Removing container {container_name}...")
+                    c.remove()
+                elif service.status == ServiceStatus.OUTDATED:
+                    c = self.docker_template.get_container(container_name)
+                    print(f"📦 Stopping container {container_name}...")
+                    c.stop()
+                    print(f"📦 Recreating container {container_name}...")
+                    c.remove()
+                    self.node_manager.get_node(name).create_container()
+            except:
+                traceback.print_exc()
+                print("⚠️ Failed to update service %s" % name)
