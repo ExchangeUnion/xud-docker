@@ -1,7 +1,7 @@
 from __future__ import annotations
 from typing import Optional, Dict, List, TYPE_CHECKING, Set
 from enum import Enum
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from concurrent.futures import ThreadPoolExecutor, wait
 import time
 from yaml import load
@@ -26,49 +26,29 @@ class ServiceStatus(Enum):
 
 
 @dataclass
+class ServiceDef:
+    name: str
+    image: str
+    command: str
+    environment: List[str]
+    ports: List[str]
+    volumes: List[str]
+
+
+@dataclass
 class Image:
     name: str
-    digest: str = None
-
-
-@dataclass
-class ImageDiff:
-    old: str = None
-    new: str = None
-
-
-@dataclass
-class CommandDiff:
-    old: str = None
-    new: str = None
-
-
-@dataclass
-class EnvironmentDiff:
-    old: List[str] = None
-    new: List[str] = None
-
-
-@dataclass
-class PortsDiff:
-    old: List[str] = None
-    new: List[str] = None
-
-
-@dataclass
-class VolumesDiff:
-    old: List[str] = None
-    new: List[str] = None
+    digest: str
+    old_digest: str = None
 
 
 @dataclass
 class ServiceDetails:
     status: ServiceStatus
-    image: ImageDiff = None
-    command: CommandDiff = None
-    environment: EnvironmentDiff = None
-    ports: PortsDiff = None
-    volumes: VolumesDiff = None
+    old: ServiceDef = None
+    new: ServiceDef = None
+    diff: List[str] = field(default_factory=list)
+    image_pull: Image = None
 
 
 @dataclass
@@ -79,19 +59,19 @@ class ImageDetails:
     registry: Optional[ImageMetadata]
 
     @property
-    def branch_image(self) -> str:
-        if self.branch == "master":
-            return self.name
-        else:
-            branch = self.branch.replace("/", "-")
-            return "%s__%s" % (self.name, branch)
-
-    @property
-    def pull(self) -> Image:
+    def pull(self) -> Optional[Image]:
         if not self.local:
             if not self.registry:
+                print("")
                 raise RuntimeError("Image %s not found" % self.name)
             return Image(name="{}:{}".format(self.registry.repo, self.registry.tag), digest=self.registry.digest)
+        else:
+            if not self.registry:
+                return None
+            if self.local.digest != self.registry.digest:
+                return Image(name="{}:{}".format(self.registry.repo, self.registry.tag), digest=self.registry.digest, old_digest=self.local.digest)
+            else:
+                return None
 
 
 @dataclass
@@ -99,15 +79,41 @@ class UpdateDetails:
     services: Dict[str, ServiceDetails]
     images: Dict[str, ImageDetails]
 
+    def _status_text(self, status):
+        if status == ServiceStatus.UP_TO_DATE:
+            return "\033[32mup-to-date"
+        elif status == ServiceStatus.OUTDATED:
+            return "\033[33moutdated"
+        elif status == ServiceStatus.MISSING:
+            return "\033[21mmissing"
+        elif status == ServiceStatus.DISABLED:
+            return "disabled"
 
-@dataclass
-class ServiceDef:
-    name: str
-    image: str
-    command: str
-    environment: List[str]
-    ports: List[str]
-    volumes: List[str]
+    def _extract_digest(self, digest):
+        digest = digest.replace("sha256:", "")
+        digest = digest[:5]
+        return digest
+
+    def __str__(self):
+        lines = []
+        for name, service in self.services.items():
+            status = self._status_text(service.status)
+            lines.append(f"- \033[1mService %s: %s\033[0m" % (name, status))
+            if service.image_pull is not None:
+                if service.image_pull.old_digest:
+                    old_digest = service.image_pull.old_digest
+                    old_digest = self._extract_digest(old_digest)
+                else:
+                    old_digest = "n/a"
+
+                new_digest = service.image_pull.digest
+                new_digest = self._extract_digest(new_digest)
+
+                lines.append(f"  * image: new version available (%s, %s -> %s)" % (service.image_pull.name, old_digest, new_digest))
+            for aspect in service.diff:
+                lines.append(f"  * {aspect}: changed")
+        lines.append("")
+        return "\n".join(lines)
 
 
 def _normalize_image(name) -> str:
@@ -142,6 +148,16 @@ def _get_branch_tag(tag, branch) -> str:
     return "{}__{}".format(tag, branch)
 
 
+def _pprint_images_metadata(metadata: Dict[str, ImageMetadata]) -> str:
+    lines = []
+    for key, value in metadata.items():
+        lines.append("- %s (%s)" % (key, value.digest))
+        lines.append("  revision: %s" % value.revision)
+        lines.append("  application revision: %s" % value.application_revision)
+        lines.append("  created at: %s" % value.created_at)
+    return "\n".join(lines)
+
+
 class UpdateManager:
     def __init__(self, node_manager: NodeManager):
         self.logger = logging.getLogger("launcher.node.UpdateManager")
@@ -155,9 +171,12 @@ class UpdateManager:
             repo, tag = image.split(":")
             m = None
             if branch != "master":
-                m = get_fn(repo, _get_branch_tag(tag, branch))
+                branch_tag = _get_branch_tag(tag, branch)
+                m = get_fn(repo, branch_tag)
+                self.logger.debug("%s:%s metadata: %s", repo, branch_tag, m)
             if not m:
                 m = get_fn(repo, tag)
+                self.logger.debug("%s:%s metadata: %s", repo, tag, m)
             return m
 
         result = {}
@@ -175,23 +194,26 @@ class UpdateManager:
                         metadata = f.result()
                         result[task] = metadata
                     except Exception as e:
+                        self.logger.exception("Failed to fetch metadata of image %s", task)
                         failed.append((task, e))
                 for f in not_done:
                     task = fs[f]
+                    self.logger.error("Failed to fetch metadata of image %s (timeout)", task)
                     failed.append((task, TimeoutError()))
-                print(result)
                 tasks = []
                 for image, exception in failed:
                     tasks.append(image)
-                    logging.debug("Failed to fetch metadata for image %s", image, exception)
+
                 time.sleep(retry_delay)
         return result
 
     def _check_images(self, images: List[str], details: UpdateDetails):
         branch = self.node_manager.config.branch
 
-        local_metadata = self._fetch_metadata(images, branch, self.docker_template.get_registry_image_metadata)
-        registry_metadata = self._fetch_metadata(images, branch, self.docker_template.get_local_image_metadata)
+        self.logger.debug("Update check for images: %s", ", ".join(images))
+
+        local_metadata = self._fetch_metadata(images, branch, self.docker_template.get_local_image_metadata)
+        registry_metadata = self._fetch_metadata(images, branch, self.docker_template.get_registry_image_metadata)
 
         # Update details
         for image in images:
@@ -203,53 +225,72 @@ class UpdateManager:
             )
 
     def check_for_updates(self) -> Optional[UpdateDetails]:
-        current_compose = self.node_manager.current_compose_file
-        with open(current_compose) as f:
-            current_compose = load(f, Loader=Loader)
+        current_snapshot = self.node_manager.current_snapshot
+        with open(current_snapshot) as f:
+            current_snapshot = load(f, Loader=Loader)
 
         result = UpdateDetails(services={}, images={})
         images = set()
-        for name, service in current_compose["services"].items():
+        for name, service in current_snapshot["services"].items():
             service = _parse_service_yaml(name, service)
             result.services[name] = ServiceDetails(
                 status=ServiceStatus.UP_TO_DATE,
-                image=ImageDiff(new=service.image),
-                command=CommandDiff(new=service.command),
-                environment=EnvironmentDiff(new=service.environment),
-                ports=PortsDiff(new=service.ports),
-                volumes=VolumesDiff(new=service.volumes),
+                new=service,
             )
             images.add(service.image)
 
         images = list(images)
+        images = sorted(images)
 
         self._check_images(images, result)
 
-        previous_compose = self.node_manager.previous_compose_file
-        if previous_compose:
-            with open(previous_compose) as f:
-                previous_compose = load(f, Loader=Loader)
-            for name, service in previous_compose["services"].items():
-                service = _parse_service_yaml(name, service)
+        previous_snapshot = self.node_manager.previous_snapshot
+        if previous_snapshot:
+            with open(previous_snapshot) as f:
+                previous_snapshot = load(f, Loader=Loader)
+            for name, service in previous_snapshot["services"].items():
                 if name in result.services:
+                    s = result.services[name]
+                    s.old = _parse_service_yaml(name, service)
+                    # diff old and new service definitions
+                    image_pull = result.images[s.new.image].pull
+                    image_diff = s.old.image != s.new.image
+                    command_diff = s.old.command != s.new.command
+                    environment_diff = set(s.old.environment) != set(s.new.environment)
+                    ports_diff = set(s.old.ports) != set(s.new.ports)
+                    volumes_diff = set(s.old.volumes) != set(s.new.volumes)
+                    if image_pull is not None or image_diff or command_diff or environment_diff or ports_diff or volumes_diff:
+                        s.status = ServiceStatus.OUTDATED
+                        s.image_pull = image_pull
+                        if image_diff:
+                            s.diff.append("image")
+                        if command_diff:
+                            s.diff.append("command")
+                        if environment_diff:
+                            s.diff.append("environment")
+                        if ports_diff:
+                            s.diff.append("ports")
+                        if volumes_diff:
+                            s.diff.append("volumes")
+                else:
+                    # old service is gone
                     result.services[name] = ServiceDetails(
                         status=ServiceStatus.DISABLED,
-                        image=ImageDiff(old=service.image),
-                        command=CommandDiff(old=service.command),
-                        environment=EnvironmentDiff(old=service.environment),
-                        ports=PortsDiff(old=service.ports),
-                        volumes=VolumesDiff(old=service.volumes),
+                        old=_parse_service_yaml(name, service)
                     )
-                else:
-                    svc = result.services[name]
-                    svc.image.old = Image(service.image)
-                    svc.command.old = service.command
-                    svc.environment.old = sorted(service.environment)
-                    svc.ports.old = sorted(service.ports)
-                    svc.volumes.old = sorted(service.volumes)
-                    # TODO diff
+        else:
+            for s in result.services.values():
+                image_pull = result.images[s.new.image].pull
+                if image_pull is not None:
+                    s.status = ServiceStatus.OUTDATED
+                    s.image_pull = image_pull
 
-        # TODO diff current running containers
+        for name, s in result.services.items():
+            if s.status != ServiceStatus.DISABLED:
+                network = self.node_manager.config.network
+                c = self.docker_template.get_container(f"{network}_{name}_1")
+                if c is None:
+                    s.status = ServiceStatus.MISSING
 
         up_to_date = True
         for service in result.services.values():
@@ -263,12 +304,20 @@ class UpdateManager:
 
     def apply(self, updates: UpdateDetails) -> None:
         # TODO update images
+        for image in updates.images.values():
+            if image.pull is not None:
+                # TODO pull image
+                print("Pulling %s..." % image.name)
+                # TODO Re-tag image
 
         # TODO update containers
         for service in updates.services.values():
             if service.status == ServiceStatus.MISSING:
+                print("Create container")
                 pass  # TODO create container
             elif service.status == ServiceStatus.DISABLED:
+                print("Stop & Remove container")
                 pass  # TODO stop & remove container
             elif service.status == ServiceStatus.OUTDATED:
+                print("Stop & Recreate container")
                 pass  # TODO stop & recreate container

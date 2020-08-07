@@ -124,7 +124,7 @@ class Node:
 
     @property
     def image(self) -> Image:
-        return self.image_manager.get_image(self.node_config["image"], self)
+        return self.node_config["image"]
 
     @property
     def mode(self) -> str:
@@ -197,7 +197,7 @@ class Node:
         if self.mode != "native":
             return
         if self._container is None:
-            self._container = self.get_container(create=True)
+            self._container = self.get_container(create=False)
         assert self._container is not None
         self._container.start()
 

@@ -10,7 +10,9 @@ import time
 from datetime import datetime
 from dataclasses import dataclass
 import platform
+import logging
 import docker
+import docker.errors
 
 
 if TYPE_CHECKING:
@@ -105,6 +107,7 @@ class DockerTemplate:
     def __init__(self):
         self.registry_client = DockerRegistryClient(token_url="https://auth.docker.io/token", registry_url="https://registry-1.docker.io")
         self.docker_client = docker.from_env()
+        self.logger = logging.getLogger("launcher.DockerTemplate")
 
     def _normalize_platform(self, platform: Dict) -> str:
         os = platform["os"]
@@ -159,7 +162,7 @@ class DockerTemplate:
 
         created_at = datetime.strptime(labels["com.exchangeunion.image.created"], "%Y-%m-%dT%H:%M:%SZ")
 
-        return ImageMetadata(
+        metadata = ImageMetadata(
             repo=repo,
             tag=tag,
             digest=res.digest,
@@ -167,6 +170,8 @@ class DockerTemplate:
             application_revision=labels["com.exchangeunion.application.revision"],
             created_at=created_at,
         )
+        self.logger.debug("Fetched image %s:%s registry metadata: %r", repo, tag, metadata)
+        return metadata
 
     def get_registry_image_metadata(self, repo: str, tag: str) -> Optional[ImageMetadata]:
         try:
@@ -190,16 +195,27 @@ class DockerTemplate:
             raise DockerTemplateError("Failed to get metadata of image %s:%s".format(repo, tag)) from e
 
     def get_local_image_metadata(self, repo: str, tag: str) -> Optional[ImageMetadata]:
-        name = "{}:{}".format(repo, tag)
-        image = self.docker_client.images.get(name)
-        digest = image.id
-        labels = image.labels
-        created_at = datetime.strptime(labels["com.exchangeunion.image.created"], "%Y-%m-%dT%H:%M:%SZ")
-        return ImageMetadata(
-            repo=repo,
-            tag=tag,
-            digest=digest,
-            revision=labels["com.exchangeunion.image.revision"],
-            application_revision=labels["com.exchangeunion.application.revision"],
-            created_at=created_at,
-        )
+        try:
+            name = "{}:{}".format(repo, tag)
+            image = self.docker_client.images.get(name)
+            digest = image.id
+            labels = image.labels
+            created_at = datetime.strptime(labels["com.exchangeunion.image.created"], "%Y-%m-%dT%H:%M:%SZ")
+            metadata = ImageMetadata(
+                repo=repo,
+                tag=tag,
+                digest=digest,
+                revision=labels["com.exchangeunion.image.revision"],
+                application_revision=labels["com.exchangeunion.application.revision"],
+                created_at=created_at,
+            )
+            self.logger.debug("Fetched image %s:%s local metadata: %r\n%s\n%s\n%r", repo, tag, metadata, digest, image.id, image)
+            return metadata
+        except docker.errors.ImageNotFound:
+            return None
+
+    def get_container(self, name):
+        try:
+            return self.docker_client.containers.get(name)
+        except docker.errors.NotFound:
+            return None
