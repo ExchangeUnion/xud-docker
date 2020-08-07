@@ -508,7 +508,7 @@ nodes_config = {
         },
         "xud": {
             "name": "xud",
-            "image": "exchangeunion/xud:1.0.0-beta.7",
+            "image": "exchangeunion/xud:1.0.0-beta.8",
             "volumes": [
                 {
                     "host": "$data_dir/xud",
