@@ -344,7 +344,7 @@ class Config:
         group.add_argument(
             "--webui.expose-ports",
             metavar="<ports>",
-            help="Expose xud service ports to your host machine"
+            help="Expose webui service ports to your host machine"
         )
 
         self.args = parser.parse_args()
