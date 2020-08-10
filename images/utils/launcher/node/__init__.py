@@ -243,6 +243,10 @@ class NodeManager:
         diff_keys = [key for key, value in details.items() if not value.same]
         return ", ".join(diff_keys)
 
+    @property
+    def _silent_update(self) -> bool:
+        return self.newly_installed
+
     def update(self) -> None:
         if self.config.disable_update:
             return
@@ -250,10 +254,13 @@ class NodeManager:
         print("🌍 Checking for updates...")
         updates = self.update_manager.check_for_updates()
         if updates:
-            print(updates)
-            answer = self.shell.yes_or_no("Would you like to upgrade? (Warning: this may restart your environment and cancel all open orders)")
-            if answer == "yes":
+            if self._silent_update:
                 self.update_manager.apply(updates)
+            else:
+                print(updates)
+                answer = self.shell.yes_or_no("Would you like to upgrade? (Warning: this may restart your environment and cancel all open orders)")
+                if answer == "yes":
+                    self.update_manager.apply(updates)
         else:
             print("👍 All up-to-date.")
             self.logger.info("The environment is up-to-date")
