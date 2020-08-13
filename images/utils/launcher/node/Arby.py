@@ -1,15 +1,12 @@
-from .base import Node, CliBackend, CliError
+from .Node import Node, NodeApi
 
 
-class ArbyApi:
-    def __init__(self, backend):
-        self._backend = backend
-
+class ArbyApi(NodeApi):
     def is_healthy(self):
         return True
 
 
-class Arby(Node):
+class Arby(Node[ArbyApi]):
     def __init__(self, name, ctx):
         super().__init__(name, ctx)
 
@@ -56,10 +53,9 @@ class Arby(Node):
 
         self.container_spec.environment.extend(environment)
 
-        self._cli = "curl -s"
-        self.api = ArbyApi(CliBackend(self.client, self.container_name, self._logger, self._cli))
+    @property
+    def cli_prefix(self) -> str:
+        return "curl -s"
 
-    def status(self):
-        status = super().status()
-        status = "Ready"
-        return status
+    def application_status(self):
+        return "Ready"

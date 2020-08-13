@@ -9,7 +9,7 @@ from datetime import datetime
 import re
 
 from .node import NodeManager
-from .node.xud import PasswordNotMatch, InvalidPassword, MnemonicNot24Words
+from .node.Xud import PasswordNotMatch, InvalidPassword, MnemonicNot24Words
 from .utils import normalize_path, get_hostfs_file
 from .errors import FatalError
 from .types import LndChain, XudNetwork

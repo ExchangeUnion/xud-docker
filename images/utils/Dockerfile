@@ -1,6 +1,6 @@
-FROM python:3.8.2-alpine3.11
+FROM python:3.8.5-alpine3.12
+RUN apk add --no-cache docker-compose
 RUN pip install toml docker demjson pyyaml
-ADD . /usr/local/src/utils
-WORKDIR /usr/local/src/utils
-RUN python setup.py install
 WORKDIR /root
+ADD launcher launcher
+ENTRYPOINT ["python", "-m", "launcher"]

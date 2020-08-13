@@ -1,22 +1,32 @@
 from __future__ import annotations
-from typing import Optional, Dict, List, TYPE_CHECKING, Set
-from enum import Enum
-from dataclasses import dataclass, field
-from concurrent.futures import ThreadPoolExecutor, wait
+
 import time
-from yaml import load
-import logging
 import traceback
+import os
+from concurrent.futures import ThreadPoolExecutor, wait
+from dataclasses import dataclass, field
+from enum import Enum
+from logging import getLogger
+from typing import Optional, Dict, List, TYPE_CHECKING
+from datetime import datetime
+
+from yaml import load
 
 try:
     from yaml import CLoader as Loader
 except ImportError:
     from yaml import Loader
 
-from .docker_registry_client import DockerTemplate, ImageMetadata
+from .docker import DockerTemplate, ImageMetadata
 
 if TYPE_CHECKING:
-    from . import NodeManager
+    from .NodeManager import NodeManager
+    from launcher.config import Config
+    from launcher.shell import Shell
+
+__all__ = ["UpdateManager"]
+
+logger = getLogger(__name__)
 
 
 class ServiceStatus(Enum):
@@ -70,7 +80,8 @@ class ImageDetails:
             if not self.registry:
                 return None
             if self.local.digest != self.registry.digest:
-                return Image(name="{}:{}".format(self.registry.repo, self.registry.tag), digest=self.registry.digest, old_digest=self.local.digest)
+                return Image(name="{}:{}".format(self.registry.repo, self.registry.tag), digest=self.registry.digest,
+                             old_digest=self.local.digest)
             else:
                 return None
 
@@ -110,7 +121,8 @@ class UpdateDetails:
                 new_digest = service.image_pull.digest
                 new_digest = self._extract_digest(new_digest)
 
-                lines.append(f"  * image: new version available (%s, %s -> %s)" % (service.image_pull.name, old_digest, new_digest))
+                lines.append(f"  * image: new version available (%s, %s -> %s)" % (
+                service.image_pull.name, old_digest, new_digest))
             for aspect in service.diff:
                 lines.append(f"  * {aspect}: changed")
         return "\n".join(lines)
@@ -129,15 +141,21 @@ def _parse_service_yaml(name, service) -> ServiceDef:
     image = service["image"]
     image = _normalize_image(image)
 
-    command = service["command"] or ""
+    command = service.get("command", "")
 
-    environment = service["environment"] or []
+    environment = service.get("environment", [])
+    if not environment:
+        environment = []
     environment = sorted(environment)
 
-    ports = service["ports"] or []
+    ports = service.get("ports", [])
+    if not ports:
+        ports = []
     ports = sorted(ports)
 
-    volumes = service["volumes"] or []
+    volumes = service.get("volumes", [])
+    if not volumes:
+        volumes = []
     volumes = sorted(volumes)
 
     return ServiceDef(name=name, image=image, command=command, environment=environment, ports=ports, volumes=volumes)
@@ -160,9 +178,45 @@ def _pprint_images_metadata(metadata: Dict[str, ImageMetadata]) -> str:
 
 class UpdateManager:
     def __init__(self, node_manager: NodeManager):
-        self.logger = logging.getLogger("launcher.node.UpdateManager")
         self.node_manager = node_manager
-        self.docker_template = DockerTemplate()
+        self.docker_template = DockerTemplate(node_manager.docker_client_factory)
+
+        logs_dir = os.path.join(self.node_manager.config.network_dir, "logs")
+        snapshots_dir = os.path.join(logs_dir, "snapshots")
+        snapshots_dir = "/mnt/hostfs" + snapshots_dir
+        self.snapshots_dir = snapshots_dir
+
+        if not os.path.exists(snapshots_dir):
+            os.makedirs(snapshots_dir)
+
+        timestamp = int(datetime.now().timestamp())
+        self.snapshot_file = os.path.join(self.snapshots_dir, f"snapshot-{timestamp}.yml")
+        self.previous_snapshot_file = self._get_last_snapshot_file()
+
+        if self.previous_snapshot_file:
+            with open(self.previous_snapshot_file) as f:
+                self.previous_snapshot = f.read()
+        else:
+            self.previous_snapshot = None
+
+        self.current_snapshot = self.node_manager.export()
+
+    def _get_last_snapshot_file(self) -> Optional[str]:
+        snapshots = os.listdir(self.snapshots_dir)
+        snapshots = sorted(snapshots)
+        if len(snapshots) == 0:
+            return None
+        else:
+            file = os.path.join(self.snapshots_dir, snapshots[-1])
+            return file
+
+    @property
+    def config(self) -> Config:
+        return self.node_manager.config
+
+    @property
+    def shell(self) -> Shell:
+        return self.node_manager.shell
 
     def _fetch_metadata(self, images: List[str], branch: str, get_fn) -> Dict[str, ImageMetadata]:
         tasks = images
@@ -170,13 +224,14 @@ class UpdateManager:
         def get_metadata(image: str) -> Optional[ImageMetadata]:
             repo, tag = image.split(":")
             m = None
-            if branch != "master":
-                branch_tag = _get_branch_tag(tag, branch)
-                m = get_fn(repo, branch_tag)
-                self.logger.debug("%s:%s metadata: %s", repo, branch_tag, m)
+            if get_fn == self.docker_template.get_registry_image_metadata:
+                if branch != "master":
+                    branch_tag = _get_branch_tag(tag, branch)
+                    m = get_fn(repo, branch_tag)
+                    logger.debug("%s:%s metadata: %s", repo, branch_tag, m)
             if not m:
                 m = get_fn(repo, tag)
-                self.logger.debug("%s:%s metadata: %s", repo, tag, m)
+                logger.debug("%s:%s metadata: %s", repo, tag, m)
             return m
 
         result = {}
@@ -194,11 +249,11 @@ class UpdateManager:
                         metadata = f.result()
                         result[task] = metadata
                     except Exception as e:
-                        self.logger.exception("Failed to fetch metadata of image %s", task)
+                        logger.exception("Failed to fetch metadata of image %s", task)
                         failed.append((task, e))
                 for f in not_done:
                     task = fs[f]
-                    self.logger.error("Failed to fetch metadata of image %s (timeout)", task)
+                    logger.error("Failed to fetch metadata of image %s (timeout)", task)
                     failed.append((task, TimeoutError()))
                 tasks = []
                 for image, exception in failed:
@@ -210,7 +265,7 @@ class UpdateManager:
     def _check_images(self, images: List[str], details: UpdateDetails):
         branch = self.node_manager.config.branch
 
-        self.logger.debug("Update check for images: %s", ", ".join(images))
+        logger.debug("Update check for images: %s", ", ".join(images))
 
         local_metadata = self._fetch_metadata(images, branch, self.docker_template.get_local_image_metadata)
         registry_metadata = self._fetch_metadata(images, branch, self.docker_template.get_registry_image_metadata)
@@ -224,10 +279,45 @@ class UpdateManager:
                 registry=registry_metadata.get(image, None),
             )
 
-    def check_for_updates(self) -> Optional[UpdateDetails]:
-        current_snapshot = self.node_manager.current_snapshot
-        with open(current_snapshot) as f:
-            current_snapshot = load(f, Loader=Loader)
+    def _silent_update(self, updates: UpdateDetails) -> bool:
+        image_outdated = False
+        for image in updates.images.values():
+            if image.pull is not None:
+                image_outdated = True
+        return self.node_manager.newly_installed or not image_outdated
+
+    def update(self) -> str:
+        if self.config.disable_update:
+            self._persist_current_snapshot()
+            return self.snapshot_file
+
+        updates = self._check_for_updates()
+
+        if self._silent_update(updates):
+            if not self.node_manager.newly_installed:
+                print("👍 All up-to-date.")
+            self._persist_current_snapshot()
+            self.node_manager.snapshot_file = self.snapshot_file
+            self._apply(updates)
+            return self.snapshot_file
+        else:
+            print(updates)
+            answer = self.shell.yes_or_no(
+                "Would you like to upgrade? (Warning: this may restart your environment and cancel all open orders)")
+            if answer == "yes":
+                self._persist_current_snapshot()
+                self.node_manager.snapshot_file = self.snapshot_file
+                self._apply(updates)
+                return self.snapshot_file
+            else:
+                if self.previous_snapshot_file:
+                    return self.previous_snapshot_file
+                else:
+                    self._persist_current_snapshot()
+                    return self.current_snapshot
+
+    def _check_for_updates(self) -> UpdateDetails:
+        current_snapshot = load(self.current_snapshot, Loader=Loader)
 
         result = UpdateDetails(services={}, images={})
         images = set()
@@ -244,10 +334,9 @@ class UpdateManager:
 
         self._check_images(images, result)
 
-        previous_snapshot = self.node_manager.previous_snapshot
+        previous_snapshot = self.previous_snapshot
         if previous_snapshot:
-            with open(previous_snapshot) as f:
-                previous_snapshot = load(f, Loader=Loader)
+            previous_snapshot = load(previous_snapshot, Loader=Loader)
             for name, service in previous_snapshot["services"].items():
                 if name in result.services:
                     s = result.services[name]
@@ -292,35 +381,9 @@ class UpdateManager:
                 if c is None:
                     s.status = ServiceStatus.MISSING
 
-
-        # handle down/restart all missing case
-        all_missing = True
-        for service in result.services.values():
-            if service.status != ServiceStatus.MISSING and len(service.diff) == 0:
-                all_missing = False
-                break
-        for image in result.images.values():
-            if image.pull is not None:
-                all_missing = False
-        if all_missing:
-            network = self.node_manager.config.network
-            for name, service in result.services.items():
-                container_name = f"{network}_{name}_1"
-                print(f"📦 Creating container {container_name}...")
-                self.node_manager.get_node(name).create_container()
-            return None
-
-        up_to_date = True
-        for service in result.services.values():
-            if service.status != ServiceStatus.UP_TO_DATE:
-                up_to_date = False
-                break
-        if up_to_date:
-            return None
-
         return result
 
-    def apply(self, updates: UpdateDetails) -> None:
+    def _apply(self, updates: UpdateDetails) -> None:
         for name, image in updates.images.items():
             if image.pull is not None:
                 pull_name = image.pull.name
@@ -333,8 +396,8 @@ class UpdateManager:
                     assert pulled_image.id == pull_digest
                     if "__" in tag:
                         parts = tag.split("__")
-                        tag = parts[0]
-                        pulled_image.tag(repo, tag)
+                        tag0 = parts[0]
+                        pulled_image.tag(repo, tag0)
                 except:
                     traceback.print_exc()
                     print("⚠️ Failed to pull %s" % pull_name)
@@ -345,7 +408,7 @@ class UpdateManager:
                 container_name = f"{network}_{name}_1"
                 if service.status == ServiceStatus.MISSING:
                     print(f"📦 Creating container {container_name}...")
-                    self.node_manager.get_node(name).create_container()
+                    self.node_manager.create(name)
                 elif service.status == ServiceStatus.DISABLED:
                     c = self.docker_template.get_container(container_name)
                     print(f"📦 Stopping container {container_name}...")
@@ -358,7 +421,11 @@ class UpdateManager:
                     c.stop()
                     print(f"📦 Recreating container {container_name}...")
                     c.remove()
-                    self.node_manager.get_node(name).create_container()
+                    self.node_manager.create(name)
             except:
                 traceback.print_exc()
                 print("⚠️ Failed to update service %s" % name)
+
+    def _persist_current_snapshot(self):
+        with open(self.snapshot_file, "w") as f:
+            f.write(self.current_snapshot)

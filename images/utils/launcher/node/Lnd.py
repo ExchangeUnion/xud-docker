@@ -1,7 +1,8 @@
-from .base import Node, CliBackend, CliError
 import json
 import re
 from datetime import datetime, timedelta
+
+from .Node import Node, NodeApi, CliError
 
 
 class InvalidChain(Exception):
@@ -13,18 +14,15 @@ class LndApiError(Exception):
     pass
 
 
-class LndApi:
-    def __init__(self, backend):
-        self._backend = backend
-
+class LndApi(NodeApi):
     def getinfo(self):
         try:
-            return json.loads(self._backend["getinfo"]())
+            return json.loads(self.cli("getinfo"))
         except CliError as e:
             raise LndApiError(e.output)
 
 
-class Lnd(Node):
+class Lnd(Node[LndApi]):
     def __init__(self, name, ctx, chain: str):
         super().__init__(name, ctx)
         self.chain = chain
@@ -35,8 +33,9 @@ class Lnd(Node):
         self.container_spec.command.extend(command)
         self.container_spec.environment.extend(environment)
 
-        self._cli = f"lncli -n {self.network} -c {self.chain}"
-        self.api = LndApi(CliBackend(self.client, self.container_name, self._logger, self._cli))
+    @property
+    def cli_prefix(self):
+        return f"lncli -n {self.network} -c {self.chain}"
 
     def get_command(self):
         if self.network != "simnet":
@@ -104,7 +103,7 @@ class Lnd(Node):
 
     def get_current_height(self):
         try:
-            c = self.get_container()
+            c = self.container
             since = datetime.now() - timedelta(hours=1)
             lines = c.logs(since=since).decode().splitlines()
             p = re.compile(r".*New block: height=(\d+),.*")
@@ -116,50 +115,33 @@ class Lnd(Node):
         except:
             return None
 
-    def status(self):
-        status = super().status()
-        if status == "exited":
-            # TODO analyze exit reason
-            return "Container exited"
-        elif status == "running":
-            try:
-                info = self.api.getinfo()
-                synced_to_chain = info["synced_to_chain"]
-                total = info["block_height"]
-                current = self.get_current_height()
-                if current:
-                    if total <= current:
-                        msg = "Ready"
-                    else:
-                        msg = "Syncing"
-                        p = current / total * 100
-                        if p > 0.005:
-                            p = p - 0.005
-                        else:
-                            p = 0
-                        msg += " %.2f%% (%d/%d)" % (p, current, total)
+    def application_status(self):
+        try:
+            info = self.api.getinfo()
+            synced_to_chain = info["synced_to_chain"]
+            total = info["block_height"]
+            current = self.get_current_height()
+            if current:
+                if total <= current:
+                    msg = "Ready"
                 else:
-                    if synced_to_chain:
-                        msg = "Ready"
+                    msg = "Syncing"
+                    p = current / total * 100
+                    if p > 0.005:
+                        p = p - 0.005
                     else:
-                        msg = "Syncing"
-                return msg
-            except LndApiError as e:
-                # [lncli] Wallet is encrypted. Please unlock using 'lncli unlock', or set password using 'lncli create' if this is the first time starting lnd.
-                if "Wallet is encrypted" in str(e):
-                    return "Wallet locked. Unlock with xucli unlock."
-            except:
-                self._logger.exception("Failed to get advanced running status")
-            return "Waiting for lnd ({}) to come up...".format(self.chain)
-        else:
-            return status
-
-
-class Lndbtc(Lnd):
-    def __init__(self, *args):
-        super().__init__(*args, chain="bitcoin")
-
-
-class Lndltc(Lnd):
-    def __init__(self, *args):
-        super().__init__(*args, chain="litecoin")
+                        p = 0
+                    msg += " %.2f%% (%d/%d)" % (p, current, total)
+            else:
+                if synced_to_chain:
+                    msg = "Ready"
+                else:
+                    msg = "Syncing"
+            return msg
+        except LndApiError as e:
+            # [lncli] Wallet is encrypted. Please unlock using 'lncli unlock', or set password using 'lncli create' if this is the first time starting lnd.
+            if "Wallet is encrypted" in str(e):
+                return "Wallet locked. Unlock with xucli unlock."
+        except:
+            self.logger.exception("Failed to get advanced running status")
+        return "Waiting for lnd ({}) to come up...".format(self.chain)

@@ -54,16 +54,16 @@ echo "[entrypoint] Onion address for xud is $XUD_ADDRESS"
 
 
 echo '[entrypoint] Detecting localnet IP for lndbtc...'
-LNDBTC_IP=$(getent hosts lndbtc || echo '' | awk '{ print $1 }')
-echo "[entrypoint] $LNDBTC_IP lndbtc" >> /etc/hosts
+LNDBTC_IP=$(getent hosts lndbtc | awk '{ print $1 }')
+echo "$LNDBTC_IP lndbtc" >> /etc/hosts
 
 echo '[entrypoint] Detecting localnet IP for lndltc...'
-LNDLTC_IP=$(getent hosts lndltc || echo '' | awk '{ print $1 }')
-echo "[entrypoint] $LNDLTC_IP lndltc" >> /etc/hosts
+LNDLTC_IP=$(getent hosts lndltc | awk '{ print $1 }')
+echo "$LNDLTC_IP lndltc" >> /etc/hosts
 
 echo '[entrypoint] Detecting localnet IP for connext...'
-CONNEXT_IP=$(getent hosts connext || echo '' | awk '{ print $1 }')
-echo "[entrypoint] $CONNEXT_IP connext" >> /etc/hosts
+CONNEXT_IP=$(getent hosts connext | awk '{ print $1 }')
+echo "$CONNEXT_IP connext" >> /etc/hosts
 
 
 while [[ ! -e /root/.lndbtc/tls.cert ]]; do

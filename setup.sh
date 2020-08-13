@@ -170,12 +170,14 @@ function get_image_status() {
 function pull_image() {
     echo "Pulling image $1"
     if ! docker pull "$1" >/dev/null 2>&1; then
-        echo >&2 "❌ Failed to pull image $1. This may be a Docker issue or a permissions issue. Check your Docker installation and make sure you have added your user to the docker group: https://docs.docker.com/engine/install/linux-postinstall/"
+        echo >&2 "Failed to pull image $1"
         exit 1
     fi
 }
 
 function ensure_utils_image() {
+    echo "🌍 Checking for updates..."
+
     local STATUS
     local B_IMG # branch image
     local P_IMG # pulling image
@@ -183,7 +185,7 @@ function ensure_utils_image() {
     local I_IMG # initial image
 
     if [[ $DEV == "true" ]]; then
-        UTILS_IMG=$(get_branch_image "exchangeunion/utils:latest")
+        UTILS_IMG="exchangeunion/utils:latest"
         return
     fi
 
@@ -200,15 +202,23 @@ function ensure_utils_image() {
 
     case $STATUS in
         missing|outdated)
-            if [[ -n $P_IMG ]]; then
-                pull_image "$P_IMG"
-                if [[ $BRANCH != "master" && ! $P_IMG =~ __ ]]; then
-                    echo "Warning: Branch image $B_IMG not found. Fallback to $P_IMG"
-                fi
-            fi
-            ;;
-        newer)
-            echo "Warning: Use local $B_IMG (newer than cloud $P_IMG)"
+            while true; do
+                read -p "Would you like to upgrade? (Warning: this may restart your environment and cancel all open orders) [Y/n]" yn
+                case $yn in
+                    [Yy]* )
+                        if [[ -n $P_IMG ]]; then
+                            UPGRADE=yes
+                            pull_image "$P_IMG"
+                            if [[ $BRANCH != "master" && ! $P_IMG =~ __ ]]; then
+                                echo "Warning: Branch image $B_IMG not found. Fallback to $P_IMG"
+                            fi
+                        fi
+                        ;;
+                    [Nn]* )
+                        break
+                        ;;
+                esac
+            done
             ;;
     esac
 
@@ -265,9 +275,11 @@ parse_branch "$@"
 
 choose_network
 
-ensure_utils_image
-
 echo "🚀 Launching $NETWORK environment"
+
+UPGRADE=no
+ensure_utils_image
+echo "Use $UTILS_IMG"
 
 docker run --rm -it \
 --name "$(get_utils_name)" \
@@ -277,6 +289,5 @@ docker run --rm -it \
 -e HOST_HOME="$HOME" \
 -e NETWORK="$NETWORK" \
 -e LOG_TIMESTAMP="$LOG_TIMESTAMP" \
---entrypoint python \
-"$UTILS_IMG" \
--m launcher "$@"
+-e UPGRADE=$UPGRADE \
+"$UTILS_IMG" "$@"

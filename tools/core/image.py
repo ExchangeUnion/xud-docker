@@ -4,7 +4,7 @@ import logging
 import os
 import sys
 from shutil import copyfile
-from subprocess import CalledProcessError
+from subprocess import CalledProcessError, STDOUT, Popen, PIPE
 from typing import TYPE_CHECKING, List, Optional
 import re
 import importlib
@@ -137,39 +137,42 @@ class Image:
             repo = "connext/rest-api-client"
         return repo
 
+    @property
+    def _on_travis(self) -> bool:
+        return "TRAVIS_BRANCH" in os.environ
+
     def _run_command(self, cmd):
-        self._logger.info(cmd)
+        print("\033[1m$ %s\033[0m" % cmd)
 
-        stop = threading.Event()
-
-        def f():
-            nonlocal stop
-            counter = 0
-            on_travis = "TRAVIS_BRANCH" in os.environ
-            while not stop.is_set():
-                counter = counter + 1
-
-                if on_travis:
+        if self._on_travis:
+            stop = threading.Event()
+            def f():
+                nonlocal stop
+                counter = 0
+                while not stop.is_set():
+                    counter = counter + 1
                     print("Still building... ({})".format(counter), flush=True)
                     stop.wait(10)
-                    continue
-
-                print(".", end="", flush=True)
-                stop.wait(1)
-            if not on_travis:
-                print()
-        threading.Thread(target=f).start()
-        try:
-            output = execute(cmd)
-            self._logger.debug("$ %s\n%s", cmd, output)
-            stop.set()
-        except CalledProcessError as e:
-            stop.set()
-            print(e.output.decode(), end="", flush=True)
-            raise SystemExit(1)
-        except:
-            stop.set()
-            raise
+            threading.Thread(target=f).start()
+            try:
+                output = execute(cmd)
+                self._logger.debug("$ %s\n%s", cmd, output)
+                print(output)
+                stop.set()
+            except CalledProcessError as e:
+                stop.set()
+                print(e.output.decode(), end="", flush=True)
+                raise SystemExit(1)
+            except:
+                stop.set()
+                raise
+        else:
+            p = Popen(cmd, stdout=PIPE, stderr=STDOUT, universal_newlines=True, shell=True)
+            for chunk in p.stdout:
+                print(chunk, flush=True, end="")
+            exit_code = p.wait()
+            if exit_code != 0:
+                raise RuntimeError("Command '%s' exits with non-zero status code: %d" % (cmd, exit_code))
 
     def _build(self, args: List[str], build_dir: str, build_tag: str) -> None:
         cmd = "docker build {} {}".format(" ".join(args), build_dir)
@@ -223,8 +226,12 @@ class Image:
                 self._build(args, build_dir, build_tag)
 
                 build_tag_without_arch = self.get_build_tag(self.branch, None)
-                cmd = "docker tag {} {}".format(build_tag, build_tag_without_arch)
-                execute(cmd)
+                parts = build_tag.split("__")
+                tag0 = parts[0]
+                cmd = "docker tag {} {}".format(build_tag, tag0)
+                print("\033[1m$ %s\033[0m" % cmd)
+                output = execute(cmd)
+                print(output)
             else:
                 self._buildx_build(args, build_dir, build_tag, platform)
         finally:

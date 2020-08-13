@@ -1,26 +1,24 @@
-import demjson
-from urllib.request import urlopen, Request
 import json
-from datetime import datetime, timedelta
 from concurrent.futures import ThreadPoolExecutor, wait
+from datetime import datetime, timedelta
+from urllib.request import urlopen, Request
 
-from .base import Node, CliBackend
+import demjson
+
+from .Node import Node, NodeApi
 
 
-class GethApi:
-    def __init__(self, backend):
-        self._backend = backend
-
+class GethApi(NodeApi):
     def eth_syncing(self):
-        js_obj = self._backend["--exec eth.syncing attach"]()
+        js_obj = self.cli("--exec eth.syncing attach")
         return demjson.decode(js_obj)
 
     def eth_blockNumber(self):
-        js_obj = self._backend["--exec eth.blockNumber attach"]()
+        js_obj = self.cli("--exec eth.blockNumber attach")
         return demjson.decode(js_obj)
 
 
-class Geth(Node):
+class Geth(Node[GethApi]):
     def __init__(self, name, ctx):
         super().__init__(name, ctx)
 
@@ -52,12 +50,12 @@ class Geth(Node):
             "--cache {}".format(self.node_config["cache"])
         ])
 
+    @property
+    def cli_prefix(self):
         if self.network == "testnet":
-            self._cli = "geth --rinkeby"
+            return "geth --rinkeby"
         elif self.network == "mainnet":
-            self._cli = "geth"
-
-        self.api = GethApi(CliBackend(self.client, self.container_name, self._logger, self._cli))
+            return "geth"
 
     def get_environment(self):
         result = []
@@ -88,7 +86,7 @@ class Geth(Node):
             j = json.loads(r.read().decode())
             result = j["result"]
             # Geth/v1.9.9-omnibus-e320ae4c-20191206/linux-amd64/go1.13.4
-            self._logger.info("The ethereum RPC %s net version is %s", url, result)
+            self.logger.info("The ethereum RPC %s net version is %s", url, result)
             return True
         except:
             return False
@@ -119,7 +117,7 @@ class Geth(Node):
             if ok:
                 return t2 - t1
         except:
-            self._logger.exception("Failed to get provider %s delay", provider)
+            self.logger.exception("Failed to get provider %s delay", provider)
         return None
 
     def get_external_status(self):
@@ -158,31 +156,27 @@ class Geth(Node):
             return self.get_infura_status()
         elif self.mode == "light":
             return self.get_light_status()
-
-        status = super().status()
-        if status == "exited":
-            # TODO analyze exit reason
-            return "Container exited"
-        elif status == "running":
-            try:
-                syncing = self.api.eth_syncing()
-                if syncing:
-                    current: int = syncing["currentBlock"]
-                    total: int = syncing["highestBlock"]
-                    p = current / total * 100
-                    if p > 0.005:
-                        p = p - 0.005
-                    else:
-                        p = 0
-                    return "Syncing %.2f%% (%d/%d)" % (p, current, total)
-                else:
-                    block_number = self.api.eth_blockNumber()
-                    if block_number == 0:
-                        return "Waiting for sync"
-                    else:
-                        return "Ready"
-            except:
-                self._logger.exception("Failed to get advanced running status")
-                return "Waiting for geth to come up..."
         else:
-            return status
+            return super().status()
+
+    def application_status(self):
+        try:
+            syncing = self.api.eth_syncing()
+            if syncing:
+                current: int = syncing["currentBlock"]
+                total: int = syncing["highestBlock"]
+                p = current / total * 100
+                if p > 0.005:
+                    p = p - 0.005
+                else:
+                    p = 0
+                return "Syncing %.2f%% (%d/%d)" % (p, current, total)
+            else:
+                block_number = self.api.eth_blockNumber()
+                if block_number == 0:
+                    return "Waiting for sync"
+                else:
+                    return "Ready"
+        except:
+            self.logger.exception("Failed to get advanced running status")
+            return "Waiting for geth to come up..."

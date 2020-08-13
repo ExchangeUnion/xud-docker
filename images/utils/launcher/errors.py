@@ -17,3 +17,11 @@ class ConfigError(Exception):
         super().__init__(scope)
         self.scope = scope
         self.conf_file = conf_file
+
+
+class ParseError(Exception):
+    pass
+
+
+class IllegalState(Exception):
+    pass

@@ -2,8 +2,9 @@ import logging
 import os
 from concurrent.futures import ThreadPoolExecutor, wait
 import argparse
+from subprocess import check_output, STDOUT, CalledProcessError
 
-logger = logging.getLogger("launcher.utils")
+logger = logging.getLogger(__name__)
 
 
 class ParallelExecutionError(Exception):
@@ -96,3 +97,14 @@ class ArgumentParser(argparse.ArgumentParser):
 
     def error(self, message):
         raise ArgumentError(message, self.format_usage())
+
+
+def execute(cmd: str):
+    try:
+        output = check_output(cmd, shell=True, stderr=STDOUT)
+        output = output.decode().strip()
+        logger.debug("$ %s\n%s", cmd, output)
+        return output
+    except CalledProcessError as e:
+        logger.debug("(exit %d) $ %s\n%s", e.returncode, e.cmd, e.output.decode().strip())
+        raise e
