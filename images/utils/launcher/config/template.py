@@ -15,7 +15,6 @@ nodes_config = {
             "ports": [],
             "mode": "native",
             "preserve_config": False,
-            "use_local_image": False,
         },
         "lndltc": {
             "name": "lndltc",
@@ -29,7 +28,6 @@ nodes_config = {
             "ports": [],
             "mode": "native",
             "preserve_config": False,
-            "use_local_image": False,
         },
         "connext": {
             "name": "connext",
@@ -43,7 +41,6 @@ nodes_config = {
             "ports": [],
             "mode": "native",
             "preserve_config": False,
-            "use_local_image": False,
         },
         "arby": {
             "name": "arby",
@@ -62,7 +59,6 @@ nodes_config = {
             "mode": "native",
             "preserve_config": False,
             "disabled": True,
-            "use_local_image": False,
         },
         "webui": {
             "name": "webui",
@@ -76,7 +72,6 @@ nodes_config = {
             "ports": [PortPublish("28888:8080")],
             "mode": "native",
             "preserve_config": False,
-            "use_local_image": False,
             "disabled": True,
         },
         "xud": {
@@ -103,7 +98,6 @@ nodes_config = {
             "ports": [PortPublish("28885")],
             "mode": "native",
             "preserve_config": False,
-            "use_local_image": False,
         },
     },
     "testnet": {
@@ -125,7 +119,6 @@ nodes_config = {
             "external_zmqpubrawblock": "127.0.0.1:28332",
             "external_zmqpubrawtx": "127.0.0.1:28333",
             "preserve_config": False,
-            "use_local_image": False,
         },
         "litecoind": {
             "name": "litecoind",
@@ -145,7 +138,6 @@ nodes_config = {
             "external_zmqpubrawblock": "127.0.0.1:29332",
             "external_zmqpubrawtx": "127.0.0.1:29333",
             "preserve_config": False,
-            "use_local_image": False,
         },
         "geth": {
             "name": "geth",
@@ -165,7 +157,6 @@ nodes_config = {
             "preserve_config": False,
             "eth_provider": None,
             "cache": 256,
-            "use_local_image": False,
         },
         "lndbtc": {
             "name": "lndbtc",
@@ -179,7 +170,6 @@ nodes_config = {
             "ports": [],
             "mode": "native",
             "preserve_config": False,
-            "use_local_image": False,
         },
         "lndltc": {
             "name": "lndltc",
@@ -193,7 +183,6 @@ nodes_config = {
             "ports": [],
             "mode": "native",
             "preserve_config": False,
-            "use_local_image": False,
         },
         "connext": {
             "name": "connext",
@@ -207,7 +196,6 @@ nodes_config = {
             "ports": [],
             "mode": "native",
             "preserve_config": False,
-            "use_local_image": False,
         },
         "arby": {
             "name": "arby",
@@ -226,7 +214,6 @@ nodes_config = {
             "mode": "native",
             "preserve_config": False,
             "disabled": True,
-            "use_local_image": False,
         },
         "boltz": {
             "name": "boltz",
@@ -249,7 +236,6 @@ nodes_config = {
             "mode": "native",
             "preserve_config": False,
             "disabled": False,
-            "use_local_image": False,
         },
         "webui": {
             "name": "webui",
@@ -263,7 +249,6 @@ nodes_config = {
             "ports": [PortPublish("18888:8080")],
             "mode": "native",
             "preserve_config": False,
-            "use_local_image": False,
             "disabled": True,
         },
         "xud": {
@@ -290,7 +275,6 @@ nodes_config = {
             "ports": [PortPublish("18885")],
             "mode": "native",
             "preserve_config": False,
-            "use_local_image": False,
         },
     },
     "mainnet": {
@@ -312,7 +296,6 @@ nodes_config = {
             "external_zmqpubrawblock": "127.0.0.1:28332",
             "external_zmqpubrawtx": "127.0.0.1:28333",
             "preserve_config": False,
-            "use_local_image": False,
         },
         "litecoind": {
             "name": "litecoind",
@@ -332,7 +315,6 @@ nodes_config = {
             "external_zmqpubrawblock": "127.0.0.1:29332",
             "external_zmqpubrawtx": "127.0.0.1:29333",
             "preserve_config": False,
-            "use_local_image": False,
         },
         "geth": {
             "name": "geth",
@@ -351,7 +333,6 @@ nodes_config = {
             "infura_project_secret": None,
             "preserve_config": False,
             "cache": 256,
-            "use_local_image": False,
         },
         "lndbtc": {
             "name": "lndbtc",
@@ -365,7 +346,6 @@ nodes_config = {
             "ports": [],
             "mode": "native",
             "preserve_config": False,
-            "use_local_image": False,
         },
         "lndltc": {
             "name": "lndltc",
@@ -379,7 +359,6 @@ nodes_config = {
             "ports": [],
             "mode": "native",
             "preserve_config": False,
-            "use_local_image": False,
         },
         "connext": {
             "name": "connext",
@@ -393,7 +372,6 @@ nodes_config = {
             "ports": [],
             "mode": "native",
             "preserve_config": False,
-            "use_local_image": False,
         },
         "arby": {
             "name": "arby",
@@ -412,7 +390,6 @@ nodes_config = {
             "mode": "native",
             "preserve_config": False,
             "disabled": True,
-            "use_local_image": False,
         },
         "boltz": {
             "name": "boltz",
@@ -435,7 +412,6 @@ nodes_config = {
             "mode": "native",
             "preserve_config": False,
             "disabled": False,
-            "use_local_image": False,
         },
         "webui": {
             "name": "webui",
@@ -449,7 +425,6 @@ nodes_config = {
             "ports": [PortPublish("8888:8080")],
             "mode": "native",
             "preserve_config": False,
-            "use_local_image": False,
             "disabled": True,
         },
         "xud": {
@@ -476,7 +451,6 @@ nodes_config = {
             "ports": [PortPublish("8885")],
             "mode": "native",
             "preserve_config": False,
-            "use_local_image": False,
         },
     }
 }

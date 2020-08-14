@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 from logging import getLogger
 from typing import TYPE_CHECKING, Optional, Tuple
-import os
+import sys
 
 import docker
 import docker.errors
@@ -23,6 +23,41 @@ TOKEN_URL = "https://auth.docker.io/token"
 REGISTRY_URL = "https://registry-1.docker.io"
 
 logger = getLogger(__name__)
+
+
+def get_line(record):
+    if "progress" in record:
+        return "{}: {} {}".format(record["id"], record["status"], record["progress"])
+    else:
+        return "{}: {}".format(record["id"], record["status"])
+
+
+def print_status(output):
+    layers = []
+    progress = []
+
+    n = 0
+
+    for record in output:
+        status = record["status"]
+        if status.startswith("Pulling from") or status.startswith("Digest:") or status.startswith("Status:"):
+            continue
+        if "id" in record:
+            id = record["id"]
+            if id in layers:
+                progress[layers.index(id)] = get_line(record)
+            else:
+                layers.append(id)
+                progress.append(get_line(record))
+
+        if n > 0:
+            print(f"\033[%dA" % n, end="")
+            sys.stdout.flush()
+
+        n = len(progress)
+
+        for line in progress:
+            print("\033[K" + line)
 
 
 class DockerTemplate:
@@ -71,10 +106,11 @@ class DockerTemplate:
             return name, "latest"
 
     def pull_image(self, name: str, print_details=False) -> Image:
+        repo, tag = self._normalize_image_name(name)
         if print_details:
-            os.system(f"docker pull {name}")
+            output = self.docker_client.api.pull(repo, tag=tag, stream=True, decode=True)
+            print_status(output)
         else:
-            repo, tag = self._normalize_image_name(name)
             self.docker_client.images.pull(repo, tag)
         return self.get_image(name)
 

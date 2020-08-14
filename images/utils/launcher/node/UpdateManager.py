@@ -114,18 +114,25 @@ class UpdateDetails:
             status = self._status_text(service.status)
             lines.append(f"- \033[1mService %s: %s\033[0m" % (name, status))
             if service.image_pull is not None:
-                if service.image_pull.old_digest:
-                    old_digest = service.image_pull.old_digest
-                    old_digest = self._extract_digest(old_digest)
+                if "image" in service.diff:
+                    new_digest = service.image_pull.digest
+                    new_digest = self._extract_digest(new_digest)
+
+                    lines.append(f"  * image: changed (%s -> %s, %s)" % (service.old.image, service.new.image, new_digest))
                 else:
-                    old_digest = "n/a"
+                    if service.image_pull.old_digest:
+                        old_digest = service.image_pull.old_digest
+                        old_digest = self._extract_digest(old_digest)
+                    else:
+                        old_digest = "n/a"
 
-                new_digest = service.image_pull.digest
-                new_digest = self._extract_digest(new_digest)
+                    new_digest = service.image_pull.digest
+                    new_digest = self._extract_digest(new_digest)
 
-                lines.append(f"  * image: new version available (%s, %s -> %s)" % (
-                service.image_pull.name, old_digest, new_digest))
+                    lines.append(f"  * image: new version available (%s, %s -> %s)" % (service.image_pull.name, old_digest, new_digest))
             for aspect in service.diff:
+                if aspect == "image":
+                    continue
                 lines.append(f"  * {aspect}: changed")
         return "\n".join(lines)
 

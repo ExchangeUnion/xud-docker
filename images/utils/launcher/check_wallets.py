@@ -1,3 +1,4 @@
+from __future__ import annotations
 import logging
 import sys
 import os
@@ -7,6 +8,7 @@ from concurrent.futures import ThreadPoolExecutor
 from docker.models.containers import Container
 from datetime import datetime
 import re
+from typing import TYPE_CHECKING
 
 from .node import NodeManager
 from .node.Xud import PasswordNotMatch, InvalidPassword, MnemonicNot24Words
@@ -14,6 +16,10 @@ from .utils import normalize_path, get_hostfs_file
 from .errors import FatalError
 from .types import LndChain, XudNetwork
 from .table import ServiceTable
+
+if TYPE_CHECKING:
+    from launcher.config import Config
+    from launcher.shell import Shell
 
 
 class CFHeaderState:
@@ -30,11 +36,11 @@ class Action:
         self.lnd_cfheaders = {}
 
     @property
-    def shell(self):
+    def shell(self) -> Shell:
         return self.node_manager.shell
 
     @property
-    def config(self):
+    def config(self) -> Config:
         return self.node_manager.config
 
     @property
@@ -407,15 +413,14 @@ class Action:
         self.config.backup_dir = backup_dir
 
     def is_backup_available(self):
-        if self.config.backup_dir is None:
+        value_file = f"{self.config.network_dir}/data/xud/.backup-dir-value"
+        if not os.path.exists(value_file):
             return False
-
-        ok, reason = self.check_backup_dir(self.config.backup_dir)
-
-        if not ok:
-            return False
-
-        return True
+        with open(value_file) as f:
+            value = f.read().strip()
+            value = value.replace("/mnt/hostfs", "")
+        ok, reason = self.check_backup_dir(value)
+        return ok
 
     def setup_restore_dir(self) -> None:
         """This function will try to interactively setting up restore_dir. And
@@ -467,6 +472,16 @@ class Action:
                     break
 
         self.config.restore_dir = restore_dir
+
+    def _update_xud_backup_dir(self, xud):
+        backup_dir = self.config.backup_dir
+        if not backup_dir:
+            return
+        cmd = f"/update-backup-dir.sh '{get_hostfs_file(backup_dir)}'"
+        exit_code, output = xud.exec(cmd)
+        lines = output.decode().splitlines()
+        if len(lines) > 0:
+            print(lines[0])
 
     def execute(self):
         xud = self.node_manager.get_node("xud")
@@ -526,8 +541,4 @@ class Action:
                 self.config.backup_dir = None
                 self.setup_backup_dir()
 
-        cmd = f"/update-backup-dir.sh '{get_hostfs_file(self.config.backup_dir)}'"
-        exit_code, output = xud.exec(cmd)
-        lines = output.decode().splitlines()
-        if len(lines) > 0:
-            print(lines[0])
+        self._update_xud_backup_dir(xud)

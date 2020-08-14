@@ -71,6 +71,7 @@ class Config:
     def parse_command_line_arguments(self):
         parser = ArgumentParser(argument_default=argparse.SUPPRESS, prog="launcher")
         parser.add_argument("--external-ip")
+        parser.add_argument("--backup-dir")
         parser.add_argument("--xud.preserve-config", action="store_true")
         parser.add_argument("--lndbtc.preserve-config", action="store_true")
         parser.add_argument("--lndltc.preserve-config", action="store_true")
@@ -526,17 +527,6 @@ class Config:
         parsed = toml.loads(conf)
         self.logger.info("Parsed %s.conf: %r", network, parsed)
 
-        # parse backup-dir value from
-        # 1) data/xud/.backup-dir-value
-        # 2) network.conf
-        # 3) --backup-dir
-        value_file = get_hostfs_file(f"{self.network_dir}/data/xud/.backup-dir-value")
-        if os.path.exists(value_file):
-            with open(value_file) as f:
-                value = f.read().strip()
-                value = value.replace("/mnt/hostfs", "")
-                if len(value) > 0:
-                    self.backup_dir = value
         if "backup-dir" in parsed:
             value = parsed["backup-dir"].strip()
             if len(value) > 0:
@@ -546,14 +536,6 @@ class Config:
             value = getattr(self.args, opt).strip()
             if len(value) > 0:
                 self.backup_dir = value
-
-        opt = "use_local_images"
-        if hasattr(self.args, opt):
-            value = getattr(self.args, opt).strip()
-            parts = value.split(",")
-            parts = [p.strip() for p in parts]
-            for p in parts:
-                self.nodes[p]["use_local_image"] = True
 
         for node in self.nodes.values():
             name = node["name"]

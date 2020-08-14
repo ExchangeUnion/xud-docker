@@ -12,7 +12,6 @@ from queue import Queue
 from .command import Command
 from .history import History
 
-from ..utils import get_hostfs_file
 
 def output(seq):
     os.write(sys.stdout.fileno(), seq.encode())

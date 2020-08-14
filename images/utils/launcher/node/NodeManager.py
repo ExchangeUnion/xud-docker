@@ -11,7 +11,7 @@ from dataclasses import dataclass
 
 from .UpdateManager import UpdateManager
 from .docker import DockerClientFactory, DockerTemplate
-from launcher.utils import parallel_execute, execute, get_hostfs_file, get_useful_error_message
+from launcher.utils import parallel_execute, execute, get_useful_error_message
 if TYPE_CHECKING:
     from launcher.config import Config
     from launcher.shell import Shell
@@ -242,7 +242,7 @@ class NodeManager:
 
     @property
     def newly_installed(self):
-        return not os.path.exists(f"{get_hostfs_file(self.config.network_dir)}/data/xud/nodekey.dat")
+        return not os.path.exists(f"{self.config.network_dir}/data/xud/nodekey.dat")
 
     def export(self) -> str:
         lines = [
