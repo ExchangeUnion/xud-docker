@@ -287,7 +287,7 @@ class UpdateManager:
             if image.pull is not None:
                 image_outdated = True
 
-        return self.node_manager.newly_installed or not image_outdated or os.environ["UPGRADE"] == "yes"
+        return not image_outdated or os.environ["UPGRADE"] == "yes"
 
     def update(self) -> str:
         if self.config.disable_update:
@@ -297,7 +297,7 @@ class UpdateManager:
         updates = self._check_for_updates()
 
         if self._silent_update(updates):
-            if not self.node_manager.newly_installed:
+            if os.environ["UPGRADE"] == "no":
                 print("👍 All up-to-date.")
             self._persist_current_snapshot()
             self.node_manager.snapshot_file = self.snapshot_file

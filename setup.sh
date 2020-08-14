@@ -79,108 +79,71 @@ function get_token() {
     curl -sf "$URL" | sed -E 's/^.*"token":"([^,]*)",.*$/\1/g'
 }
 
-function get_image_metadata() {
-    local TOKEN NAME TAG
-    NAME=$(echo "$1" | cut -d':' -f1)
-    TAG=$(echo "$1" | cut -d':' -f2)
-    TOKEN=$(get_token "$NAME")
-    local URL="$DOCKER_REGISTRY/v2/$NAME/manifests/$TAG"
-    curl -sf "$URL" -H "Authorization: Bearer $TOKEN"
+function get_branch_image() {
+    # replace character '/' with '-'
+    echo "${1}__${BRANCH//\//-}"
 }
 
-function get_cloud_image() {
-    local RESP
-    RESP=$(get_image_metadata "$1")
+function get_local_image_digest() {
+    docker image inspect -f '{{.Config.Image}}' "$1" 2>/dev/null || true
+}
+
+function get_registry_image_digest() {
+    local REPO TAG URL RESP
+    REPO=$(echo "$1" | cut -d':' -f1)
+    TAG=$(echo "$1" | cut -d':' -f2)
+    TOKEN=$(get_token "$REPO")
+    URL="$DOCKER_REGISTRY/v2/$REPO/manifests/$TAG"
+    RESP=$(curl -sf "$URL" -H "Authorization: Bearer $TOKEN")
     if [[ -z $RESP ]]; then
-        return
+        exit 0
     fi
     RESP=$(echo "$RESP" | grep v1Compatibility | head -1 | sed 's/^.*v1Compatibility":/printf/g' || echo "")
     if [[ -z $RESP ]]; then
-        return
+        exit 0
     fi
     RESP=$(eval "$RESP")
-    echo "$RESP" | sed -E 's/.*sha256:([a-z0-9]+).*/\1/g'
-    echo "$RESP" | sed -E 's/.*com.exchangeunion.image.created":"([^"]*)".*/\1/g'
-}
-
-function get_local_image() {
-    if ! docker image inspect -f '{{.Config.Image}}' "$1" 2>/dev/null | sed -E 's/sha256://g'; then
-        return
-    fi
-    docker image inspect -f '{{index .Config.Labels "com.exchangeunion.image.created"}}' "$1"
-}
-
-function get_image_without_branch() {
-    echo "$1" | sed -E 's/__.*//g'
+    echo "$RESP" | sed -E 's/.*(sha256:[a-z0-9]+).*/\1/g'
 }
 
 function get_pull_image() {
-    if ! docker image inspect "$1" >/dev/null 2>&1; then
-        echo "$2"
-    fi
-}
-
-function get_branch_image() {
-    if [[ $BRANCH == "master" ]]; then
-        echo "$1"
-    else
-        # replace character '/' with '-'
-        echo "${1}__${BRANCH//\//-}"
-    fi
-}
-
-function get_image_status() {
     # possible return values: up-to-date, outdated, missing
-    local LOCAL CLOUD
-    local L_SHA256 C_SHA256
-    local M_IMG # master branch image (name)
+    local IMG=$1
+    local L_DIGEST R_DIGEST
     local B_IMG # branch image
-    local P_IMG # pulling image
-    local U_IMG=$1 # use image
 
-    B_IMG=$(get_branch_image "$1")
+    L_DIGEST=$(get_local_image_digest "$IMG")
 
-    P_IMG=$B_IMG
+    if [[ $BRANCH != "master" ]]; then
+        B_IMG=$(get_branch_image "$IMG")
+        R_DIGEST=$(get_registry_image_digest "$B_IMG")
+        P_IMG=$B_IMG
+    fi
 
-    CLOUD=$(get_cloud_image "$B_IMG")
+    if [[ -z $R_DIGEST ]]; then
+        R_DIGEST=$(get_registry_image_digest "$IMG")
+        P_IMG=$IMG
+    fi
 
-    if [[ -z $CLOUD ]]; then
-        if [[ $B_IMG =~ __ ]]; then
-            M_IMG=$(get_image_without_branch "$B_IMG")
-            CLOUD=$(get_cloud_image "$M_IMG")
-            if [[ -z $CLOUD ]]; then
-                echo >&2 "Image $B_IMG and $M_IMG not found in registry"
-                exit 1
-            else
-                P_IMG=$M_IMG
-            fi
-        else
-            echo >&2 "Image $B_IMG not found in registry"
+    if [[ -z $L_DIGEST ]]; then
+        if [[ -z $R_DIGEST ]]; then
+            echo >&2 "Image not found: $IMG"
             exit 1
         fi
+    else
+        if [[ -z $R_DIGEST ]]; then
+            echo "Warning: Use local $IMG (no such image in the registry)"
+        else
+            if [[ $L_DIGEST == "$R_DIGEST" ]]; then
+                # image is up-to-date
+                P_IMG=""
+            fi
+        fi
     fi
-
-    C_SHA256=$(echo "$CLOUD" | sed -n '1p')
-    P_IMG=$(get_pull_image "$C_SHA256" "$P_IMG")
-
-    LOCAL=$(get_local_image "$B_IMG")
-    if [[ -z $LOCAL ]]; then
-        echo "missing $B_IMG $U_IMG $P_IMG"
-        return
-    fi
-
-    L_SHA256=$(echo "$LOCAL" | sed -n '1p')
-
-    if [[ $L_SHA256 == "$C_SHA256" ]]; then
-        echo "up-to-date $B_IMG $U_IMG $P_IMG"
-        return
-    fi
-
-    echo "outdated $B_IMG $U_IMG $P_IMG"
 }
 
 function pull_image() {
-    echo "Pulling image $1"
+    echo "💿 Pulling image $1..."
     if ! docker pull "$1" >/dev/null 2>&1; then
         echo >&2 "Failed to pull image $1"
         exit 1
@@ -323,40 +286,31 @@ function installed() {
 function check_for_updates() {
     echo "🌍 Checking for updates..."
 
-    local STATUS
-    local B_IMG # branch image
-    local P_IMG # pulling image
-    local U_IMG # use image
-    local I_IMG # initial image
-
     if [[ $DEV == "true" ]]; then
         UTILS_IMG="exchangeunion/utils:latest"
         return
     fi
 
     if [[ $NETWORK == "mainnet" && $BRANCH == "master" ]]; then
-        I_IMG="exchangeunion/utils:$UTILS_TAG"
+        UTILS_IMG="exchangeunion/utils:$UTILS_TAG"
     else
-        I_IMG="exchangeunion/utils:latest"
+        UTILS_IMG="exchangeunion/utils:latest"
     fi
 
-    read -r STATUS B_IMG U_IMG P_IMG <<<"$(get_image_status "$I_IMG")"
-    UTILS_IMG=$U_IMG
+    get_pull_image "$UTILS_IMG"
 
-    case $STATUS in
-        missing|outdated)
-            if installed; then
-                REPLY="yes"
-            else
-                yes_or_no "$UPGRADE_PROMPT"
-            fi
-            if [[ $REPLY == "yes" ]]; then
-                UPGRADE="yes"
-                pull_image "$P_IMG"
-                docker tag "$P_IMG" "$U_IMG"
-            fi
-            ;;
-    esac
+    if [[ -n $P_IMG ]]; then
+        if installed; then
+            yes_or_no "$UPGRADE_PROMPT"
+        else
+            REPLY="yes"
+        fi
+        if [[ $REPLY == "yes" ]]; then
+            UPGRADE="yes"
+            pull_image "$P_IMG"
+            docker tag "$P_IMG" "$UTILS_IMG"
+        fi
+    fi
 }
 
 
