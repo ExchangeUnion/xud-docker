@@ -277,9 +277,9 @@ function installed() {
     DATA_FILES=$(ls -A "$DATA_DIR")
     CONTAINERS=$(docker ps -aq -f "name=${NETWORK}_")
     if [[ -z $DATA_FILES && -z $CONTAINERS ]]; then
-        return 0
-    else
         return 1
+    else
+        return 0
     fi
 }
 
