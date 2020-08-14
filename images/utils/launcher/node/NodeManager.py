@@ -5,18 +5,20 @@ import sys
 import threading
 import time
 import logging
-from typing import Dict
-
-from docker.errors import NotFound
-from docker.types import IPAMConfig, IPAMPool
+from typing import TYPE_CHECKING, Dict
 import importlib
+from dataclasses import dataclass
 
 from .UpdateManager import UpdateManager
-from .docker import DockerClientFactory
+from .docker import DockerClientFactory, DockerTemplate
 from launcher.utils import parallel_execute, execute, get_hostfs_file, get_useful_error_message
-from .Node import Node, Context
+if TYPE_CHECKING:
+    from launcher.config import Config
+    from launcher.shell import Shell
+    from .Node import Node
 
-__all__ = ["NodeManager"]
+
+__all__ = ["NodeManager", "Context"]
 
 logger = logging.getLogger(__name__)
 
@@ -25,29 +27,48 @@ class NodeNotFound(Exception):
     pass
 
 
+@dataclass
+class Context:
+    config: Config
+    shell: Shell
+    docker_client_factory: DockerClientFactory
+    docker_template: DockerTemplate
+    node_manager: NodeManager
+
+
 class NodeManager:
-    def __init__(self, config, shell):
+    def __init__(self, config: Config, shell: Shell):
         self.config = config
         self.shell = shell
         self.docker_client_factory = DockerClientFactory()
-        self.nodes = self._create_nodes()
-        self.update_manager = UpdateManager(self)
-        self.snapshot_file = None
-
-    def _create_nodes(self) -> Dict[str, Node]:
-        context = Context(
+        self.context = Context(
             config=self.config,
             shell=self.shell,
             docker_client_factory=self.docker_client_factory,
-            node_manager=self
+            docker_template=DockerTemplate(self.docker_client_factory),
+            node_manager=self,
         )
+        self.nodes = self._create_nodes()
+
+        self.snapshots_dir = os.path.join(self.config.logs_dir, "snapshots")
+        if not os.path.exists(self.snapshots_dir):
+            os.makedirs(self.snapshots_dir)
+        self.snapshot_file = os.path.join(self.snapshots_dir, f"snapshot-{self.config.launch_id}.yml")
+
+        self.update_manager = UpdateManager(self.context)
+
+    def _create_nodes(self) -> Dict[str, Node]:
         result = {}
         for service_name in self.config.nodes:
             module_name = service_name.capitalize()
             m = importlib.import_module("launcher.node." + module_name)
-            instance = getattr(m, module_name)(service_name, context)
+            instance = getattr(m, module_name)(service_name, self.context)
             result[service_name] = instance
         return result
+
+    def save_snapshot(self, content: str):
+        with open(self.snapshot_file, "w") as f:
+            f.write(content)
 
     @property
     def network(self) -> str:
@@ -76,7 +97,7 @@ class NodeManager:
         return {name: node for name, node in self.nodes.items() if not node.disabled}
 
     def update(self) -> None:
-        self.snapshot_file = self.update_manager.update()
+        self.update_manager.update()
 
     def up(self):
         nodes = self.valid_nodes.values()

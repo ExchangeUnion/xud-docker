@@ -300,7 +300,7 @@ class InputHandler(threading.Thread):
 
     def set_network_dir(self, network_dir):
         with self._lock:
-            self._history = History(self._cmd, get_hostfs_file(f"{network_dir}/history"))
+            self._history = History(self._cmd, f"{network_dir}/history")
 
     def _history_reset(self):
         if self._history is None or not self.enable_history:

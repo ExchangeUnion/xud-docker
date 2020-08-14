@@ -56,7 +56,27 @@ class DockerRegistryClient:
             if e.code == 404:
                 return None
             else:
-                raise
+                raise e
+
+    def has_manifest(self, repo: str, tag: str) -> bool:
+        url = f"{self.registry_url}/v2/{repo}/manifests/{tag}"
+        request = Request(url, method="HEAD")
+        request.add_header("Authorization", "Bearer " + self.get_token(repo))
+        media_types = [
+            MANIFEST_LIST_V2_MIME_TYPE,
+            MANIFEST_V2_MIME_TYPE,
+            MANIFEST_V1_MIME_TYPE,
+        ]
+        request.add_header("Accept", ",".join(media_types))
+        try:
+            urlopen(request)
+            return True
+        except HTTPError as e:
+            if e.code == 404:
+                return False
+            else:
+                raise e
+
 
     def get_blob(self, repo: str, digest: str) -> Optional[Tuple[str, Any]]:
         url = f"{self.registry_url}/v2/{repo}/blobs/{digest}"

@@ -16,11 +16,11 @@ from launcher.config import PortPublish
 
 if TYPE_CHECKING:
     from launcher.config import Config
-    from .NodeManager import NodeManager
-    from .docker import DockerClientFactory
-    from launcher.shell import Shell
+    from .NodeManager import NodeManager, Context
+    from .docker import DockerTemplate
 
-__all__ = ["Node", "Context", "NodeApi"]
+
+__all__ = ["Node", "NodeApi"]
 
 
 class InvalidNetwork(Exception):
@@ -38,14 +38,6 @@ class ContainerSpec:
     command: List[str]
     volumes: Dict
     ports: Dict
-
-
-@dataclass
-class Context:
-    docker_client_factory: DockerClientFactory
-    config: Config
-    node_manager: NodeManager
-    shell: Shell
 
 
 class CliError(Exception):
@@ -146,6 +138,10 @@ class Node(ABC, Generic[T]):
         return self.context.node_manager
 
     @property
+    def docker_template(self) -> DockerTemplate:
+        return self.context.docker_template
+
+    @property
     def network(self) -> str:
         return self.config.network
 
@@ -159,7 +155,17 @@ class Node(ABC, Generic[T]):
 
     @property
     def image(self) -> str:
-        return self.node_config["image"]
+        name = self.node_config["image"]
+        if self.config.branch == "master":
+            return name
+        branch_image = self.docker_template.get_branch_image_name(name, self.config.branch)
+        if self.config.dev_mode:
+            if self.docker_template.has_local_image(branch_image):
+                return branch_image
+        if self.docker_template.has_registry_image(branch_image):
+            return branch_image
+        else:
+            return name
 
     @property
     def mode(self) -> str:

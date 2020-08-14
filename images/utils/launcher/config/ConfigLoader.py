@@ -4,6 +4,8 @@ import os
 from ..errors import FatalError
 from ..utils import normalize_path, get_hostfs_file
 
+__all__ = ["ConfigLoader"]
+
 
 class ConfigLoader:
     def load_general_config(self, home_dir):

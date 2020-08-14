@@ -226,9 +226,7 @@ class Image:
                 self._build(args, build_dir, build_tag)
 
                 build_tag_without_arch = self.get_build_tag(self.branch, None)
-                parts = build_tag.split("__")
-                tag0 = parts[0]
-                cmd = "docker tag {} {}".format(build_tag, tag0)
+                cmd = "docker tag {} {}".format(build_tag, build_tag_without_arch)
                 print("\033[1m$ %s\033[0m" % cmd)
                 output = execute(cmd)
                 print(output)

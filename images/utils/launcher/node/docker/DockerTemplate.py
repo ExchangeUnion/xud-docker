@@ -2,10 +2,13 @@ from __future__ import annotations
 
 from datetime import datetime
 from logging import getLogger
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, Optional, Tuple
+import os
 
 import docker
 import docker.errors
+from docker.models.containers import Container
+from docker.models.images import Image
 
 from .DockerClientFactory import DockerClientFactory
 from .DockerRegistryClient import DockerRegistryClient
@@ -52,14 +55,49 @@ class DockerTemplate:
         except docker.errors.ImageNotFound:
             return None
 
-    def get_container(self, name):
+    def get_container(self, name: str) -> Optional[Container]:
         try:
             return self.docker_client.containers.get(name)
         except docker.errors.NotFound:
             return None
 
-    def pull_image(self, repo, tag):
-        self.docker_client.images.pull(repo, tag)
+    @staticmethod
+    def _normalize_image_name(name: str) -> Tuple[str, str]:
+        if ":" in name:
+            parts = name.split(":")
+            assert len(parts) == 2
+            return parts[0], parts[1]
+        else:
+            return name, "latest"
 
-    def get_image(self, name):
-        return self.docker_client.images.get(name)
+    def pull_image(self, name: str, print_details=False) -> Image:
+        if print_details:
+            os.system(f"docker pull {name}")
+        else:
+            repo, tag = self._normalize_image_name(name)
+            self.docker_client.images.pull(repo, tag)
+        return self.get_image(name)
+
+    def get_image(self, name) -> Optional[Image]:
+        try:
+            return self.docker_client.images.get(name)
+        except docker.errors.ImageNotFound:
+            return None
+
+    def has_registry_image(self, name: str) -> bool:
+        repo, tag = self._normalize_image_name(name)
+        return self.registry_client.has_manifest(repo, tag)
+
+    def has_local_image(self, name: str) -> bool:
+        try:
+            self.docker_client.images.get(name)
+            return True
+        except docker.errors.ImageNotFound:
+            return False
+
+    def get_branch_image_name(self, name: str, branch: str) -> str:
+        if branch == "master":
+            return name
+        repo, tag = self._normalize_image_name(name)
+        branch = branch.replace("/", "-")
+        return f"{repo}:{tag}__{branch}"

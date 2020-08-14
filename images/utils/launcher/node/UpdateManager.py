@@ -7,7 +7,7 @@ from concurrent.futures import ThreadPoolExecutor, wait
 from dataclasses import dataclass, field
 from enum import Enum
 from logging import getLogger
-from typing import Optional, Dict, List, TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional, Dict, List, Any
 from datetime import datetime
 
 from yaml import load
@@ -20,7 +20,7 @@ except ImportError:
 from .docker import DockerTemplate, ImageMetadata
 
 if TYPE_CHECKING:
-    from .NodeManager import NodeManager
+    from .NodeManager import NodeManager, Context
     from launcher.config import Config
     from launcher.shell import Shell
 
@@ -179,46 +179,40 @@ def _pprint_images_metadata(metadata: Dict[str, ImageMetadata]) -> str:
 
 
 class UpdateManager:
-    def __init__(self, node_manager: NodeManager):
-        self.node_manager = node_manager
-        self.docker_template = DockerTemplate(node_manager.docker_client_factory)
-
-        logs_dir = os.path.join(self.node_manager.config.network_dir, "logs")
-        snapshots_dir = os.path.join(logs_dir, "snapshots")
-        snapshots_dir = "/mnt/hostfs" + snapshots_dir
-        self.snapshots_dir = snapshots_dir
-
-        if not os.path.exists(snapshots_dir):
-            os.makedirs(snapshots_dir)
-
-        timestamp = int(datetime.now().timestamp())
-        self.snapshot_file = os.path.join(self.snapshots_dir, f"snapshot-{timestamp}.yml")
-        self.previous_snapshot_file = self._get_last_snapshot_file()
-
-        if self.previous_snapshot_file:
-            with open(self.previous_snapshot_file) as f:
-                self.previous_snapshot = f.read()
-        else:
-            self.previous_snapshot = None
-
+    def __init__(self, context: Context):
+        self.context = context
+        self.previous_snapshot = self._load_snapshot(self._get_latest_snapshot_file())
         self.current_snapshot = self.node_manager.export()
 
-    def _get_last_snapshot_file(self) -> Optional[str]:
-        snapshots = os.listdir(self.snapshots_dir)
-        snapshots = sorted(snapshots)
-        if len(snapshots) == 0:
+    def _get_latest_snapshot_file(self) -> Optional[str]:
+        files = os.listdir(self.node_manager.snapshots_dir)
+        files = sorted(files)
+        if len(files) == 0:
             return None
         else:
-            file = os.path.join(self.snapshots_dir, snapshots[-1])
-            return file
+            return os.path.join(self.node_manager.snapshots_dir, files[-1])
+
+    def _load_snapshot(self, file: Optional[str]) -> str:
+        if not file:
+            return ""
+        with open(file) as f:
+            return f.read()
+
+    @property
+    def node_manager(self) -> NodeManager:
+        return self.context.node_manager
 
     @property
     def config(self) -> Config:
-        return self.node_manager.config
+        return self.context.config
 
     @property
     def shell(self) -> Shell:
-        return self.node_manager.shell
+        return self.context.shell
+
+    @property
+    def docker_template(self) -> DockerTemplate:
+        return self.context.docker_template
 
     def _fetch_metadata(self, images: List[str], branch: str, get_fn) -> Dict[str, ImageMetadata]:
         tasks = images
@@ -289,34 +283,23 @@ class UpdateManager:
 
         return not image_outdated or os.environ["UPGRADE"] == "yes"
 
-    def update(self) -> str:
-        if self.config.disable_update:
-            self._persist_current_snapshot()
-            return self.snapshot_file
-
+    def update(self) -> None:
         updates = self._check_for_updates()
+
+        self.node_manager.save_snapshot(self.current_snapshot)
 
         if self._silent_update(updates):
             if os.environ["UPGRADE"] == "no":
                 print("👍 All up-to-date.")
-            self._persist_current_snapshot()
-            self.node_manager.snapshot_file = self.snapshot_file
             self._apply(updates, images=True)
-            return self.snapshot_file
         else:
             print(updates)
             answer = self.shell.yes_or_no(
                 "Would you like to pull new images? (Warning: this may restart your environment and cancel all open orders)")
             if answer == "yes":
-                self._persist_current_snapshot()
-                self.node_manager.snapshot_file = self.snapshot_file
                 self._apply(updates, images=True)
-                return self.snapshot_file
             else:
-                self._persist_current_snapshot()
-                self.node_manager.snapshot_file = self.snapshot_file
                 self._apply(updates, images=False)
-                return self.snapshot_file
 
     def _check_for_updates(self) -> UpdateDetails:
         current_snapshot = load(self.current_snapshot, Loader=Loader)
@@ -393,14 +376,8 @@ class UpdateManager:
                     pull_digest = image.pull.digest
                     try:
                         print("💿 Pulling image %s..." % pull_name)
-                        repo, tag = pull_name.split(":")
-                        self.docker_template.pull_image(repo, tag)
-                        pulled_image = self.docker_template.get_image(pull_name)
+                        pulled_image = self.docker_template.pull_image(pull_name, print_details=True)
                         assert pulled_image.id == pull_digest
-                        if "__" in tag:
-                            parts = tag.split("__")
-                            tag0 = parts[0]
-                            pulled_image.tag(repo, tag0)
                     except:
                         traceback.print_exc()
                         print("⚠️ Failed to pull %s" % pull_name)
@@ -428,7 +405,3 @@ class UpdateManager:
             except:
                 traceback.print_exc()
                 print("⚠️ Failed to update service %s" % name)
-
-    def _persist_current_snapshot(self):
-        with open(self.snapshot_file, "w") as f:
-            f.write(self.current_snapshot)
