@@ -97,7 +97,7 @@ class UpdateDetails:
         elif status == ServiceStatus.OUTDATED:
             return "\033[33moutdated"
         elif status == ServiceStatus.MISSING:
-            return "\033[31mmissing"
+            return "\033[34mmissing"
         elif status == ServiceStatus.DISABLED:
             return "disabled"
 
@@ -109,6 +109,8 @@ class UpdateDetails:
     def __str__(self):
         lines = []
         for name, service in self.services.items():
+            if service.status == ServiceStatus.UP_TO_DATE:
+                continue
             status = self._status_text(service.status)
             lines.append(f"- \033[1mService %s: %s\033[0m" % (name, status))
             if service.image_pull is not None:
@@ -284,7 +286,8 @@ class UpdateManager:
         for image in updates.images.values():
             if image.pull is not None:
                 image_outdated = True
-        return self.node_manager.newly_installed or not image_outdated
+
+        return self.node_manager.newly_installed or not image_outdated or os.environ["UPGRADE"] == "yes"
 
     def update(self) -> str:
         if self.config.disable_update:
@@ -298,23 +301,22 @@ class UpdateManager:
                 print("👍 All up-to-date.")
             self._persist_current_snapshot()
             self.node_manager.snapshot_file = self.snapshot_file
-            self._apply(updates)
+            self._apply(updates, images=True)
             return self.snapshot_file
         else:
             print(updates)
             answer = self.shell.yes_or_no(
-                "Would you like to upgrade? (Warning: this may restart your environment and cancel all open orders)")
+                "Would you like to pull new images? (Warning: this may restart your environment and cancel all open orders)")
             if answer == "yes":
                 self._persist_current_snapshot()
                 self.node_manager.snapshot_file = self.snapshot_file
-                self._apply(updates)
+                self._apply(updates, images=True)
                 return self.snapshot_file
             else:
-                if self.previous_snapshot_file:
-                    return self.previous_snapshot_file
-                else:
-                    self._persist_current_snapshot()
-                    return self.current_snapshot
+                self._persist_current_snapshot()
+                self.node_manager.snapshot_file = self.snapshot_file
+                self._apply(updates, images=False)
+                return self.snapshot_file
 
     def _check_for_updates(self) -> UpdateDetails:
         current_snapshot = load(self.current_snapshot, Loader=Loader)
@@ -383,24 +385,25 @@ class UpdateManager:
 
         return result
 
-    def _apply(self, updates: UpdateDetails) -> None:
-        for name, image in updates.images.items():
-            if image.pull is not None:
-                pull_name = image.pull.name
-                pull_digest = image.pull.digest
-                try:
-                    print("💿 Pulling image %s..." % pull_name)
-                    repo, tag = pull_name.split(":")
-                    self.docker_template.pull_image(repo, tag)
-                    pulled_image = self.docker_template.get_image(pull_name)
-                    assert pulled_image.id == pull_digest
-                    if "__" in tag:
-                        parts = tag.split("__")
-                        tag0 = parts[0]
-                        pulled_image.tag(repo, tag0)
-                except:
-                    traceback.print_exc()
-                    print("⚠️ Failed to pull %s" % pull_name)
+    def _apply(self, updates: UpdateDetails, images: bool) -> None:
+        if images:
+            for name, image in updates.images.items():
+                if image.pull is not None:
+                    pull_name = image.pull.name
+                    pull_digest = image.pull.digest
+                    try:
+                        print("💿 Pulling image %s..." % pull_name)
+                        repo, tag = pull_name.split(":")
+                        self.docker_template.pull_image(repo, tag)
+                        pulled_image = self.docker_template.get_image(pull_name)
+                        assert pulled_image.id == pull_digest
+                        if "__" in tag:
+                            parts = tag.split("__")
+                            tag0 = parts[0]
+                            pulled_image.tag(repo, tag0)
+                    except:
+                        traceback.print_exc()
+                        print("⚠️ Failed to pull %s" % pull_name)
 
         network = self.node_manager.config.network
         for name, service in updates.services.items():
