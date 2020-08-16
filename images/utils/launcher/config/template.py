@@ -437,7 +437,7 @@ nodes_config = {
         },
         "connext": {
             "name": "connext",
-            "image": "exchangeunion/connext:7.1.2",
+            "image": "exchangeunion/connext:7.3.1",
             "volumes": [
                 {
                     "host": "$data_dir/connext",
