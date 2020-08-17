@@ -451,7 +451,7 @@ nodes_config = {
         },
         "arby": {
             "name": "arby",
-            "image": "exchangeunion/arby:1.1.4",
+            "image": "exchangeunion/arby:1.1.5",
             "volumes": [
                 {
                     "host": "$data_dir/arby",
