@@ -118,6 +118,8 @@ function get_pull_image() {
     local L_DIGEST R_DIGEST
     local B_IMG # branch image
 
+    R_DIGEST=""
+
     if [[ $BRANCH != "master" ]]; then
         B_IMG=$(get_branch_image "$IMG")
         R_DIGEST=$(get_registry_image_digest "$B_IMG")
@@ -128,6 +130,8 @@ function get_pull_image() {
         R_DIGEST=$(get_registry_image_digest "$IMG")
         P_IMG=$IMG
     fi
+
+    UTILS_IMG=$P_IMG
 
     L_DIGEST=$(get_local_image_digest "$P_IMG")
 
@@ -656,8 +660,6 @@ function installed() {
 }
 
 function check_for_updates() {
-    echo "🌍 Checking for updates..."
-
     if [[ $DEV == "true" ]]; then
         UTILS_IMG=$(get_branch_image "exchangeunion/utils:latest")
         return
@@ -670,6 +672,14 @@ function check_for_updates() {
     fi
 
     get_pull_image "$UTILS_IMG"
+
+    # backward compatible with old utils images
+    if is_new_utils; then
+        echo "🌍 Checking for updates..."
+        RUN_SUFFIX="$UTILS_IMG"
+    else
+        RUN_SUFFIX="--entrypoint python $UTILS_IMG -m launcher"
+    fi
 
     if [[ -n $P_IMG ]]; then
         if installed; then
@@ -717,11 +727,6 @@ NETWORK_CONF="$NETWORK_DIR/$NETWORK.conf"
 NETWORK_CONF_SAMPLE="$NETWORK_DIR/sample-$NETWORK.conf"
 parse_network_conf
 
-if is_new_utils; then
-    RUN_SUFFIX="$UTILS_IMG $*"
-else
-    RUN_SUFFIX="--entrypoint python $UTILS_IMG -m launcher $*"
-fi
 
 echo "🚀 Launching $NETWORK environment"
 check_for_updates
@@ -740,4 +745,4 @@ docker run --rm -it \
 -e HOST_HOME="$HOME" \
 -e HOST_HOME_DIR="$HOME_DIR" \
 -e HOST_NETWORK_DIR="$NETWORK_DIR" \
-"$RUN_SUFFIX"
+$RUN_SUFFIX "$@"
