@@ -685,6 +685,10 @@ function check_for_updates() {
     fi
 }
 
+function is_new_utils() {
+    docker run --rm --entrypoint test "$UTILS_IMG" -e /root/launcher
+}
+
 
 ################################################################################
 # Main Business Logic                                                          #
@@ -713,6 +717,12 @@ NETWORK_CONF="$NETWORK_DIR/$NETWORK.conf"
 NETWORK_CONF_SAMPLE="$NETWORK_DIR/sample-$NETWORK.conf"
 parse_network_conf
 
+if is_new_utils; then
+    RUN_SUFFIX="$UTILS_IMG $*"
+else
+    RUN_SUFFIX="--entrypoint python $UTILS_IMG -m launcher $*"
+fi
+
 echo "🚀 Launching $NETWORK environment"
 check_for_updates
 docker run --rm -it \
@@ -730,4 +740,4 @@ docker run --rm -it \
 -e HOST_HOME="$HOME" \
 -e HOST_HOME_DIR="$HOME_DIR" \
 -e HOST_NETWORK_DIR="$NETWORK_DIR" \
-"$UTILS_IMG" "$@"
+"$RUN_SUFFIX"
