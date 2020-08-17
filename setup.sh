@@ -45,7 +45,7 @@ function yes_or_no() {
         case $REPLY in
             y|yes) REPLY="yes"; break;;
             n|no) REPLY="no"; break;;
-            '') echo REPLY="$DEFAULT"; break;;
+            '') REPLY="$DEFAULT"; break;;
         esac
     done
 }
