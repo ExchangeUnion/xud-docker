@@ -635,6 +635,10 @@ function parse_args() {
             fi
             MAINNET_DIR=$VALUE
             ;;
+        "-d" | "--debug")
+            set -x
+            shift
+            ;;
         *)
             shift
             ;;
