@@ -11,7 +11,6 @@ DEV="false"
 DOCKER_REGISTRY="https://registry-1.docker.io"
 UTILS_TAG="20.08.11"
 UPGRADE="no"
-UPGRADE_PROMPT="Would you like to upgrade? (Warning: this may restart your environment and cancel all open orders)"
 HOME_DIR="$HOME/.xud-docker"
 SIMNET_DIR=""
 TESTNET_DIR=""
@@ -22,6 +21,15 @@ DATA_DIR=""
 LAUNCH_ID=$(date +%s)
 GENERAL_CONF="$HOME_DIR/xud-docker.conf"
 GENERAL_CONF_SAMPLE="$HOME_DIR/sample-xud-docker.conf"
+
+case $(uname -m) in
+    x86_64)
+        ARCH="amd64"
+        ;;
+    aarch64)
+        ARCH="arm64"
+        ;;
+esac
 
 
 ################################################################################
@@ -58,12 +66,12 @@ function ensure_directory() {
     fi
 
     if [[ ! -d $DIR ]]; then
-        echo >&2 "$DIR is not a directory"
+        echo >&2 "Error: $DIR is not a directory"
         exit 1
     fi
 
     if [[ ! -r $DIR ]]; then
-        echo >&2 "$DIR is not readable"
+        echo >&2 "Error: $DIR is not readable"
         exit 1
     fi
 
@@ -90,61 +98,71 @@ function get_branch_image() {
     echo "${1}__${BRANCH//\//-}"
 }
 
-function get_local_image_digest() {
-    docker image inspect -f '{{.Config.Image}}' "$1" 2>/dev/null || true
+function get_local_image_id() {
+    docker image inspect -f '{{.Id}}' "$1" 2>/dev/null || true
 }
 
-function get_registry_image_digest() {
-    local REPO TAG URL RESP
-    REPO=$(echo "$1" | cut -d':' -f1)
-    TAG=$(echo "$1" | cut -d':' -f2)
+function get_manifest() {
+    local REPO=$1
+    local REF=$2
+    local URL
+    URL="$DOCKER_REGISTRY/v2/$REPO/manifests/$REF"
+    curl -sf "$URL" \
+-H "Authorization: Bearer $TOKEN" \
+-H "Accept: application/vnd.docker.distribution.manifest.list.v2+json,Accept: application/vnd.docker.distribution.manifest.v2+json"
+}
+
+function get_manifest_current() {
+    local REPO=$1
+    local TAG=$1
+    local MANIFEST DIGEST
+    MANIFEST=$(get_manifest "$REPO" "$TAG")
+    DIGEST=$(echo "$MANIFEST" | grep -B 2 "$ARCH" | grep "digest" | sed -E "s/^.*: \"(.*)\".*$/\1/")
+    get_manifest "$REPO" "$DIGEST"
+}
+
+function get_registry_image_id() {
+    IFS=':' read -r REPO TAG <<< "$1"
     TOKEN=$(get_token "$REPO")
-    URL="$DOCKER_REGISTRY/v2/$REPO/manifests/$TAG"
-    RESP=$(curl -sf "$URL" -H "Authorization: Bearer $TOKEN")
-    if [[ -z $RESP ]]; then
-        exit 0
-    fi
-    RESP=$(echo "$RESP" | grep v1Compatibility | head -1 | sed 's/^.*v1Compatibility":/printf/g' || echo "")
-    if [[ -z $RESP ]]; then
-        exit 0
-    fi
-    RESP=$(eval "$RESP")
-    echo "$RESP" | sed -E 's/.*(sha256:[a-z0-9]+).*/\1/g'
+    local MANIFEST
+    MANIFEST=$(get_manifest_single "$REPO" "$TAG")
+    unset TOKEN
+    echo "$MANIFEST" | grep -A 3 "config" | grep "digest" | sed -E "s/^.*: \"(.*)\".*$/\1/"
 }
 
 function get_pull_image() {
     # possible return values: up-to-date, outdated, missing
     local IMG=$1
-    local L_DIGEST R_DIGEST
+    local L_ID R_ID
     local B_IMG # branch image
 
-    R_DIGEST=""
+    R_ID=""
 
     if [[ $BRANCH != "master" ]]; then
         B_IMG=$(get_branch_image "$IMG")
-        R_DIGEST=$(get_registry_image_digest "$B_IMG")
+        R_ID=$(get_registry_image_id "$B_IMG")
         P_IMG=$B_IMG
     fi
 
-    if [[ -z $R_DIGEST ]]; then
-        R_DIGEST=$(get_registry_image_digest "$IMG")
+    if [[ -z $R_ID ]]; then
+        R_ID=$(get_registry_image_id "$IMG")
         P_IMG=$IMG
     fi
 
     UTILS_IMG=$P_IMG
 
-    L_DIGEST=$(get_local_image_digest "$P_IMG")
+    L_ID=$(get_local_image_id "$P_IMG")
 
-    if [[ -z $L_DIGEST ]]; then
-        if [[ -z $R_DIGEST ]]; then
-            echo >&2 "Image not found: $IMG"
+    if [[ -z $L_ID ]]; then
+        if [[ -z $R_ID ]]; then
+            echo >&2 "Error: Image not found: $IMG"
             exit 1
         fi
     else
-        if [[ -z $R_DIGEST ]]; then
+        if [[ -z $R_ID ]]; then
             echo "Warning: Use local $IMG (no such image in the registry)"
         else
-            if [[ $L_DIGEST == "$R_DIGEST" ]]; then
+            if [[ $L_ID == "$R_ID" ]]; then
                 # image is up-to-date
                 P_IMG=""
             fi
@@ -154,8 +172,8 @@ function get_pull_image() {
 
 function pull_image() {
     echo "💿 Pulling image $1..."
-    if ! docker pull "$1" >/dev/null 2>&1; then
-        echo >&2 "Failed to pull image $1"
+    if ! docker pull "$1"; then
+        echo >&2 "Error: Failed to pull image $1"
         exit 1
     fi
 }
@@ -567,7 +585,7 @@ function parse_args() {
                 OPTION=$1
                 shift
                 if [[ $# -eq 0 || $1 =~ ^- ]]; then
-                    echo >&2 "Missing option value: $OPTION"
+                    echo >&2 "Error: Missing option value: $OPTION"
                     exit 1
                 fi
                 VALUE=$1
@@ -585,7 +603,7 @@ function parse_args() {
                 OPTION=$1
                 shift
                 if [[ $# -eq 0 || $1 =~ ^- ]]; then
-                    echo >&2 "Missing option value: $OPTION"
+                    echo >&2 "Error: Missing option value: $OPTION"
                     exit 1
                 fi
             fi
@@ -598,7 +616,7 @@ function parse_args() {
                 OPTION=$1
                 shift
                 if [[ $# -eq 0 || $1 =~ ^- ]]; then
-                    echo >&2 "Missing option value: $OPTION"
+                    echo >&2 "Error: Missing option value: $OPTION"
                     exit 1
                 fi
             fi
@@ -611,7 +629,7 @@ function parse_args() {
                 OPTION=$1
                 shift
                 if [[ $# -eq 0 || $1 =~ ^- ]]; then
-                    echo >&2 "Missing option value: $OPTION"
+                    echo >&2 "Error: Missing option value: $OPTION"
                     exit 1
                 fi
             fi
@@ -659,7 +677,31 @@ function installed() {
     fi
 }
 
+function get_latest_snapshot() {
+    local FILE
+    FILE=$(ls -t1 "$SNAPSHOT_DIR" | head -n 1)
+    if [[ -n $FILE ]]; then
+        cat "$SNAPSHOT_DIR/$FILE"
+    fi
+}
+
+function get_prev_utils() {
+    local SNAPSHOT PREV_ID L_ID
+    SNAPSHOT=$(get_latest_snapshot)
+    if [[ -n $SNAPSHOT ]]; then
+        IFS=',' read -r PREV_UTILS PREV_ID <<< "$(echo "$SNAPSHOT" | sed -En "s/^# It's generated by xud-docker (.*) \((.*)\)$/\1,\2/p")"
+        L_ID=$(get_local_image_id "$PREV_UTILS")
+        if [[ $L_ID != "$PREV_ID" ]]; then
+            PREV_UTILS=""
+        fi
+    else
+        PREV_UTILS=""
+    fi
+}
+
 function check_for_updates() {
+    echo "🌍 Checking for updates..."
+
     if [[ $DEV == "true" ]]; then
         UTILS_IMG=$(get_branch_image "exchangeunion/utils:latest")
         return
@@ -671,26 +713,44 @@ function check_for_updates() {
         UTILS_IMG="exchangeunion/utils:latest"
     fi
 
-    get_pull_image "$UTILS_IMG"
+    get_pull_image "$UTILS_IMG" # Will set P_IMG (pulling image name) if utils image is outdated
+    get_prev_utils # Will set PREV_UTILS if there is a previous snapshot
 
-    # backward compatible with old utils images
-    if is_new_utils; then
-        echo "🌍 Checking for updates..."
-        RUN_SUFFIX="$UTILS_IMG"
-    else
-        RUN_SUFFIX="--entrypoint python $UTILS_IMG -m launcher"
-    fi
-
-    if [[ -n $P_IMG ]]; then
+    # If there is a new utils or utils branch changed then we need to ask the user
+    if [[ -n $P_IMG || $UTILS_IMG != "$PREV_UTILS" ]]; then
         if installed; then
-            yes_or_no "$UPGRADE_PROMPT"
+            # Print utils update details
+            echo "There are some changes of utils image:"
+            if [[ -n $P_IMG ]]; then
+                echo "* New image available: $P_IMG"
+            fi
+            if [[ $UTILS_IMG != "$PREV_UTILS" ]]; then
+                if [[ -n $PREV_UTILS ]]; then
+                    P="n/a"
+                else
+                    P="$PREV_UTILS"
+                fi
+                echo "* Branch changed: $P -> $UTILS_IMG"
+                unset P
+            fi
+            yes_or_no "Would you like to apply these changes? (Warning: this may restart your environment and cancel all open orders)"
         else
+            # A pristine environment will always use a new utils
             REPLY="yes"
         fi
         if [[ $REPLY == "yes" ]]; then
             UPGRADE="yes"
-            pull_image "$P_IMG"
-            UTILS_IMG=$P_IMG
+            if [[ -n $P_IMG ]]; then
+                pull_image "$P_IMG"
+            fi
+        else
+            UPGRADE="no"
+            if [[ -n $PREV_UTILS ]]; then
+                echo >&2 "Error: No previously running utils image detected"
+                exit 1
+            fi
+            UTILS_IMG="$PREV_UTILS"
+            echo "Use old utils image: $UTILS_IMG"
         fi
     fi
 }
@@ -721,6 +781,8 @@ ensure_directory "$NETWORK_DIR"
 NETWORK_DIR=$(realpath "$NETWORK_DIR")
 LOGS_DIR="$NETWORK_DIR/logs"
 ensure_directory "$LOGS_DIR"
+SNAPSHOT_DIR="$LOGS_DIR/snapshots"
+ensure_directory "$SNAPSHOT_DIR"
 DATA_DIR="$NETWORK_DIR/data"
 ensure_directory "$DATA_DIR"
 NETWORK_CONF="$NETWORK_DIR/$NETWORK.conf"
@@ -730,6 +792,21 @@ parse_network_conf
 
 echo "🚀 Launching $NETWORK environment"
 check_for_updates
+if [[ -z $UTILS_IMG ]]; then
+    echo >&2 "Error: Cannot determine which utils image to use"
+    exit 1
+fi
+UTILS_ID=$(get_local_image_id "$UTILS_IMG")
+if [[ -z $UTILS_ID ]]; then
+    echo >&2 "Error: Image $UTILS_IMG is required"
+    exit 1
+fi
+# backward compatible with old utils images
+if is_new_utils; then
+    RUN_SUFFIX="$UTILS_IMG"
+else
+    RUN_SUFFIX="--entrypoint python $UTILS_IMG -m launcher"
+fi
 docker run --rm -it \
 --name "$(get_utils_name)" \
 -v /var/run/docker.sock:/var/run/docker.sock \
@@ -741,6 +818,8 @@ docker run --rm -it \
 -e NETWORK="$NETWORK" \
 -e UPGRADE="$UPGRADE" \
 -e DEV="$DEV" \
+-e UTILS_IMG="$UTILS_IMG" \
+-e UTILS_ID="$UTILS_ID" \
 -e HOST_PWD="$PWD" \
 -e HOST_HOME="$HOME" \
 -e HOST_HOME_DIR="$HOME_DIR" \

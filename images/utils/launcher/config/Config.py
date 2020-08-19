@@ -25,6 +25,8 @@ class Config:
         self.network = os.environ["NETWORK"]
         self.silent_upgrade = os.environ["UPGRADE"] == "yes"
         self.dev_mode = os.environ["DEV"] == "true"
+        self.utils_img = os.environ["UTILS_IMG"]
+        self.utils_id = os.environ["UTILS_ID"]
         self.host_pwd = os.environ["HOST_PWD"]
         self.host_home = os.environ["HOST_HOME"]
         self.host_home_dir = os.environ["HOST_HOME_DIR"]
