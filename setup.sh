@@ -114,7 +114,7 @@ function get_manifest() {
 
 function get_manifest_current() {
     local REPO=$1
-    local TAG=$1
+    local TAG=$2
     local MANIFEST DIGEST
     MANIFEST=$(get_manifest "$REPO" "$TAG")
     DIGEST=$(echo "$MANIFEST" | grep -B 2 "$ARCH" | grep "digest" | sed -E "s/^.*: \"(.*)\".*$/\1/")
