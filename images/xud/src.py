@@ -10,3 +10,10 @@ class SourceManager(src.SourceManager):
         return {
             "GIT_REVISION": revision[:8]
         }
+
+    def get_ref(self, version):
+        if version == "latest":
+            # change "master" to a another xud branch for testing
+            return "master"
+        else:
+            return "v" + version
