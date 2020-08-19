@@ -13,7 +13,7 @@ class SourceManager(src.SourceManager):
 
     def get_ref(self, version):
         if version == "latest":
-            # you could change "master" to a custom branch when testing some xud feature locally
+            # change "master" to a another xud branch for testing
             return "master"
         else:
             return "v" + version
