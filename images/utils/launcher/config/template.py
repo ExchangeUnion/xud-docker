@@ -350,7 +350,7 @@ nodes_config = {
     "mainnet": {
         "bitcoind": {
             "name": "bitcoind",
-            "image": "exchangeunion/bitcoind:0.20.0",
+            "image": "exchangeunion/bitcoind:0.20.1",
             "volumes": [
                 {
                     "host": "$data_dir/bitcoind",
@@ -390,7 +390,7 @@ nodes_config = {
         },
         "geth": {
             "name": "geth",
-            "image": "exchangeunion/geth:1.9.17",
+            "image": "exchangeunion/geth:1.9.19",
             "volumes": [
                 {
                     "host": "$data_dir/geth",
@@ -437,7 +437,7 @@ nodes_config = {
         },
         "connext": {
             "name": "connext",
-            "image": "exchangeunion/connext:7.0.0",
+            "image": "exchangeunion/connext:7.3.1",
             "volumes": [
                 {
                     "host": "$data_dir/connext",
@@ -451,7 +451,7 @@ nodes_config = {
         },
         "arby": {
             "name": "arby",
-            "image": "exchangeunion/arby:1.0.0",
+            "image": "exchangeunion/arby:1.1.5",
             "volumes": [
                 {
                     "host": "$data_dir/arby",
@@ -508,7 +508,7 @@ nodes_config = {
         },
         "xud": {
             "name": "xud",
-            "image": "exchangeunion/xud:1.0.0-beta.7",
+            "image": "exchangeunion/xud:1.0.0-beta.8",
             "volumes": [
                 {
                     "host": "$data_dir/xud",
