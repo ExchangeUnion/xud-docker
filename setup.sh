@@ -125,7 +125,7 @@ function get_registry_image_id() {
     IFS=':' read -r REPO TAG <<< "$1"
     TOKEN=$(get_token "$REPO")
     local MANIFEST
-    MANIFEST=$(get_manifest_single "$REPO" "$TAG")
+    MANIFEST=$(get_manifest_current "$REPO" "$TAG")
     unset TOKEN
     echo "$MANIFEST" | grep -A 3 "config" | grep "digest" | sed -E "s/^.*: \"(.*)\".*$/\1/"
 }
