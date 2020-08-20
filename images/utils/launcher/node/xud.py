@@ -58,15 +58,15 @@ class Xud(Node):
                 lndltc_status = info["lndMap"][1][1]["status"]
                 connext_status = info["connext"]["status"]
 
+                if "Ready" == lndbtc_status \
+                        or "Ready" == lndltc_status \
+                        or "Ready" == connext_status:
+                    return "Ready"
+
                 if "has no active channels" in lndbtc_status \
                         or "has no active channels" in lndltc_status \
                         or "has no active channels" in connext_status:
                     return "Waiting for channels"
-
-                if "Ready" == lndbtc_status \
-                        and "Ready" == lndltc_status \
-                        and "Ready" == connext_status:
-                    return "Ready"
                 else:
                     not_ready = []
                     if lndbtc_status != "Ready":
