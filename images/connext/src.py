@@ -7,7 +7,7 @@ class SourceManager(src.SourceManager):
 
     def get_ref(self, version):
         if version == "latest":
-            return "a8ee610aa67c2e25ff8236dc62208cd322d16ed7"
+            return "1.3.0"
         elif version == "7.0.0":
             return "5127ad848c3f598a9f23c51dc6d491753740832d"
         elif version == "7.1.0":
@@ -18,3 +18,5 @@ class SourceManager(src.SourceManager):
             return "1f8f40af7a14a7050c260207283bc3477276312d"
         elif version == "7.3.1":
             return "a8ee610aa67c2e25ff8236dc62208cd322d16ed7"
+        elif version == "1.3.0":
+            return version

@@ -409,7 +409,7 @@ nodes_config = {
         },
         "lndbtc": {
             "name": "lndbtc",
-            "image": "exchangeunion/lndbtc:0.10.2-beta",
+            "image": "exchangeunion/lndbtc:0.11.0-beta",
             "volumes": [
                 {
                     "host": "$data_dir/lndbtc",
@@ -423,7 +423,7 @@ nodes_config = {
         },
         "lndltc": {
             "name": "lndltc",
-            "image": "exchangeunion/lndltc:0.10.1-beta",
+            "image": "exchangeunion/lndltc:0.11.0-beta.rc1",
             "volumes": [
                 {
                     "host": "$data_dir/lndltc",
@@ -437,7 +437,7 @@ nodes_config = {
         },
         "connext": {
             "name": "connext",
-            "image": "exchangeunion/connext:7.3.1",
+            "image": "exchangeunion/connext:1.3.0",
             "volumes": [
                 {
                     "host": "$data_dir/connext",
