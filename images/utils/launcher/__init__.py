@@ -16,31 +16,6 @@ from .errors import FatalError, ConfigError, ConfigErrorScope
 
 
 HELP = """\
-General commands
-  status                                    show service status
-  report                                    report issue
-  logs                                      show service log
-  start                                     start service
-  stop                                      stop service
-  restart                                   restart service
-  down                                      shutdown the environment
-  up                                        bring up the environment
-  help                                      show this help
-  exit                                      exit xud-ctl shell
-
-CLI commands
-  bitcoin-cli                               bitcoind cli
-  litecoin-cli                              litecoind cli
-  lndbtc-lncli                              lnd cli
-  lndltc-lncli                              lnd cli
-  geth                                      geth cli
-  xucli                                     xud cli
-  boltzcli                                  boltz cli
-
-Boltzcli shortcut commands
-  deposit                                   deposit from boltz
-  withdraw                                  withdraw to boltz
-
 Xucli shortcut commands
   addcurrency <currency>                    add a currency
   <swap_client> [decimal_places]
@@ -90,6 +65,34 @@ Xucli shortcut commands
                                             xud
   walletwithdraw [amount] [currency]        withdraws on-chain funds from xud
   [destination] [fee]
+  
+General commands
+  status                                    show service status
+  report                                    report issue
+  logs                                      show service log
+  start                                     start service
+  stop                                      stop service
+  restart                                   restart service
+  down                                      shutdown the environment
+  up                                        bring up the environment
+  help                                      show this help
+  exit                                      exit xud-ctl shell
+
+CLI commands
+  bitcoin-cli                               bitcoind cli
+  litecoin-cli                              litecoind cli
+  lndbtc-lncli                              lnd cli
+  lndltc-lncli                              lnd cli
+  geth                                      geth cli
+  xucli                                     xud cli
+  boltzcli                                  boltz cli
+
+Boltzcli shortcut commands  
+  deposit <chain> deposit 
+  --inbound [inbound_balance]               deposit from boltz (btc/ltc)
+  boltzcli <chain> withdraw 
+  <amount> <address>                        withdraw from boltz channel
+  
 """
 
 
