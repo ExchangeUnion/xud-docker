@@ -62,65 +62,290 @@ class Config:
                 v["host"] = self.expand_vars(v["host"])
 
     def parse_command_line_arguments(self):
-        parser = ArgumentParser(argument_default=argparse.SUPPRESS, prog="launcher")
-        parser.add_argument("--branch", "-b")
-        parser.add_argument("--disable-update", action="store_true")
-        parser.add_argument("--simnet-dir")
-        parser.add_argument("--testnet-dir")
-        parser.add_argument("--mainnet-dir")
-        parser.add_argument("--external-ip")
-        parser.add_argument("--xud.preserve-config", action="store_true")
-        parser.add_argument("--lndbtc.preserve-config", action="store_true")
-        parser.add_argument("--lndltc.preserve-config", action="store_true")
+        parser = ArgumentParser(argument_default=argparse.SUPPRESS, prog="xud.sh", usage="bash xud.sh [OPTIONS]")
+        parser.add_argument(
+            "--branch", "-b",
+            metavar="<branch>",
+            help="Git branch name"
+        )
+        parser.add_argument(
+            "--disable-update",
+            action="store_true",
+            help="Skip update checks and enter xud-ctl shell directly"
+        )
+        parser.add_argument(
+            "--simnet-dir",
+            metavar="<dir>",
+            help="Simnet environment folder"
+        )
+        parser.add_argument(
+            "--testnet-dir",
+            metavar="<dir>",
+            help="Testnet environment folder"
+        )
+        parser.add_argument(
+            "--mainnet-dir",
+            metavar="<dir>",
+            help="Mainnet environment folder"
+        )
+        parser.add_argument(
+            "--external-ip",
+            metavar="<ip>",
+            help="Host machine external IP address"
+        )
+        parser.add_argument(
+            "--dev",
+            action="store_true",
+            help="Use local built utils image"
+        )
+        parser.add_argument(
+            "--use-local-images",
+            metavar="<images>",
+            help="Use other local built images"
+        )
 
-        parser.add_argument("--bitcoind.mode")
-        parser.add_argument("--bitcoind.rpc-host")
-        parser.add_argument("--bitcoind.rpc-port", type=int)
-        parser.add_argument("--bitcoind.rpc-user")
-        parser.add_argument("--bitcoind.rpc-password")
-        parser.add_argument("--bitcoind.zmqpubrawblock")
-        parser.add_argument("--bitcoind.zmqpubrawtx")
-        parser.add_argument("--bitcoind.expose-ports")
+        group = parser.add_argument_group("bitcoind")
+        group.add_argument(
+            "--bitcoind.mode",
+            metavar="<mode>",
+            choices=["native", "external", "neutrino", "light"],
+            default="light",
+            help="Bitcoind service mode"
+        )
+        group.add_argument(
+            "--bitcoind.rpc-host",
+            metavar="<hostname>",
+            help="External bitcoind RPC hostname"
+        )
+        group.add_argument(
+            "--bitcoind.rpc-port",
+            type=int,
+            metavar="<port>",
+            help="External bitcoind RPC port"
+        )
+        group.add_argument(
+            "--bitcoind.rpc-user",
+            metavar="<username>",
+            help="External bitcoind RPC username"
+        )
+        group.add_argument(
+            "--bitcoind.rpc-password",
+            metavar="<password>",
+            help="External bitcoind RPC password"
+        )
+        group.add_argument(
+            "--bitcoind.zmqpubrawblock",
+            metavar="<address>",
+            help="External bitcoind ZeroMQ raw blocks publication address"
+        )
+        group.add_argument(
+            "--bitcoind.zmqpubrawtx",
+            metavar="<address>",
+            help="External bitcoind ZeroMQ raw transactions publication address"
+        )
+        group.add_argument(
+            "--bitcoind.expose-ports",
+            metavar="<ports>",
+            help="Expose bitcoind service ports to your host machine"
+        )
 
-        parser.add_argument("--litecoind.mode")
-        parser.add_argument("--litecoind.rpc-host")
-        parser.add_argument("--litecoind.rpc-port", type=int)
-        parser.add_argument("--litecoind.rpc-user")
-        parser.add_argument("--litecoind.rpc-password")
-        parser.add_argument("--litecoind.zmqpubrawblock")
-        parser.add_argument("--litecoind.zmqpubrawtx")
-        parser.add_argument("--litecoind.expose-ports")
+        group = parser.add_argument_group("litecoind")
+        group.add_argument(
+            "--litecoind.mode",
+            metavar="<mode>",
+            choices=["native", "external", "neutrino", "light"],
+            default="light",
+            help="Litecoind service mode"
+        )
+        group.add_argument(
+            "--litecoind.rpc-host",
+            metavar="<hostname>",
+            help="External litecoind RPC hostname"
+        )
+        group.add_argument(
+            "--litecoind.rpc-port",
+            type=int,
+            metavar="<port>",
+            help="External litecoind RPC port"
+        )
+        group.add_argument(
+            "--litecoind.rpc-user",
+            metavar="<username>",
+            help="External litecoind RPC username"
+        )
+        group.add_argument(
+            "--litecoind.rpc-password",
+            metavar="<password>",
+            help="External litecoind RPC password"
+        )
+        group.add_argument(
+            "--litecoind.zmqpubrawblock",
+            metavar="<address>",
+            help="External litecoind ZeroMQ raw blocks publication address"
+        )
+        group.add_argument(
+            "--litecoind.zmqpubrawtx",
+            metavar="<address>",
+            help="External litecoind ZeroMQ raw transactions publication address"
+        )
+        group.add_argument(
+            "--litecoind.expose-ports",
+            metavar="<ports>",
+            help="Expose litecoind service ports to your host machine"
+        )
 
-        parser.add_argument("--geth.mode")
-        parser.add_argument("--geth.rpc-host")
-        parser.add_argument("--geth.rpc-port", type=int)
-        parser.add_argument("--geth.infura-project-id")
-        parser.add_argument("--geth.infura-project-secret")
-        parser.add_argument("--geth.expose-ports")
-        parser.add_argument("--geth.cache", type=int)
+        group = parser.add_argument_group("geth")
+        group.add_argument(
+            "--geth.mode",
+            metavar="<mode>",
+            choices=["native", "external", "infura", "light"],
+            default="light",
+            help="Geth service mode"
+        )
+        group.add_argument(
+            "--geth.rpc-host",
+            metavar="<hostname>",
+            help="External geth RPC hostname"
+        )
+        group.add_argument(
+            "--geth.rpc-port",
+            type=int,
+            metavar="<port>",
+            help="External geth RPC port"
+        )
+        group.add_argument(
+            "--geth.infura-project-id",
+            metavar="<id>",
+            help="Infura geth provider project ID"
+        )
+        group.add_argument(
+            "--geth.infura-project-secret",
+            metavar="<secret>",
+            help="Infura geth provider project secret"
+        )
+        group.add_argument(
+            "--geth.expose-ports",
+            metavar="<ports>",
+            help="Expose geth service ports to your host machine"
+        )
+        group.add_argument(
+            "--geth.cache",
+            type=int,
+            metavar="<size>",
+            help="Geth cache size"
+        )
 
-        parser.add_argument("--lndbtc.expose-ports")
-        parser.add_argument("--lndltc.expose-ports")
-        parser.add_argument("--connext.expose-ports")
-        parser.add_argument("--xud.expose-ports")
+        group = parser.add_argument_group("lndbtc")
+        group.add_argument(
+            "--lndbtc.expose-ports",
+            metavar="<ports>",
+            help="Expose lndbtc service ports to your host machine"
+        )
+        group.add_argument(
+            "--lndbtc.preserve-config",
+            action="store_true",
+            help="Preserve lndbtc lnd.conf file during updates"
+        )
 
-        parser.add_argument("--arby.live-cex")
-        parser.add_argument("--arby.base-asset")
-        parser.add_argument("--arby.quote-asset")
-        parser.add_argument("--arby.test-centralized-baseasset-balance")
-        parser.add_argument("--arby.test-centralized-quoteasset-balance")
-        parser.add_argument("--arby.binance-api-key")
-        parser.add_argument("--arby.binance-api-secret")
-        parser.add_argument("--arby.margin")
-        parser.add_argument("--arby.disabled", nargs='?')
+        group = parser.add_argument_group("lndltc")
+        group.add_argument(
+            "--lndltc.expose-ports",
+            metavar="<ports>",
+            help="Expose lndltc service ports to your host machine"
+        )
+        group.add_argument(
+            "--lndltc.preserve-config",
+            action="store_true",
+            help="Preserve lndltc lnd.conf file during updates"
+        )
 
-        parser.add_argument("--boltz.disabled", nargs='?')
+        group = parser.add_argument_group("connext")
+        group.add_argument(
+            "--connext.expose-ports",
+            metavar="<ports>",
+            help="Expose connext service ports to your host machine"
+        )
 
-        parser.add_argument("--webui.disabled", nargs='?')
-        parser.add_argument("--webui.expose-ports")
+        group = parser.add_argument_group("xud")
+        group.add_argument(
+            "--xud.expose-ports",
+            metavar="<ports>",
+            help="Expose xud service ports to your host machine"
+        )
+        group.add_argument(
+            "--xud.preserve-config",
+            action="store_true",
+            help="Preserve xud xud.conf file during updates"
+        )
 
-        parser.add_argument("--dev", action="store_true")
-        parser.add_argument("--use-local-images")
+        group = parser.add_argument_group("arby")
+        group.add_argument(
+            "--arby.live-cex",
+            metavar="<value>",
+            help="Live CEX"
+        )
+        group.add_argument(
+            "--arby.base-asset",
+            metavar="<asset>",
+            help="Base asset"
+        )
+        group.add_argument(
+            "--arby.quote-asset",
+            metavar="<asset>",
+            help="Quote asset"
+        )
+        group.add_argument(
+            "--arby.test-centralized-baseasset-balance",
+            metavar="<value>",
+            help="Test centralized base asset balance"
+        )
+        group.add_argument(
+            "--arby.test-centralized-quoteasset-balance",
+            metavar="<value>",
+            help="Test centralized quote asset balance"
+        )
+        group.add_argument(
+            "--arby.binance-api-key",
+            metavar="<key>",
+            help="Binance API key"
+        )
+        group.add_argument(
+            "--arby.binance-api-secret",
+            metavar="<secret>",
+            help="Binance API secret"
+        )
+        group.add_argument(
+            "--arby.margin",
+            metavar="<value>",
+            help="Trade margin"
+        )
+        group.add_argument(
+            "--arby.disabled",
+            nargs='?',
+            metavar="true|false",
+            help="Enable/Disable arby service"
+        )
+
+        group = parser.add_argument_group("boltz")
+        group.add_argument(
+            "--boltz.disabled",
+            nargs='?',
+            metavar="true|false",
+            help="Enable/Disable boltz service"
+        )
+
+        group = parser.add_argument_group("webui")
+        group.add_argument(
+            "--webui.disabled",
+            nargs='?',
+            metavar="true|false",
+            help="Enable/Disable webui service"
+        )
+        group.add_argument(
+            "--webui.expose-ports",
+            metavar="<ports>",
+            help="Expose webui service ports to your host machine"
+        )
 
         self.args = parser.parse_args()
         self.logger.info("Parsed command-line arguments: %r", self.args)
