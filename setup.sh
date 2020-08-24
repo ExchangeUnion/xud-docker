@@ -729,7 +729,7 @@ function check_for_updates() {
                 echo "* New image available: $P_IMG"
             fi
             if [[ $UTILS_IMG != "$PREV_UTILS" ]]; then
-                if [[ -n $PREV_UTILS ]]; then
+                if [[ -z $PREV_UTILS ]]; then
                     P="n/a"
                 else
                     P="$PREV_UTILS"
