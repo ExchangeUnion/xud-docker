@@ -125,11 +125,11 @@ class XudEnv:
         self.node_manager.get_node("xud").cli(cmd, self.shell)
 
     def command_report(self):
-        network_dir = f"{self.config.home_dir}/{self.config.network}"
+        logs_dir = f"{self.config.home_dir}/{self.config.network}/logs"
         print(f"""Please click on https://github.com/ExchangeUnion/xud/issues/\
 new?assignees=kilrau&labels=bug&template=bug-report.md&title=Short%2C+concise+\
-description+of+the+bug, describe your issue, drag and drop the file "xud-docker\
-.log" which is located in "{network_dir}" into your browser window and submit \
+description+of+the+bug, describe your issue, drag and drop the file "{self.config.network}\
+.log" which is located in "{logs_dir}" into your browser window and submit \
 your issue.""")
 
     def handle_command(self, cmd):
