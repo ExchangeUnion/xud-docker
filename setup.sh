@@ -28,7 +28,7 @@ OPTIONS:
     --use-local-images <image>[,<image>]        Use other built images
 
 Bitcoind options:
-    --bitcoind.mode light|neutrino|external|native
+    --bitcoind.mode [light|neutrino|external|native]
                                                 Bitcoind service mode (default: light)
     --bitcoind.rpc-host <string>                External bitcoind RPC hostname
     --bitcoind.rpc-port <int>                   External bitcoind RPC port
@@ -39,7 +39,7 @@ Bitcoind options:
     --bitcoind.expose-ports <port>[,<port>]     Expose bitcoind service ports to your host machine
 
 Litecoind options:
-    --litecoind.mode light|neutrino|external|native
+    --litecoind.mode [light|neutrino|external|native]
                                                 Litecoind service mode (default: light)
     --litecoind.rpc-host <string>               External litecoind RPC hostname
     --litecoind.rpc-port <int>                  External litecoind RPC port
@@ -50,7 +50,7 @@ Litecoind options:
     --litecoind.expose-ports <port>[,<port>]    Expose litecoind service ports to your host machine
 
 Geth options:
-    --geth.mode light|infura|external|native    Geth service mode (default: light)
+    --geth.mode [light|infura|external|native]  Geth service mode (default: light)
     --geth.rpc-host <string>                    External geth RPC hostname
     --geth.rpc-port <int>                       External geth RPC port
     --geth.infura-project-id <string>           Infura geth provider project ID
@@ -74,7 +74,7 @@ Xud options:
     --xud.preserve-config                       Preserve xud xud.conf file during updates
 
 Arby options:
-    --arby.live-cex true|false                  Production/Demo mode
+    --arby.live-cex [true|false]                Production/Demo mode (default: false)
     --arby.base-asset <string>                  Base asset symbol
     --arby.quote-asset <string>                 Quote asset symbol
     --arby.test-centralized-baseasset-balance   CEX base asset balance for demo mode
