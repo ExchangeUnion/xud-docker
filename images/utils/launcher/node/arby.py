@@ -26,9 +26,9 @@ class Arby(Node):
         test_centralized_quoteasset_balance = self.node_config["test-centralized-quoteasset-balance"] \
             if "test-centralized-baseasset-balance" in self.node_config else "321"
         base_asset = self.node_config["base-asset"] \
-            if "base-asset" in self.node_config else "ETH"
+            if "base-asset" in self.node_config else "BTC"
         quote_asset = self.node_config["quote-asset"] \
-            if "quote-asset" in self.node_config else "BTC"
+            if "quote-asset" in self.node_config else "USDT"
 
         if self.network == "simnet":
             rpc_port = "28886"
