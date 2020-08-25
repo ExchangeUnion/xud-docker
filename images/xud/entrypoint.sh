@@ -76,37 +76,29 @@ while [[ ! -e /root/.lndltc/tls.cert ]]; do
     sleep 1
 done
 
-
-[[ -e $XUD_CONF && $PRESERVE_CONFIG == "true" ]] || {
-    cp /app/sample-xud.conf $XUD_CONF
-
-    sed -i "s/network.*/network = \"$NETWORK\"/" $XUD_CONF
-    sed -i 's/noencrypt.*/noencrypt = false/' $XUD_CONF
-    sed -i '/\[http/,/^$/s/host.*/host = "0.0.0.0"/' $XUD_CONF
-    sed -i "/\[http/,/^$/s/port.*/port = $HTTP_PORT/" $XUD_CONF
-    sed -i '/\[lnd\.BTC/,/^$/s/host.*/host = "lndbtc"/' $XUD_CONF
-    sed -i "/\[lnd\.BTC/,/^$/s|^$|certpath = \"/root/.lndbtc/tls.cert\"\nmacaroonpath = \"/root/.lndbtc/data/chain/bitcoin/$NETWORK/admin.macaroon\"\n|" $XUD_CONF
-    sed -i '/\[lnd\.LTC/,/^$/s/host.*/host = "lndltc"/' $XUD_CONF
-    sed -i '/\[lnd\.LTC/,/^$/s/port.*/port = 10009/' $XUD_CONF
-    sed -i "/\[lnd\.LTC/,/^$/s|^$|certpath = \"/root/.lndltc/tls.cert\"\nmacaroonpath = \"/root/.lndltc/data/chain/litecoin/$NETWORK/admin.macaroon\"\n|" $XUD_CONF
-    sed -i "/\[p2p/,/^$/s/addresses.*/addresses = \[\"$XUD_ADDRESS\"]/" $XUD_CONF
-    sed -i "/\[p2p/,/^$/s/port.*/port = $P2P_PORT/" $XUD_CONF
-    sed -i '/\[p2p/,/^$/s/tor = .*/tor = true/' $XUD_CONF
-    sed -i '/\[p2p/,/^$/s/torport.*/torport = 9050/' $XUD_CONF
-    sed -i '/\[raiden/,/^$/s/disable.*/disable = true/' $XUD_CONF
-    sed -i '/\[rpc/,/^$/s/host.*/host = "0.0.0.0"/' $XUD_CONF
-    sed -i "/\[rpc/,/^$/s/port.*/port = $RPC_PORT/" $XUD_CONF
-    sed -i '/\[connext/,/^$/s/disable.*/disable = false/' $XUD_CONF
-    sed -i '/\[connext/,/^$/s/host.*/host = "connext"/' $XUD_CONF
-    sed -i '/\[connext/,/^$/s/port.*/port = 5040/' $XUD_CONF
-    sed -i '/\[connext/,/^$/s/webhookhost.*/webhookhost = "xud"/' $XUD_CONF
-    sed -i "/\[connext/,/^$/s/webhookport.*/webhookport = $HTTP_PORT/" $XUD_CONF
-}
-
-echo "[entrypoint] Launch with xud.conf:"
-cat $XUD_CONF
-
 /xud-backup.sh &
 
 # use exec to properly respond to SIGINT
-exec xud $@
+exec xud \
+--network="$NETWORK" \
+--noencrypt=false \
+--http.host="0.0.0.0" \
+--http.port="$HTTP_PORT" \
+--lnd.BTC.host="lndbtc" \
+--lnd.BTC.certpath="/root/.lndbtc/tls.cert" \
+--lnd.BTC.macaroonpath="/root/.lndbtc/data/chain/bitcoin/$NETWORK/admin.macaroon" \
+--lnd.LTC.certpath="/root/.lndltc/tls.cert" \
+--lnd.LTC.macaroonpath="/root/.lndltc/data/chain/litecoin/$NETWORK/admin.macaroon" \
+--p2p.address="$XUD_ADDRESS" \
+--p2p.port="$P2P_PORT" \
+--p2p.tor=true \
+--p2p.torport=9050 \
+--raiden.disable=true \
+--rpc.host="0.0.0.0" \
+--rpc.port="$RPC_PORT" \
+--connext.disable=false \
+--connext.host="connext" \
+--connext.port=5040 \
+--connext.webhookhost="xud" \
+--connext.webhookport="$HTTP_PORT" \
+"$@" $XUD_OPTS

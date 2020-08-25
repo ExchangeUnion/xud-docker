@@ -69,6 +69,7 @@ class Connext(Node):
                     f'CONNEXT_ETH_PROVIDER_URL=http://geth:8545'
                 ])
 
+        environment.append(f"CONNEXT_OPTS={self.options}")
         self.container_spec.environment.extend(environment)
 
         self._cli = "curl -s"

@@ -84,10 +84,6 @@ class Node:
 
     def generate_environment(self):
         environment = [f"NETWORK={self.network}"]
-        if self.node_config["preserve_config"]:
-            environment.append("PRESERVE_CONFIG=true")
-        else:
-            environment.append("PRESERVE_CONFIG=false")
         return environment
 
     def generate_volumes(self):
@@ -139,6 +135,13 @@ class Node:
         result = False
         if "disabled" in self.node_config:
             result = self.node_config["disabled"]
+        return result
+
+    @property
+    def options(self) -> str:
+        result = ""
+        if "options" in self.node_config:
+            result = self.node_config["options"]
         return result
 
     def _get_ports(self, spec_ports: Dict):

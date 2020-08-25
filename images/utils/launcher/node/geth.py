@@ -47,6 +47,7 @@ class Geth(Node):
             }
 
         self.container_spec.environment.extend(self.get_environment())
+        self.container_spec.environment.append(f"GETH_OPTS={self.options}")
 
         self.container_spec.command.extend([
             "--cache {}".format(self.node_config["cache"])

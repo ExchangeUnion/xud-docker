@@ -100,6 +100,7 @@ class Lnd(Node):
                     f'ZMQPUBRAWBLOCK={layer1_node["external_zmqpubrawblock"]}',
                     f'ZMQPUBRAWTX={layer1_node["external_zmqpubrawtx"]}',
                 ])
+        environment.append(f"LND_OPTS={self.options}")
         return environment
 
     def get_current_height(self):

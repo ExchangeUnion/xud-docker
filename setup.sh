@@ -37,6 +37,7 @@ Bitcoind options:
     --bitcoind.zmqpubrawblock <address>         External bitcoind ZeroMQ raw blocks publication address
     --bitcoind.zmqpubrawtx <address>            External bitcoind ZeroMQ raw transactions publication address
     --bitcoind.expose-ports <port>[,<port>]     Expose bitcoind service ports to your host machine
+    --bitcoind.options <string>                 Customize bitcoind process launching options
 
 Litecoind options:
     --litecoind.mode [light|neutrino|external|native]
@@ -48,6 +49,7 @@ Litecoind options:
     --litecoind.zmqpubrawblock <address>        External litecoind ZeroMQ raw blocks publication address
     --litecoind.zmqpubrawtx <address>           External litecoind ZeroMQ raw transactions publication address
     --litecoind.expose-ports <port>[,<port>]    Expose litecoind service ports to your host machine
+    --litecoind.options <string>                Customize litecoind process launching options
 
 Geth options:
     --geth.mode [light|infura|external|native]  Geth service mode (default: light)
@@ -57,21 +59,23 @@ Geth options:
     --geth.infura-project-secret <string>       Infura geth provider project secret
     --geth.expose-ports <port>[,<port>]         Expose geth service ports to your host machine
     --geth.cache <int>                          Geth cache size
+    --geth.options <string>                     Customize geth process launching options
 
 Lndbtc options:
     --lndbtc.expose-ports <port>[,<port>]       Expose lndbtc service ports to your host machine
-    --lndbtc.preserve-config                    Preserve lndbtc lnd.conf file during updates
+    --lndbtc.options <string>                   Customize lnd process launching options
 
 Lndbtc options:
     --lndltc.expose-ports <port>[,<port>]       Expose lndltc service ports to your host machine
-    --lndltc.preserve-config                    Preserve lndltc lnd.conf file during updates
+    --lndltc.options <string>                   Customize lnd process launching options
 
 Connext options:
     --connext.expose-ports <port>[,<port>]      Expose connext service ports to your host machine
+    --connext.options <string>                  Customize connext process launching options
 
 Xud options:
     --xud.expose-ports <port>[,<port>]          Expose xud service ports to your host machine
-    --xud.preserve-config                       Preserve xud xud.conf file during updates
+    --xud.options <string>                      Customize xud process launching options
 
 Arby options:
     --arby.live-cex [true|false]                Production/Demo mode (default: false)
@@ -83,13 +87,16 @@ Arby options:
     --arby.binance-api-secret <string>          Binance API secret
     --arby.margin <double>                      Trade margin
     --arby.disabled [true|false]                Enable/Disable arby service
+    --arby.options                              Customize arby process launching options
 
 Boltz options:
     --boltz.disabled [true|false]               Enable/Disable boltz service
+    --boltz.options                             Customize boltz process launching options
 
 Webui options:
     --webui.disabled [true|false]               Enable/Disable webui service
     --webui.expose-ports <port>[,<port>]        Expose webui service ports to your host machine
+    --webui.options                             Customize webui process launching options
 EOF
 }
 

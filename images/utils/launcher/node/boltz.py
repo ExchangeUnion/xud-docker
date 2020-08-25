@@ -30,6 +30,7 @@ class Boltz(Node):
 
         environment = []
 
+        environment.append(f"BOLTZ_OPTS={self.options}")
         self.container_spec.environment.extend(environment)
 
         self._cli = "wrapper"

@@ -64,6 +64,11 @@ class Bitcoind(Node):
         self.container_spec.command.extend(command)
 
         if self.litecoin:
+            self.container_spec.environment.append(f"LITECOIND_OPTS={self.options}")
+        else:
+            self.container_spec.command.append(self.options)
+
+        if self.litecoin:
             self._cli = "litecoin-cli -rpcuser=xu -rpcpassword=xu"
         else:
             self._cli = "bitcoin-cli -rpcuser=xu -rpcpassword=xu"

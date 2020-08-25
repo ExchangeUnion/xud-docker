@@ -75,4 +75,4 @@ exec lnd --externalip=$LND_ADDRESS:$P2P_PORT \
 --tor.socks=9050 \
 --tor.streamisolation \
 --protocol.wumbo-channels \
-$@
+$@ $LND_OPTS

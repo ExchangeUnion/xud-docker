@@ -41,6 +41,7 @@ class Xud(Node):
         super().__init__(name, ctx)
 
         self.container_spec.environment.append("NODE_ENV=production")
+        self.container_spec.environment.append(f"XUD_OPTS={self.options}")
 
         self._cli = "xucli"
 

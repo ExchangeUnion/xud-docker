@@ -5,8 +5,8 @@ import os
 
 import toml
 
-from ..utils import get_hostfs_file, ArgumentParser
-from ..errors import ConfigError, ConfigErrorScope
+from launcher.utils import get_hostfs_file, ArgumentParser
+from launcher.errors import ConfigError, ConfigErrorScope
 from .template import nodes_config, general_config, PortPublish
 from .loader import ConfigLoader
 
@@ -147,6 +147,11 @@ class Config:
             metavar="<ports>",
             help="Expose bitcoind service ports to your host machine"
         )
+        group.add_argument(
+            "--bitcoind.options",
+            metavar="<string>",
+            help="Customize bitcoind process launching options"
+        )
 
         group = parser.add_argument_group("litecoind")
         group.add_argument(
@@ -191,6 +196,11 @@ class Config:
             metavar="<ports>",
             help="Expose litecoind service ports to your host machine"
         )
+        group.add_argument(
+            "--litecoind.options",
+            metavar="<string>",
+            help="Customize litecoind process launching options"
+        )
 
         group = parser.add_argument_group("geth")
         group.add_argument(
@@ -231,6 +241,11 @@ class Config:
             metavar="<size>",
             help="Geth cache size"
         )
+        group.add_argument(
+            "--geth.options",
+            metavar="<string>",
+            help="Customize geth process launching options"
+        )
 
         group = parser.add_argument_group("lndbtc")
         group.add_argument(
@@ -239,9 +254,9 @@ class Config:
             help="Expose lndbtc service ports to your host machine"
         )
         group.add_argument(
-            "--lndbtc.preserve-config",
-            action="store_true",
-            help="Preserve lndbtc lnd.conf file during updates"
+            "--lndbtc.options",
+            metavar="<string>",
+            help="Customize lnd process launching options"
         )
 
         group = parser.add_argument_group("lndltc")
@@ -251,9 +266,9 @@ class Config:
             help="Expose lndltc service ports to your host machine"
         )
         group.add_argument(
-            "--lndltc.preserve-config",
-            action="store_true",
-            help="Preserve lndltc lnd.conf file during updates"
+            "--lndltc.options",
+            metavar="<string>",
+            help="Customize lnd process launching options"
         )
 
         group = parser.add_argument_group("connext")
@@ -261,6 +276,11 @@ class Config:
             "--connext.expose-ports",
             metavar="<ports>",
             help="Expose connext service ports to your host machine"
+        )
+        group.add_argument(
+            "--connext.options",
+            metavar="<string>",
+            help="Customize connext process launching options"
         )
 
         group = parser.add_argument_group("xud")
@@ -270,9 +290,9 @@ class Config:
             help="Expose xud service ports to your host machine"
         )
         group.add_argument(
-            "--xud.preserve-config",
-            action="store_true",
-            help="Preserve xud xud.conf file during updates"
+            "--xud.options",
+            metavar="<string>",
+            help="Customize xud process launching options"
         )
 
         group = parser.add_argument_group("arby")
@@ -322,6 +342,11 @@ class Config:
             metavar="true|false",
             help="Enable/Disable arby service"
         )
+        group.add_argument(
+            "--arby.options",
+            metavar="<string>",
+            help="Customize arby process launching options"
+        )
 
         group = parser.add_argument_group("boltz")
         group.add_argument(
@@ -329,6 +354,11 @@ class Config:
             nargs='?',
             metavar="true|false",
             help="Enable/Disable boltz service"
+        )
+        group.add_argument(
+            "--boltz.options",
+            metavar="<string>",
+            help="Customize boltz process launching options"
         )
 
         group = parser.add_argument_group("webui")
@@ -342,6 +372,11 @@ class Config:
             "--webui.expose-ports",
             metavar="<ports>",
             help="Expose webui service ports to your host machine"
+        )
+        group.add_argument(
+            "--webui.options",
+            metavar="<string>",
+            help="Customize webui process launching options"
         )
 
         self.args = parser.parse_args()
@@ -406,6 +441,31 @@ class Config:
                 p = PortPublish(p.strip())
                 if p not in node["ports"]:
                     node["ports"].append(p)
+
+    def update_disabled(self, node, parsed, opt):
+        if "disabled" in parsed:
+            value = parsed["disabled"]
+            assert isinstance(value, bool)
+            node["disabled"] = value
+        if hasattr(self.args, opt):
+            value: str = getattr(self.args, opt)
+            if value:
+                value = value.strip().lower()
+            if not value or value == "true" or value == "":
+                node["disabled"] = True
+            elif value == "false":
+                node["disabled"] = False
+            else:
+                raise ValueError("Invalid value of option \"{}\": {}".format(opt, value))
+
+    def update_options(self, node, parsed):
+        if "options" in parsed:
+            value = parsed["options"]
+            node["options"] = value
+        opt = "{}.options".format(node["name"])
+        if hasattr(self.args, opt):
+            value = getattr(self.args, opt)
+            node["options"] = value
 
     def update_bitcoind_kind(self, node, parsed):
         if "external" in parsed:
@@ -506,7 +566,9 @@ class Config:
             self.update_volume(node["volumes"], "/root/.bitcoin", value)
 
         self.update_ports(node, parsed)
+        self.update_options(node, parsed)
 
+        # Update bitcoind specified options
         self.update_bitcoind_kind(node, parsed)
 
     def update_litecoind(self, parsed):
@@ -519,7 +581,9 @@ class Config:
             self.update_volume(node["volumes"], "/root/.litecoin", value)
 
         self.update_ports(node, parsed)
+        self.update_options(node, parsed)
 
+        # Update litecoind specified options
         self.update_bitcoind_kind(node, parsed)
 
     def update_geth(self, parsed):
@@ -527,6 +591,11 @@ class Config:
         :param parsed: Parsed geth TOML section
         """
         node = self.nodes["geth"]
+
+        self.update_ports(node, parsed)
+        self.update_options(node, parsed)
+
+        # Update geth specified options
         if "dir" in parsed:
             value = parsed["dir"]
             self.update_volume(node["volumes"], "/root/.ethereum", value)
@@ -534,8 +603,6 @@ class Config:
         if "ancient-chaindata-dir" in parsed:
             value = parsed["ancient-chaindata-dir"]
             self.update_volume(node["volumes"], "/root/.ethereum-ancient-chaindata", value)
-
-        self.update_ports(node, parsed)
 
         if "external" in parsed:
             print("Warning: Using deprecated option \"external\". Please use \"mode\" instead.")
@@ -616,6 +683,7 @@ class Config:
         """
         node = self.nodes["lndbtc"]
         self.update_ports(node, parsed)
+        self.update_options(node, parsed)
 
     def update_lndltc(self, parsed):
         """Update lndltc related configurations from parsed TOML lndltc section
@@ -623,6 +691,7 @@ class Config:
         """
         node = self.nodes["lndltc"]
         self.update_ports(node, parsed)
+        self.update_options(node, parsed)
 
     def update_connext(self, parsed):
         """Update Connext related configurations from parsed TOML connext section
@@ -630,6 +699,7 @@ class Config:
         """
         node = self.nodes["connext"]
         self.update_ports(node, parsed)
+        self.update_options(node, parsed)
 
     def update_xud(self, parsed):
         """Update xud related configurations from parsed TOML xud section
@@ -637,28 +707,19 @@ class Config:
         """
         node = self.nodes["xud"]
         self.update_ports(node, parsed)
-
-    def update_disabled(self, node, parsed, opt):
-        if "disabled" in parsed:
-            value = parsed["disabled"]
-            assert isinstance(value, bool)
-            node["disabled"] = value
-        if hasattr(self.args, opt):
-            value: str = getattr(self.args, opt)
-            if value:
-                value = value.strip().lower()
-            if not value or value == "true" or value == "":
-                node["disabled"] = True
-            elif value == "false":
-                node["disabled"] = False
-            else:
-                raise ValueError("Invalid value of option \"{}\": {}".format(opt, value))
+        self.update_options(node, parsed)
 
     def update_arby(self, parsed):
         """Update arby related configurations from parsed TOML arby section
         :param parsed: Parsed xud TOML section
         """
         node = self.nodes["arby"]
+
+        self.update_ports(node, parsed)
+        self.update_disabled(node, parsed, "arby.disabled")
+        self.update_options(node, parsed)
+
+        # Update arby specified options
         if "test-centralized-baseasset-balance" in parsed:
             if parsed["test-centralized-baseasset-balance"]:
                 value = parsed["test-centralized-baseasset-balance"]
@@ -739,28 +800,27 @@ class Config:
             if value:
                 node["margin"] = value
 
-        self.update_disabled(node, parsed, "arby.disabled")
-        self.update_ports(node, parsed)
-
     def update_boltz(self, parsed):
         """Update webui related configurations from parsed TOML boltz section
         :param parsed: Parsed boltz TOML section
         """
         node = self.nodes["boltz"]
-        self.update_disabled(node, parsed, "boltz.disabled")
         self.update_ports(node, parsed)
+        self.update_disabled(node, parsed, "boltz.disabled")
+        self.update_options(node, parsed)
 
     def update_webui(self, parsed):
         """Update webui related configurations from parsed TOML webui section
         :param parsed: Parsed webui TOML section
         """
         node = self.nodes["webui"]
-        self.update_disabled(node, parsed, "webui.disabled")
         self.update_ports(node, parsed, mapping={
             "8888": "8888:8080",
             "18888": "18888:8080",
             "28888": "28888:8080",
         })
+        self.update_disabled(node, parsed, "webui.disabled")
+        self.update_options(node, parsed)
 
     def parse_network_config(self):
         network = self.network
@@ -814,18 +874,6 @@ class Config:
                         self.external_ip = parts[1].strip()
         except FileNotFoundError:
             pass
-
-        if hasattr(self.args, "xud.preserve_config"):
-            if "xud" in self.nodes:
-                self.nodes["xud"]["preserve_config"] = True
-
-        if hasattr(self.args, "lndbtc.preserve_config"):
-            if "lndbtc" in self.nodes:
-                self.nodes["lndbtc"]["preserve_config"] = True
-
-        if hasattr(self.args, "lndltc.preserve_config"):
-            if "lndltc" in self.nodes:
-                self.nodes["lndltc"]["preserve_config"] = True
 
     def expand_vars(self, value):
         if value is None:

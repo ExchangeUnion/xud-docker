@@ -41,4 +41,4 @@ else
 fi
 
 #shellcheck disable=SC2068
-exec geth ${OPTS[@]} $@
+exec geth ${OPTS[@]} $@ $GETH_OPTS

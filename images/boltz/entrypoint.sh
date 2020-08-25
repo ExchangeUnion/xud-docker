@@ -70,4 +70,4 @@ echo 'Detecting localnet IP for lndltc...'
 LNDLTC_IP=$(getent hosts lndltc | awk '{ print $1 }')
 echo "$LNDLTC_IP lndltc" >> /etc/hosts
 
-exec boltzd --configfile $CONFIGFILE --logfile $LOGFILE --database.path $DATABASEFILE
+exec boltzd --configfile $CONFIGFILE --logfile $LOGFILE --database.path $DATABASEFILE $BOLTZ_OPTS

@@ -39,7 +39,7 @@ if [[ $NETWORK == "testnet" ]]; then
     DEFAULT_OPTS+=("-testnet")
 fi
 
-OPTS=("${DEFAULT_OPTS[@]}")
+OPTS=("${DEFAULT_OPTS[@]}" "$LITECOIND_OPTS")
 
 function start_litecoind() {
     rm -f "$LOGFILE" "$ERRFILE"
