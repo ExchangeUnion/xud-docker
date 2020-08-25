@@ -109,7 +109,6 @@ class Config:
             "--bitcoind.mode",
             metavar="<mode>",
             choices=["native", "external", "neutrino", "light"],
-            default="light",
             help="Bitcoind service mode"
         )
         group.add_argument(
@@ -154,7 +153,6 @@ class Config:
             "--litecoind.mode",
             metavar="<mode>",
             choices=["native", "external", "neutrino", "light"],
-            default="light",
             help="Litecoind service mode"
         )
         group.add_argument(
@@ -199,7 +197,6 @@ class Config:
             "--geth.mode",
             metavar="<mode>",
             choices=["native", "external", "infura", "light"],
-            default="light",
             help="Geth service mode"
         )
         group.add_argument(
