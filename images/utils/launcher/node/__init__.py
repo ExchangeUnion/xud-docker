@@ -333,7 +333,6 @@ class NodeManager:
         for node in self.nodes.values():
             if node.name in optional_nodes:
                 c = self.docker_template.get_container(node.container_name)
-                print(node.name, node.container_name, c)
                 if c:
                     result[node.name] = node
             else:
