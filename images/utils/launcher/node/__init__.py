@@ -21,6 +21,7 @@ from .image import Image, ImageManager
 from .lnd import Lndbtc, Lndltc
 from .webui import Webui
 from .xud import Xud, XudApiError
+from .DockerTemplate import DockerTemplate
 from ..config import Config
 from ..errors import FatalError
 from ..shell import Shell
@@ -124,6 +125,8 @@ class NodeManager:
         self.cmd_start = StartCommand(self.get_node, self.shell)
         self.cmd_stop = StopCommand(self.get_node, self.shell)
         self.cmd_restart = RestartCommand(self.get_node, self.shell)
+
+        self.docker_template = DockerTemplate()
 
     @property
     def network_name(self):
@@ -324,9 +327,21 @@ class NodeManager:
     def cli(self, name, *args):
         self.get_node(name).cli(" ".join(args), self.shell)
 
+    def _get_status_nodes(self):
+        optional_nodes = ["arby", "boltz", "webui"]
+        result = []
+        for node in self.nodes:
+            if node.name in optional_nodes:
+                c = self.docker_template.get_container(f"{self.network}_{node.name}_1")
+                if c:
+                    result.append(node)
+            else:
+                result.append(node)
+        return result
+
     def status(self):
         # TODO migrate to ServiceTable
-        nodes = self.enabled_nodes
+        nodes = self._get_status_nodes()
         names = list(nodes)
 
         BRIGHT_BLACK = "\033[90m"
