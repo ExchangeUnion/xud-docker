@@ -329,14 +329,15 @@ class NodeManager:
 
     def _get_status_nodes(self):
         optional_nodes = ["arby", "boltz", "webui"]
-        result = []
-        for node in self.nodes:
+        result = {}
+        for node in self.nodes.values():
             if node.name in optional_nodes:
-                c = self.docker_template.get_container(f"{self.network}_{node.name}_1")
+                c = self.docker_template.get_container(node.container_name)
+                print(node.name, node.container_name, c)
                 if c:
-                    result.append(node)
+                    result[node.name] = node
             else:
-                result.append(node)
+                result[node.name] = node
         return result
 
     def status(self):

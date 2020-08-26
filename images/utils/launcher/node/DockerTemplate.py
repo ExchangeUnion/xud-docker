@@ -10,6 +10,6 @@ class DockerTemplate:
 
     def get_container(self, name: str) -> Optional[Container]:
         try:
-            self.client.containers.get(name)
+            return self.client.containers.get(name)
         except docker.errors.NotFound:
             return None
