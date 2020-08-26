@@ -110,7 +110,12 @@ your issue.""")
                     self.node_manager.cli("boltz", "ltc", "withdraw", *args)
             else:
                 self.delegate_cmd_to_xucli(cmd)
+
         except NodeNotFound as e:
+            if str(e) == "boltz" and self.config.network == "simnet":
+                print("Not available on simnet")
+                return
+
             print(f"Node not found: {e}")
         except ArgumentError as e:
             print(e.usage)
