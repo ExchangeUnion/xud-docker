@@ -7,6 +7,6 @@ class SourceManager(src.SourceManager):
 
     def get_ref(self, version):
         if version == "latest":
-            return "v1.9.19"
+            return "v1.9.20"
         else:
             return super().get_ref(version)
