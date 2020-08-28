@@ -10,4 +10,3 @@ class SourceManager(src.SourceManager):
             return "1.3.1"
         else:
             return version
-            
