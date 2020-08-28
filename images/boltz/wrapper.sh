@@ -2,7 +2,9 @@
 
 CHAIN=$1
 
-case "$CHAIN" in
+# Use "${<variable>,,}" to convert the CHAIN variable to lower case
+# Reference: https://stackoverflow.com/a/2264537 
+case "${CHAIN,,}" in
     "btc")
         PORT="9002"
         ;;
