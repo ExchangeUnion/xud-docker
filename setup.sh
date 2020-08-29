@@ -5,12 +5,12 @@ set -euo pipefail
 BRANCH=master
 DEV=false
 DOCKER_REGISTRY="https://registry-1.docker.io"
-UTILS_TAG="20.08.25"
+UTILS_TAG="20.08.29"
 
 
 function print_help() {
     cat <<EOF
-xud.sh 20.08.07-dev (revision)
+xud.sh 20.08.29
 The launcher script for Exchange Union environment
 
 USAGE:
