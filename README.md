@@ -92,8 +92,8 @@ bash setup.sh -b local --dev --use-local-images xud,lndbtc,lndltc,connext
 Enabling boltz and webui works in a same way. 
 
 1. Build arby image `tools/build arby`
-2. Append arby to --use-local-images
-3. Append `--arby.disabled=false` or persist below in your network conf file.
+2. Append `arby` to `--use-local-images`
+3. Append `--arby.disabled=false` or persist below in your network conf file
 
 ```toml
 [arby]
