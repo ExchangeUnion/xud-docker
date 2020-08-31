@@ -66,14 +66,14 @@ git checkout -b local
 
 #### Example: Use simnet (light mode)
 
-```
+```bash
 tools/build utils xud lndbtc-simnet lndltc-simnet connext
 bash setup.sh -b local --dev --use-local-images xud,lndbtc,lndltc,connext
 ```
 
 #### Example: Use testnet (light mode)
 
-```
+```bash
 tools/build utils xud lndbtc lndltc connext
 bash setup.sh -b local --dev --use-local-images xud,lndbtc,lndltc,connext
 ```
@@ -82,7 +82,7 @@ bash setup.sh -b local --dev --use-local-images xud,lndbtc,lndltc,connext
 
 See `images/utils/config/template.py` to get the right version of mainnet images
 
-```
+```bash
 tools/build utils xud:1.0.0-rc.2 lndbtc:0.11.0-beta lndltc:0.11.0-beta.rc1 connext:1.3.1
 bash setup.sh -b local --dev --use-local-images xud,lndbtc,lndltc,connext
 ```
@@ -95,7 +95,7 @@ Enabling boltz and webui works in a same way.
 2. Append arby to --use-local-images
 3. Append `--arby.disabled=false` or persist below in your network conf file.
 
-```
+```toml
 [arby]
 disabled = false
 ```
