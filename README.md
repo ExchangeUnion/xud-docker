@@ -50,8 +50,9 @@ git push origin your-feature-branch
 After the corresponding Travis build succeeded, other people can easily run your feature branch on their machine like this.
 
 ```bash
-./xud.sh -b your-feature-branch
+bash xud.sh -b your-feature-branch
 ```
+
 
 ## Use local built images
 
