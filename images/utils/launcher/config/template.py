@@ -350,7 +350,7 @@ nodes_config = {
     "mainnet": {
         "bitcoind": {
             "name": "bitcoind",
-            "image": "exchangeunion/bitcoind:0.20.1",
+            "image": "exchangeunion/bitcoind:latest",
             "volumes": [
                 {
                     "host": "$data_dir/bitcoind",
@@ -370,7 +370,7 @@ nodes_config = {
         },
         "litecoind": {
             "name": "litecoind",
-            "image": "exchangeunion/litecoind:0.18.1",
+            "image": "exchangeunion/litecoind:latest",
             "volumes": [
                 {
                     "host": "$data_dir/litecoind",
@@ -390,7 +390,7 @@ nodes_config = {
         },
         "geth": {
             "name": "geth",
-            "image": "exchangeunion/geth:1.9.20",
+            "image": "exchangeunion/geth:latest",
             "volumes": [
                 {
                     "host": "$data_dir/geth",
@@ -409,7 +409,7 @@ nodes_config = {
         },
         "lndbtc": {
             "name": "lndbtc",
-            "image": "exchangeunion/lndbtc:0.11.0-beta",
+            "image": "exchangeunion/lndbtc:latest",
             "volumes": [
                 {
                     "host": "$data_dir/lndbtc",
@@ -423,7 +423,7 @@ nodes_config = {
         },
         "lndltc": {
             "name": "lndltc",
-            "image": "exchangeunion/lndltc:0.11.0-beta.rc1",
+            "image": "exchangeunion/lndltc:latest",
             "volumes": [
                 {
                     "host": "$data_dir/lndltc",
@@ -437,7 +437,7 @@ nodes_config = {
         },
         "connext": {
             "name": "connext",
-            "image": "exchangeunion/connext:1.3.2",
+            "image": "exchangeunion/connext:latest",
             "volumes": [
                 {
                     "host": "$data_dir/connext",
@@ -451,7 +451,7 @@ nodes_config = {
         },
         "arby": {
             "name": "arby",
-            "image": "exchangeunion/arby:1.1.8",
+            "image": "exchangeunion/arby:latest",
             "volumes": [
                 {
                     "host": "$data_dir/arby",
@@ -470,7 +470,7 @@ nodes_config = {
         },
         "boltz": {
             "name": "boltz",
-            "image": "exchangeunion/boltz:1.1.0",
+            "image": "exchangeunion/boltz:latest",
             "volumes": [
                 {
                     "host": "$data_dir/boltz",
@@ -493,7 +493,7 @@ nodes_config = {
         },
         "webui": {
             "name": "webui",
-            "image": "exchangeunion/webui:1.0.0",
+            "image": "exchangeunion/webui:latest",
             "volumes": [
                 {
                     "host": "$data_dir/xud",
@@ -508,7 +508,7 @@ nodes_config = {
         },
         "xud": {
             "name": "xud",
-            "image": "exchangeunion/xud:1.0.0-rc.2",
+            "image": "exchangeunion/xud:latest",
             "volumes": [
                 {
                     "host": "$data_dir/xud",
