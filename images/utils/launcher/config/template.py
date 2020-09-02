@@ -390,7 +390,7 @@ nodes_config = {
         },
         "geth": {
             "name": "geth",
-            "image": "exchangeunion/geth:1.9.19",
+            "image": "exchangeunion/geth:1.9.20",
             "volumes": [
                 {
                     "host": "$data_dir/geth",
@@ -437,7 +437,7 @@ nodes_config = {
         },
         "connext": {
             "name": "connext",
-            "image": "exchangeunion/connext:1.3.0",
+            "image": "exchangeunion/connext:1.3.2",
             "volumes": [
                 {
                     "host": "$data_dir/connext",
@@ -451,7 +451,7 @@ nodes_config = {
         },
         "arby": {
             "name": "arby",
-            "image": "exchangeunion/arby:1.1.5",
+            "image": "exchangeunion/arby:1.1.8",
             "volumes": [
                 {
                     "host": "$data_dir/arby",
@@ -508,7 +508,7 @@ nodes_config = {
         },
         "xud": {
             "name": "xud",
-            "image": "exchangeunion/xud:1.0.0-beta.8",
+            "image": "exchangeunion/xud:1.0.0",
             "volumes": [
                 {
                     "host": "$data_dir/xud",

@@ -1,3 +1,19 @@
 #!/bin/bash
 
-python $(dirname "$0")/helper.py push "$@"
+set -m
+set -euo pipefail
+set -x
+
+function print_running() {
+  while true; do
+    echo ">>> RUNNING <<<"
+    sleep 3
+  done
+}
+
+if [[ $(uname -m) == "aarch64" ]]; then
+  print_running &
+fi
+
+cd "$(dirname "$0")" || exit 1
+python helper.py push "$@"

@@ -81,7 +81,7 @@ class Connext(Node):
         if status == "Ready":
             return "Ready"
         elif "ECONNREFUSED" in status:
-            return "Can't connect to Connext node"
+            return "Waiting for connext to come up..."
         else:
             return "Starting..."
 

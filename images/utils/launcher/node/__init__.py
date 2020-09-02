@@ -21,6 +21,7 @@ from .image import Image, ImageManager
 from .lnd import Lndbtc, Lndltc
 from .webui import Webui
 from .xud import Xud, XudApiError
+from .DockerTemplate import DockerTemplate
 from ..config import Config
 from ..errors import FatalError
 from ..shell import Shell
@@ -125,6 +126,8 @@ class NodeManager:
         self.cmd_stop = StopCommand(self.get_node, self.shell)
         self.cmd_restart = RestartCommand(self.get_node, self.shell)
 
+        self.docker_template = DockerTemplate()
+
     @property
     def network_name(self):
         return self.network + "_default"
@@ -176,7 +179,7 @@ class NodeManager:
         nodes = self.valid_nodes.values()
 
         def print_failed(failed):
-            print("Failed to start these nodes.")
+            print("Failed to start these services:")
             for f in failed:
                 print(f"- {f[0].name}: {str(f[1])}")
 
@@ -219,11 +222,12 @@ class NodeManager:
         diff_keys = [key for key, value in details.items() if not value.same]
         return ", ".join(diff_keys)
 
-    def update(self):
+    def update(self) -> bool:
         if self.config.disable_update:
-            return
+            return True
 
         outdated = False
+        image_outdated = False
 
         # Step 1. check all images
         print("🌍 Checking for updates...")
@@ -237,6 +241,7 @@ class NodeManager:
             if status in ["LOCAL_MISSING", "LOCAL_OUTDATED"]:
                 print("- Image %s: %s" % (image.name, image.status_message))
                 outdated = True
+                image_outdated = True
             elif status == "UNAVAILABLE":
                 all_unavailable_images = [x for x in images if x.status == "UNAVAILABLE"]
                 raise FatalError("Image(s) not available: %r" % all_unavailable_images)
@@ -277,12 +282,18 @@ class NodeManager:
 
         if not outdated:
             print("All up-to-date.")
-            return
+            return True
 
         all_containers_missing = functools.reduce(lambda a, b: a and b[0] in ["missing", "external", "disabled"], container_check_result.values(), True)
 
         if all_containers_missing:
-            answer = "yes"
+            if self.newly_installed:
+                answer = "yes"
+            else:
+                if image_outdated:
+                    answer = "yes"
+                else:
+                    return True  # FIXME unintended containers (configuration) update
         else:
             answer = self.shell.yes_or_no("A new version is available. Would you like to upgrade (Warning: this may restart your environment and cancel all open orders)?")
 
@@ -297,6 +308,9 @@ class NodeManager:
             # 2.2) recreate outdated containers
             for container, result in container_check_result.items():
                 container.update(result)
+            return True
+        else:
+            return False
 
     def logs(self, *args):
         self.cmd_logs.execute(args)
@@ -313,9 +327,21 @@ class NodeManager:
     def cli(self, name, *args):
         self.get_node(name).cli(" ".join(args), self.shell)
 
+    def _get_status_nodes(self):
+        optional_nodes = ["arby", "boltz", "webui"]
+        result = {}
+        for node in self.nodes.values():
+            if node.name in optional_nodes:
+                c = self.docker_template.get_container(node.container_name)
+                if c:
+                    result[node.name] = node
+            else:
+                result[node.name] = node
+        return result
+
     def status(self):
         # TODO migrate to ServiceTable
-        nodes = self.enabled_nodes
+        nodes = self._get_status_nodes()
         names = list(nodes)
 
         BRIGHT_BLACK = "\033[90m"
