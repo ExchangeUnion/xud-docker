@@ -4,7 +4,7 @@ import logging
 import os
 import sys
 from shutil import copyfile
-from subprocess import CalledProcessError
+from subprocess import CalledProcessError, check_call
 from typing import TYPE_CHECKING, List, Optional
 import re
 import importlib
@@ -113,7 +113,7 @@ class Image:
         return file
 
     def get_dockerfile(self, build_dir, platform: Platform, dockerfile):
-        f = "{}/{}".format(build_dir, dockerfile)
+        f = dockerfile
         if platform.tag_suffix == "x86_64":
             return self.get_existed_dockerfile(f)
         elif platform.tag_suffix == "aarch64":
@@ -140,36 +140,35 @@ class Image:
     def _run_command(self, cmd):
         self._logger.info(cmd)
 
-        stop = threading.Event()
+        on_travis = "TRAVIS_BRANCH" in os.environ
 
-        def f():
-            nonlocal stop
-            counter = 0
-            on_travis = "TRAVIS_BRANCH" in os.environ
-            while not stop.is_set():
-                counter = counter + 1
+        if on_travis:
+            stop = threading.Event()
 
-                if on_travis:
+            def f():
+                nonlocal stop
+                counter = 0
+
+                while not stop.is_set():
+                    counter = counter + 1
                     print("Still building... ({})".format(counter), flush=True)
                     stop.wait(10)
-                    continue
+            threading.Thread(target=f).start()
 
-                print(".", end="", flush=True)
-                stop.wait(1)
-            if not on_travis:
-                print()
-        threading.Thread(target=f).start()
-        try:
-            output = execute(cmd)
-            self._logger.debug("$ %s\n%s", cmd, output)
-            stop.set()
-        except CalledProcessError as e:
-            stop.set()
-            print(e.output.decode(), end="", flush=True)
-            raise SystemExit(1)
-        except:
-            stop.set()
-            raise
+            try:
+                output = execute(cmd)
+                self._logger.debug("$ %s\n%s", cmd, output)
+                stop.set()
+            except CalledProcessError as e:
+                stop.set()
+                print(e.output.decode(), end="", flush=True)
+                raise SystemExit(1)
+            except:
+                stop.set()
+                raise
+        else:
+            print("\033[1m$ %s\033[0m" % cmd)
+            check_call(cmd, shell=True)
 
     def _build(self, args: List[str], build_dir: str, build_tag: str) -> None:
         cmd = "docker build {} {}".format(" ".join(args), build_dir)
@@ -184,7 +183,9 @@ class Image:
 
     def build(self, platform: Platform, no_cache: bool) -> None:
         self._logger.info("Build %s:%s (%s)", self.name, self.tag, platform.tag_suffix)
-        print("Build %s:%s (%s)" % (self.name, self.tag, platform.tag_suffix))
+
+        print("\033[1m$ cd %s\033[0m" % self.image_folder)
+        os.chdir(self.image_folder)
 
         source_manager = self.prepare()
 
@@ -232,27 +233,21 @@ class Image:
                 os.remove("{}/{}".format(build_dir, f))
 
     def prepare(self):
-        self._logger.info("Prepare")
         try:
-            os.chdir(self.context.project_dir)
             m = importlib.import_module(f"images.{self.name}.src")
-            os.chdir(self.image_folder)
+
             if hasattr(m, "SourceManager"):
                 source_manager = m.SourceManager()
             else:
                 assert hasattr(m, "REPO_URL"), "REPO_URL is required in src.py"
-                repo_url = m.REPO_URL
-                source_manager = SourceManager(repo_url)
+                source_manager = SourceManager(m.REPO_URL)
 
-            version = self.tag
-
-            source_manager.ensure(version)
+            source_manager.ensure(self.tag)
 
             return source_manager
         except ModuleNotFoundError:
             return SourceManager()
-        finally:
-            os.chdir(self.image_folder)
+
 
     def push(self, platform: Platform, no_cache: bool = False, dirty_push: bool = False) -> None:
         self.build(platform=platform, no_cache=no_cache)

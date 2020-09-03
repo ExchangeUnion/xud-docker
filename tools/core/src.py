@@ -1,4 +1,4 @@
-from subprocess import check_output, CalledProcessError, PIPE, STDOUT
+from subprocess import check_call, CalledProcessError, PIPE, STDOUT
 import os
 import shutil
 import logging
@@ -62,8 +62,8 @@ class SourceManager:
         return {}
 
     def _execute(self, cmd):
-        output = execute(cmd)
-        self.logger.debug("$ %s\n%s", cmd, output)
+        print("\033[1m$ %s\033[0m" % cmd)
+        check_call(cmd, shell=True)
 
     def checkout_repo(self, repo_dir, ref):
         wd = os.getcwd()
@@ -77,8 +77,13 @@ class SourceManager:
             os.chdir(wd)
 
     def checkout(self, repo_dir, version):
-        ref = self.get_ref(version)
-        self.checkout_repo(repo_dir, ref)
+        try:
+            ref = self.get_ref(version)
+        except:
+            ref = None
+
+        if ref:
+            self.checkout_repo(repo_dir, ref)
 
     def get_revision(self, repo_dir):
         wd = os.getcwd()

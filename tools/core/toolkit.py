@@ -117,29 +117,19 @@ class Toolkit:
               no_cache: bool = False,
               platforms: List[str] = None,
               ) -> None:
-        try:
-            if platforms:
-                platforms = [Platforms.get(name) for name in platforms]
-            else:
-                platforms = [self.current_platform]
+        if platforms:
+            platforms = [Platforms.get(name) for name in platforms]
+        else:
+            platforms = [self.current_platform]
 
-            ctx = self._create_context(dry_run, platforms)
+        ctx = self._create_context(dry_run, platforms)
 
-            if images:
-                for i, name in enumerate(images):
-                    if i > 0:
-                        print()
-                    for p in platforms:
-                        Image(ctx, name).build(platform=p, no_cache=no_cache)
-        except Exception as e:
-            p = e
-            while p:
-                if isinstance(p, CalledProcessError):
-                    print("$ %s" % p.cmd)
-                    print(p.output.decode().strip())
-                    break
-                p = e.__cause__
-            raise
+        if images:
+            for i, name in enumerate(images):
+                if i > 0:
+                    print()
+                for p in platforms:
+                    Image(ctx, name).build(platform=p, no_cache=no_cache)
 
     def push(self,
              images: List[str] = None,
