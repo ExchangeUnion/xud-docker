@@ -1,0 +1,15 @@
+Log notice stdout
+DataDirectory /root/.tor
+SocksPort 0.0.0.0:9050
+ControlPort 0.0.0.0:9051
+#PreferSOCKSNoAuth
+SafeSocks 0
+ExitPolicy reject *:*
+CookieAuthentication 1
+HashedControlPassword 16:6F556877513089296017E360EB205352EBCECBC800D946A49E2A0F536A
+
+
+HiddenServiceDir /root/.tor/hidden/service1
+HiddenServicePort 8080
+HiddenServiceDir /root/.tor/hidden/service2
+HiddenServicePort 8081

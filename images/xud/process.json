@@ -1,0 +1,22 @@
+{
+  "apps": [
+    {
+      "name": "xud",
+      "script": "xud",
+      "exp_backoff_restart_delay": 1000,
+      "autorestart": false,
+      "env": {
+        "NODE_ENV": "production"
+      }
+    },
+    {
+      "name": "xud-backup",
+      "script": "cd /app && xud-backup -b /root/xud-backup",
+      "exp_backoff_restart_delay": 1000,
+      "autorestart": false,
+      "env": {
+        "NODE_ENV": "production"
+      }
+    }
+  ]
+}

@@ -7,3 +7,4 @@ pexpect
 docker
 toml
 #demjson
+stem

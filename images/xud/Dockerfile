@@ -1,5 +1,5 @@
-FROM node:12-alpine3.11 AS builder
-RUN apk add --no-cache git rsync bash musl-dev go python3 make g++
+FROM node:12.18.3-alpine3.12 AS builder
+RUN apk add --no-cache git rsync bash musl-dev go python3 make g++ curl
 WORKDIR /xud
 ADD .src .
 ARG GIT_REVISION
@@ -11,14 +11,14 @@ RUN npm run compile:seedutil
 RUN npm prune --production
 RUN rm -rf seedutil/go
 RUN strip seedutil/seedutil
+RUN curl -sfL https://install.goreleaser.com/github.com/tj/node-prune.sh | bash -s -- -b /usr/local/bin
+RUN node-prune
 
-FROM node:12-alpine3.11
-RUN apk add --no-cache bash tor
+FROM node:12.18.3-alpine3.12
+RUN npm install pm2 -g
 COPY --from=builder /xud /app
-COPY entrypoint.sh update-backup-dir.sh xud-backup.sh /
-WORKDIR /app
 RUN ln -s /app/bin/xud /usr/local/bin/xud
 RUN ln -s /app/bin/xucli /usr/local/bin/xucli
-ENTRYPOINT ["/entrypoint.sh"]
-VOLUME [ "/root/.xud" ]
-EXPOSE 8887 18887 28887
+RUN ln -s /app/bin/xud-backup /usr/local/bin/xud-backup
+ADD process.json /
+ENTRYPOINT ["pm2-runtime", "start", "process.json"]

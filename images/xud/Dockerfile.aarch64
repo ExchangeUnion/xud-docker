@@ -1,15 +1,12 @@
 FROM node:12-alpine3.11 AS builder
-# Use pure JS implemented secp256k1 bindings
-RUN apk add --no-cache git rsync bash musl-dev go python3 make g++
-# Pre-built binaries not found for sqlite3@4.1.0 and node@12.16.1 (node-v72 ABI, musl) (falling back to source compile with node-gyp)
-# python: not found
-RUN apk add --no-cache python
+RUN apk add --no-cache git rsync bash musl-dev go python3 make g++ curl python
 WORKDIR /xud
 ADD .src .
 ARG GIT_REVISION
 RUN echo "" > parseGitCommit.js
 RUN echo "export default '-$GIT_REVISION';" > lib/Version.ts
 RUN cp package.json /tmp/package.json
+# No arm64 grpc-tools
 RUN sed -Ei 's/"grpc-tools": "1.8.0",//g' package.json
 RUN npm install
 RUN cp /tmp/package.json package.json
@@ -18,14 +15,14 @@ RUN npm run compile:seedutil
 RUN npm prune --production
 RUN rm -rf seedutil/go
 RUN strip seedutil/seedutil
+RUN curl -sfL https://install.goreleaser.com/github.com/tj/node-prune.sh | bash -s -- -b /usr/local/bin
+RUN node-prune
 
 FROM node:12-alpine3.11
-RUN apk add --no-cache bash tor
+RUN npm install pm2 -g
 COPY --from=builder /xud /app
-COPY entrypoint.sh update-backup-dir.sh xud-backup.sh /
-WORKDIR /app
 RUN ln -s /app/bin/xud /usr/local/bin/xud
 RUN ln -s /app/bin/xucli /usr/local/bin/xucli
+ADD entrypoint.sh process.json /
 ENTRYPOINT ["/entrypoint.sh"]
-VOLUME [ "/root/.xud" ]
-EXPOSE 8887 18887 28887
+
