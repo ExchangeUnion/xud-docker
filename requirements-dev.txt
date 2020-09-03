@@ -4,6 +4,6 @@ pytest
 #pytest-timeout
 #pytest-dotenv
 pexpect
-#docker
-#toml
+docker
+toml
 #demjson
