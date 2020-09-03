@@ -4,7 +4,7 @@ import json
 import os
 
 
-@pytest.fixture(scope="session", autouse=True)
+@pytest.fixture(scope="module", autouse=True)
 def build_utils():
     os.system("tools/build utils")
     wd = os.getcwd()
