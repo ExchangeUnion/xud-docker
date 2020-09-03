@@ -23,4 +23,4 @@ jobs:
           echo "No lint for now."
       - name: Test with pytest
         run: |
-          pytest -s --tb native tests/test_config.py
+          pytest -s --tb native -k test_config --rootdir tests tests
