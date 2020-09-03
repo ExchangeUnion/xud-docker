@@ -1,5 +1,16 @@
+import pytest
 from subprocess import check_output
 import json
+import os
+
+
+@pytest.fixture(scope="session", autouse=True)
+def build_utils():
+    os.system("tools/build utils")
+    wd = os.getcwd()
+    os.chdir("tests")
+    yield
+    os.chdir(wd)
 
 
 def test_simnet_services():
