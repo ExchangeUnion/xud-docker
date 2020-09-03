@@ -3,7 +3,7 @@ pytest
 #pytest-integration
 #pytest-timeout
 #pytest-dotenv
-#pexpect
+pexpect
 #docker
 #toml
 #demjson
