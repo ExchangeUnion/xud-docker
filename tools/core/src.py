@@ -6,7 +6,7 @@ from .utils import execute
 
 
 class SourceManager:
-    def __init__(self, repo_url):
+    def __init__(self, repo_url=None):
         self.repo_url = repo_url
         self.src_dir = os.path.abspath(".src")
         self.logger = logging.getLogger("core.SourceManager")
@@ -44,9 +44,10 @@ class SourceManager:
             self._clone_repo(repo_url, repo_dir)
 
     def ensure(self, version):
-        repo_dir = self.src_dir
-        self.ensure_repo(self.repo_url, repo_dir)
-        self.checkout(repo_dir, version)
+        if self.repo_url:
+            repo_dir = self.src_dir
+            self.ensure_repo(self.repo_url, repo_dir)
+            self.checkout(repo_dir, version)
 
     def get_ref(self, version):
         if version == "latest":
@@ -85,6 +86,8 @@ class SourceManager:
             os.chdir(repo_dir)
             output = execute(f"git rev-parse HEAD")
             return output.strip()
+        except:
+            return None
         finally:
             os.chdir(wd)
 

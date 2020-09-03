@@ -68,7 +68,7 @@ class Image:
     def get_shared_dir(self):
         return "{}/shared".format(self.name)
 
-    def get_labels(self, application_revision) -> List[str]:
+    def get_labels(self, application_revision: str) -> List[str]:
         image_revision = ""
         image_source = ""
         image_travis = ""
@@ -249,6 +249,8 @@ class Image:
             source_manager.ensure(version)
 
             return source_manager
+        except ModuleNotFoundError:
+            return SourceManager()
         finally:
             os.chdir(self.image_folder)
 
