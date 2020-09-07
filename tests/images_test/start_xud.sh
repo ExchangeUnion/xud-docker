@@ -6,4 +6,4 @@ BRANCH=${BRANCH//\//-}
 docker run --rm -it \
 -v "$PWD/data/xud:/root/.tor" \
 --name xud \
-"exchangeunion/xud:latest__$BRANCH"
+"exchangeunion/xud:latest__$BRANCH" "$@"

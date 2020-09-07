@@ -27,6 +27,9 @@ def main():
 
     subparsers.add_parser("release")
 
+    export_parser = subparsers.add_parser("export")
+    export_parser.add_argument("network")
+
     args = parser.parse_args()
 
     project_dir = os.path.abspath(__file__ + "/../..")
@@ -44,6 +47,8 @@ def main():
         toolkit.test()
     elif args.command == "release":
         toolkit.release()
+    elif args.command == "export":
+        toolkit.export(args.network)
 
 
 if __name__ == "__main__":

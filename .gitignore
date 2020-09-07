@@ -23,5 +23,8 @@ tools/logs
 # project source code
 images/*/.src
 
-# Utils test temporary files
+# utils test temporary files
 tests/utils_test/xud-docker
+
+# testing docker-compose.yml
+docker-compose.yml

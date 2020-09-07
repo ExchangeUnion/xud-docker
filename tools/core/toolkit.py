@@ -1,9 +1,9 @@
 import logging
 import os
-import sys
 from datetime import datetime
 from typing import Optional, List
-from subprocess import CalledProcessError
+from subprocess import CalledProcessError, check_output
+import json
 
 from .docker import DockerTemplate, Platform, Platforms
 from .git import GitTemplate
@@ -164,8 +164,50 @@ class Toolkit:
 
 
     def test(self):
-        os.chdir(self.project_dir)
-        sys.exit(os.system("python3.8 -m pytest -s"))
+        raise NotImplementedError
 
     def release(self):
         raise NotImplementedError
+
+    def export(self, network, args=None):
+        os.chdir(self.project_dir)
+        os.system("tools/build utils")
+        os.chdir("tests")
+        cmd = f"NETWORK={network} bash run_utils_test.sh dump_nodes"
+        if args:
+            cmd += " " + " ".join(args)
+        output = check_output(cmd, shell=True)
+        j = json.loads(output)
+
+        os.chdir(self.project_dir)
+        with open("docker-compose.yml", "w") as f:
+            f.write("version: \"2\"\n")
+            f.write("services:\n")
+            for key, value in j.items():
+                f.write("  {}:\n".format(key))
+
+                image = value["image"]
+                hostname = value["hostname"]
+                environment = value["environment"]
+                command = value["command"]
+                volumes = value["volumes"]
+                ports = value["ports"]
+
+                f.write("    image: {}\n".format(image))
+                f.write("    hostname: {}\n".format(hostname))
+                if len(environment) > 0:
+                    f.write("    environment:\n")
+                    for item in environment:
+                        f.write("      - {}\n".format(item))
+                if len(command) > 0:
+                    f.write("    command:\n")
+                    for item in command:
+                        f.write("      {}\n".format(item))
+                if len(volumes) > 0:
+                    f.write("    volumes:\n")
+                    for item in volumes:
+                        f.write("      - {}\n".format(item))
+                if len(ports) > 0:
+                    f.write("    ports:\n")
+                    for item in ports:
+                        f.write("      - {}\n".format(item))

@@ -1,0 +1,139 @@
+{
+  "lndbtc": {
+    "name": "simnet_lndbtc_1",
+    "image": "exchangeunion/lndbtc-simnet:latest",
+    "hostname": "lndbtc",
+    "environment": [
+      "NETWORK=simnet",
+      "CHAIN=bitcoin",
+      "LND_OPTS="
+    ],
+    "command": [
+      "--debuglevel=debug",
+      "--nobootstrap",
+      "--minbackoff=30s",
+      "--maxbackoff=24h",
+      "--bitcoin.active",
+      "--bitcoin.simnet",
+      "--bitcoin.node=neutrino",
+      "--bitcoin.defaultchanconfs=6",
+      "--routing.assumechanvalid",
+      "--neutrino.connect=btcd.simnet.exchangeunion.com:38555",
+      "--chan-enable-timeout=0m10s",
+      "--max-cltv-expiry=5000"
+    ],
+    "volumes": [
+      "/.xud-docker/simnet/data/lndbtc:/root/.lnd"
+    ],
+    "ports": []
+  },
+  "lndltc": {
+    "name": "simnet_lndltc_1",
+    "image": "exchangeunion/lndltc-simnet:latest",
+    "hostname": "lndltc",
+    "environment": [
+      "NETWORK=simnet",
+      "CHAIN=litecoin",
+      "LND_OPTS="
+    ],
+    "command": [
+      "--debuglevel=debug",
+      "--nobootstrap",
+      "--minbackoff=30s",
+      "--maxbackoff=24h",
+      "--litecoin.active",
+      "--litecoin.simnet",
+      "--litecoin.node=neutrino",
+      "--litecoin.defaultchanconfs=6",
+      "--routing.assumechanvalid",
+      "--neutrino.connect=btcd.simnet.exchangeunion.com:39555",
+      "--chan-enable-timeout=0m10s",
+      "--max-cltv-expiry=20000"
+    ],
+    "volumes": [
+      "/.xud-docker/simnet/data/lndltc:/root/.lnd"
+    ],
+    "ports": []
+  },
+  "connext": {
+    "name": "simnet_connext_1",
+    "image": "exchangeunion/connext:latest",
+    "hostname": "connext",
+    "environment": [
+      "NETWORK=simnet",
+      "LEGACY_MODE=true",
+      "CONNEXT_ETH_PROVIDER_URL=http://connext.simnet.exchangeunion.com:8545",
+      "CONNEXT_NODE_URL=https://connext.simnet.exchangeunion.com",
+      "CONNEXT_OPTS="
+    ],
+    "command": [],
+    "volumes": [
+      "/.xud-docker/simnet/data/connext:/app/connext-store"
+    ],
+    "ports": []
+  },
+  "arby": {
+    "name": "simnet_arby_1",
+    "image": "exchangeunion/arby:latest",
+    "hostname": "arby",
+    "environment": [
+      "NETWORK=simnet",
+      "NODE_ENV=production",
+      "LOG_LEVEL=trace",
+      "DATA_DIR=/root/.arby",
+      "OPENDEX_CERT_PATH=/root/.xud/tls.cert",
+      "OPENDEX_RPC_HOST=xud",
+      "BASEASSET=BTC",
+      "QUOTEASSET=USDT",
+      "OPENDEX_RPC_PORT=28886",
+      "BINANCE_API_SECRET=abc",
+      "BINANCE_API_KEY=123",
+      "LIVE_CEX=false",
+      "MARGIN=0.04",
+      "TEST_CENTRALIZED_EXCHANGE_BASEASSET_BALANCE=123",
+      "TEST_CENTRALIZED_EXCHANGE_QUOTEASSET_BALANCE=321"
+    ],
+    "command": [],
+    "volumes": [
+      "/.xud-docker/simnet/data/arby:/root/.arby",
+      "/.xud-docker/simnet/data/xud:/root/.xud"
+    ],
+    "ports": []
+  },
+  "webui": {
+    "name": "simnet_webui_1",
+    "image": "exchangeunion/webui:latest",
+    "hostname": "webui",
+    "environment": [
+      "NETWORK=simnet",
+      "WEBUI_OPTS="
+    ],
+    "command": [],
+    "volumes": [
+      "/.xud-docker/simnet/data/xud:/root/.xud"
+    ],
+    "ports": [
+      "28888:8080"
+    ]
+  },
+  "xud": {
+    "name": "simnet_xud_1",
+    "image": "exchangeunion/xud:latest",
+    "hostname": "xud",
+    "environment": [
+      "NETWORK=simnet",
+      "NODE_ENV=production",
+      "XUD_OPTS=--foo bar"
+    ],
+    "command": [],
+    "volumes": [
+      "/.xud-docker/simnet/data/xud:/root/.xud",
+      "/.xud-docker/simnet/data/lndbtc:/root/.lndbtc",
+      "/.xud-docker/simnet/data/lndltc:/root/.lndltc",
+      "/:/mnt/hostfs"
+    ],
+    "ports": [
+      "28885:28885"
+    ]
+  }
+}
