@@ -99,3 +99,5 @@ Enabling boltz and webui works in a same way.
 [arby]
 disabled = false
 ```
+
+For more details about building and running local images please refer to [the wiki](https://github.com/ExchangeUnion/xud-docker/wiki/Build-and-run-local-images).
