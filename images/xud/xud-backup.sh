@@ -1,6 +1,5 @@
 #!/bin/bash
 
-RAIDEN_DB_PATH="/root/.raiden/.xud-backup-raiden-db"
 BACKUP_DIR_VALUE_PATH="/root/.xud/.backup-dir-value"
 
 while [[ ! -e $BACKUP_DIR_VALUE_PATH ]]; do
@@ -38,4 +37,4 @@ while ! check_backup_dir "$BACKUP_DIR"; do
     sleep 5
 done
 
-./bin/xud-backup -b "$BACKUP_DIR" --raiden.dbpath="$RAIDEN_DB_PATH"
+./bin/xud-backup -b "$BACKUP_DIR"
