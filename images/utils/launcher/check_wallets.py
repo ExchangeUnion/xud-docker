@@ -330,7 +330,7 @@ class Action:
                 if self.config.restore_dir == "/tmp/fake-backup":
                     command = f"restore"
                 else:
-                    command = f"restore /mnt/hostfs{self.config.restore_dir} /root/.raiden/.xud-backup-raiden-db"
+                    command = f"restore /mnt/hostfs{self.config.restore_dir}"
                 xud.cli(command, self.shell)
                 ok = True
                 break
@@ -371,8 +371,6 @@ class Action:
             contents.append("lndbtc")
         if "lnd-LTC" in files:
             contents.append("lndltc")
-        if "raiden" in files:
-            contents.append("raiden")
         return contents
 
     def setup_backup_dir(self):

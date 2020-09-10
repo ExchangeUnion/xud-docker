@@ -50,7 +50,6 @@ Xucli shortcut commands
   removeorder <order_id> [quantity]         remove an order
   removepair <pair_id>                      remove a trading pair
   restore [backup_directory]                restore an xud instance from seed
-  [raiden_database_path]
   sell <quantity> <pair_id> <price>         place a sell order
   [order_id]
   shutdown                                  gracefully shutdown local xud node
