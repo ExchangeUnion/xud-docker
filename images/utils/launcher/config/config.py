@@ -626,7 +626,7 @@ class Config:
 
     def update_connext(self, parsed):
         """Update Connext related configurations from parsed TOML connext section
-        :param parsed: Parsed raiden TOML section
+        :param parsed: Parsed connext TOML section
         """
         node = self.nodes["connext"]
         self.update_ports(node, parsed)
@@ -744,7 +744,7 @@ class Config:
 
     def update_boltz(self, parsed):
         """Update webui related configurations from parsed TOML boltz section
-        :param parsed: Parsed raiden TOML section
+        :param parsed: Parsed boltz TOML section
         """
         node = self.nodes["boltz"]
         self.update_disabled(node, parsed, "boltz.disabled")
@@ -752,7 +752,7 @@ class Config:
 
     def update_webui(self, parsed):
         """Update webui related configurations from parsed TOML webui section
-        :param parsed: Parsed raiden TOML section
+        :param parsed: Parsed webui TOML section
         """
         node = self.nodes["webui"]
         self.update_disabled(node, parsed, "webui.disabled")
