@@ -76,7 +76,8 @@ while [[ ! -e /root/.lndltc/tls.cert ]]; do
     sleep 1
 done
 
-/xud-backup.sh &
+# start xud-backup as daemon in background
+supervisord -c /supervisord.conf &
 
 # for backward compatibility
 if [[ -e $XUD_CONF ]]; then
