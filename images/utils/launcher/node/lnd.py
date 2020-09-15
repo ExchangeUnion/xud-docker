@@ -70,7 +70,7 @@ class Lnd(Node):
         ]
 
         externalip = self.config.external_ip
-        if not externalip:
+        if externalip:
             opts += [
                 f"--externalip={externalip}:{p2p_port}",
             ]
