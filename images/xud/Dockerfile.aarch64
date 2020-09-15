@@ -22,7 +22,7 @@ RUN strip seedutil/seedutil
 FROM node:12-alpine3.11
 RUN apk add --no-cache bash tor supervisor
 COPY --from=builder /xud /app
-COPY entrypoint.sh update-backup-dir.sh xud-backup.sh /
+COPY entrypoint.sh update-backup-dir.sh xud-backup.sh supervisord.conf /
 WORKDIR /app
 RUN ln -s /app/bin/xud /usr/local/bin/xud
 RUN ln -s /app/bin/xucli /usr/local/bin/xucli
