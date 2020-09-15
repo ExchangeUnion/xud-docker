@@ -93,6 +93,7 @@ exec xud \
 --lnd.BTC.host="lndbtc" \
 --lnd.BTC.certpath="/root/.lndbtc/tls.cert" \
 --lnd.BTC.macaroonpath="/root/.lndbtc/data/chain/bitcoin/$NETWORK/admin.macaroon" \
+--lnd.LTC.host="lndltc" \
 --lnd.LTC.certpath="/root/.lndltc/tls.cert" \
 --lnd.LTC.macaroonpath="/root/.lndltc/data/chain/litecoin/$NETWORK/admin.macaroon" \
 --p2p.address="$XUD_ADDRESS" \
