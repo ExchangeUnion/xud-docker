@@ -72,7 +72,7 @@ class Lnd(Node):
         externalip = self.config.external_ip
         if not externalip:
             opts += [
-                f"--externalip={externalip}:{p2p_port}"
+                f"--externalip={externalip}:{p2p_port}",
             ]
 
         # configure chain specific options (shared between networks)
@@ -144,7 +144,6 @@ class Lnd(Node):
                     f"--{backend}.rpcpass=xu",
                     f"--{backend}.zmqpubrawblock=tcp://{backend}:{block_port}",
                     f"--{backend}.zmqpubrawtx=tcp://{backend}:{tx_port}",
-
                 ]
             elif mode == "external":
                 # use bitcoind/litecoind backend
@@ -178,7 +177,7 @@ class Lnd(Node):
                     elif chain == "litecoin":
                         opts += [
                             "--neutrino.connect=ltcd.michael1011.at:19335",
-                            "--neutrino.connect=ltc.kilrau.com:19335"
+                            "--neutrino.connect=ltc.kilrau.com:19335",
                         ]
                 elif network == "mainnet":
                     if chain == "bitcoin":
@@ -190,15 +189,15 @@ class Lnd(Node):
                     elif chain == "litecoin":
                         opts += [
                             "--neutrino.connect=ltcd.michael1011.at:9333",
-                            "--neutrino.connect=ltc.kilrau.com:9333"
+                            "--neutrino.connect=ltc.kilrau.com:9333",
                         ]
 
         return opts
 
     def get_environment(self):
         environment = [
-            f"CHAIN={self.chain}"
-            f"P2P_PORT={self.p2p_port}"
+            f"CHAIN={self.chain}",
+            f"P2P_PORT={self.p2p_port}",
         ]
         return environment
 
