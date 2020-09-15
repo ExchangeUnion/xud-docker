@@ -109,14 +109,10 @@ class Lnd(Node):
         elif network == "testnet":
             opts += [
                 f"--trickledelay=15000",
-                #f"--autopilot.active=false",
-                f"--debuglevel=ATPL=debug"
             ]
         elif network == "mainnet":
             opts += [
                 f"--trickledelay=15000",
-                #f"--autopilot.active=false",
-                f"--debuglevel=ATPL=debug"
             ]
 
         # configure backend node for testnet and mainnet
