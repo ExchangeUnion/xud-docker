@@ -238,22 +238,12 @@ class Config:
             metavar="<ports>",
             help="Expose lndbtc service ports to your host machine"
         )
-        group.add_argument(
-            "--lndbtc.preserve-config",
-            action="store_true",
-            help="Preserve lndbtc lnd.conf file during updates"
-        )
 
         group = parser.add_argument_group("lndltc")
         group.add_argument(
             "--lndltc.expose-ports",
             metavar="<ports>",
             help="Expose lndltc service ports to your host machine"
-        )
-        group.add_argument(
-            "--lndltc.preserve-config",
-            action="store_true",
-            help="Preserve lndltc lnd.conf file during updates"
         )
 
         group = parser.add_argument_group("connext")
@@ -818,14 +808,6 @@ class Config:
         if hasattr(self.args, "xud.preserve_config"):
             if "xud" in self.nodes:
                 self.nodes["xud"]["preserve_config"] = True
-
-        if hasattr(self.args, "lndbtc.preserve_config"):
-            if "lndbtc" in self.nodes:
-                self.nodes["lndbtc"]["preserve_config"] = True
-
-        if hasattr(self.args, "lndltc.preserve_config"):
-            if "lndltc" in self.nodes:
-                self.nodes["lndltc"]["preserve_config"] = True
 
     def expand_vars(self, value):
         if value is None:

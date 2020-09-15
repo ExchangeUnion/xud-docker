@@ -1,96 +1,67 @@
 #!/bin/bash
-set -euo pipefail
-set -m
-. /wait-file.sh
 
-SCRIPT_PATH=$(dirname "$0")
-cd "$SCRIPT_PATH" || exit 1
+set -o errexit # -e
+set -o nounset # -u
+set -o pipefail
+set -o monitor # -m
+
+if [[ $NETWORK != "testnet" && $NETWORK != "mainnet" ]]; then
+    echo "[entrypoint] ERROR: NETWORK must be \"testnet\" or \"mainnet\""
+    exit 1
+fi
+
+if [[ $CHAIN != "bitcoin" ]]; then
+    echo "[entrypoint] ERROR: CHAIN must be \"bitcoin\""
+    exit 1
+fi
+
+if [[ -z ${P2P_PORT:-} ]]; then
+    echo "[entrypoint] ERROR: P2P_PORT is required"
+    exit 1
+fi
+
 
 LND_DIR="/root/.lnd"
-mkdir -p $LND_DIR
+LND_CONF="$LND_DIR/lnd.conf"
+TOR_DIR="$LND_DIR/tor"
+TOR_LOG="$LND_DIR/tor.log"
+TOR_DATA_DIR="$LND_DIR/tor-data"
+LND_HOSTNAME="$TOR_DIR/hostname"
 
-if [[ ! -e $LND_DIR/lnd.conf ]]; then
-  cp /root/lnd.conf $LND_DIR/lnd.conf
+
+[[ -e /etc/tor/torrc ]] || cat <<EOF >/etc/tor/torrc
+DataDirectory $TOR_DATA_DIR
+ExitPolicy reject *:* # no exits allowed
+HiddenServiceDir $TOR_DIR
+HiddenServicePort $P2P_PORT 127.0.0.1:$P2P_PORT
+HiddenServiceVersion 3
+EOF
+
+tor -f /etc/tor/torrc >"$TOR_LOG" 2>&1 &
+
+while [[ ! -e $LND_HOSTNAME ]]; do
+    echo "[entrypoint] Waiting for lndbtc onion address"
+    sleep 1
+done
+
+LND_ADDRESS=$(cat "$LND_HOSTNAME")
+echo "[entrypoint] Onion address for lndbtc is $LND_ADDRESS"
+
+while ! nc -z 127.0.0.1 9050; do
+    echo "[entrypoint] Waiting for Tor port 9050 to be open"
+    sleep 1
+done
+
+if [[ -e $LND_CONF ]]; then
+    mv "$LND_CONF" "$LND_DIR/previous-lnd.$(date +%s).conf"
 fi
 
-NEUTRINO=${NEUTRINO:-}
-
-if [ ! -z ${NEUTRINO} ]; then
-  PEERS="[neutrino]\n"
-
-  case $CHAIN in
-    bitcoin)
-      case $NETWORK in
-        testnet)
-          PEERS="${PEERS}neutrino.addpeer=bitcoin.michael1011.at:18333\nneutrino.addpeer=btc.kilrau.com:18333"
-          ;;
-        mainnet)
-          PEERS="${PEERS}neutrino.addpeer=bitcoin.michael1011.at:8333\nneutrino.addpeer=btc.kilrau.com:8333\nneutrino.addpeer=thun.droidtech.it:8333"
-          ;;
-        esac
-      ;;
-    litecoin)
-          case $NETWORK in
-        testnet)
-          PEERS="${PEERS}neutrino.connect=ltcd.michael1011.at:19335\nneutrino.connect=ltc.kilrau.com:19335"
-          ;;
-        mainnet)
-          PEERS="${PEERS}neutrino.connect=ltcd.michael1011.at:9333\nneutrino.connect=ltc.kilrau.com:9333"
-          ;;
-        esac
-      ;;
-  esac
-
-  echo "[DEBUG] Enabling neutrino"
-  case $CHAIN in
-    bitcoin)
-      sed -i "s/bitcoin.node=bitcoind/bitcoin.node=neutrino\n\n${PEERS}\n\n[routing]\nrouting.assumechanvalid=1/g" $LND_DIR/lnd.conf
-      ;;
-    litecoin)
-      sed -i "s/litecoin.node=litecoind/litecoin.node=neutrino\n\n${PEERS}\n\n[routing]\nrouting.assumechanvalid=1/g" $LND_DIR/lnd.conf
-      ;;
-  esac
-fi
-
-set +e
-
-[[ -n ${RPCHOST:-} ]] && sed -i "s/rpchost.*/rpchost=$RPCHOST/g" $LND_DIR/lnd.conf
-[[ -n ${RPCUSER:-} ]] && sed -i "s/rpcuser.*/rpcuser=$RPCUSER/g" $LND_DIR/lnd.conf
-[[ -n ${RPCPASS:-} ]] && sed -i "s/rpcpass.*/rpcpass=$RPCPASS/g" $LND_DIR/lnd.conf
-[[ -n ${ZMQPUBRAWBLOCK:-} ]] && sed -i "s|zmqpubrawblock.*|zmqpubrawblock=$ZMQPUBRAWBLOCK|g" $LND_DIR/lnd.conf
-[[ -n ${ZMQPUBRAWTX:-} ]] && sed -i "s|zmqpubrawtx.*|zmqpubrawtx=$ZMQPUBRAWTX|g" $LND_DIR/lnd.conf
-
-set -e
-
-LND_HOSTNAME="$HOME/.lnd/tor/hostname"
-echo "Waiting for lnd-$CHAIN onion address..."
-
-wait_file "$LND_HOSTNAME" && {
-	LND_ONION_ADDRESS=$(cat "$LND_HOSTNAME")
-	echo "Onion address for lnd-$CHAIN is $LND_ONION_ADDRESS"
-  # mark lnd as locked before starting
-  touch "$HOME/.lnd/wallet.lock"
-  # notify peers.sh to bootstrap peers
-  touch "$HOME/.lnd/peers.lock"
-
-  case $CHAIN in
-    bitcoin)
-      PORT=9735
-      ;;
-    litecoin)
-      PORT=10735
-      ;;
-  esac
-
-  case $NETWORK in
-    testnet)
-      PORT=$((PORT + 10000))
-      ;;
-  esac
-
-  if [ -z ${EXTERNAL_IP+x} ]; then
-    lnd --$CHAIN.$NETWORK --lnddir=$LND_DIR --externalip="$LND_ONION_ADDRESS:$PORT" --listen="0.0.0.0:$PORT"
-  else
-    lnd --$CHAIN.$NETWORK --lnddir=$LND_DIR --externalip="$LND_ONION_ADDRESS:$PORT" --externalip="$EXTERNAL_IP:$PORT" --listen="0.0.0.0:$PORT"
-  fi
-} || exit 1
+# use exec to properly respond to SIGINT
+# shellcheck disable=2068
+exec lnd \
+--lnddir="$LND_DIR" \
+--tor.active \
+--tor.socks=9050 \
+--tor.streamisolation \
+--externalip="$LND_ADDRESS:$P2P_PORT" \
+$@

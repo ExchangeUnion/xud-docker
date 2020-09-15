@@ -38,68 +38,168 @@ class Lnd(Node):
         self._cli = f"lncli -n {self.network} -c {self.chain}"
         self.api = LndApi(CliBackend(self.client, self.container_name, self._logger, self._cli))
 
-    def get_command(self):
-        if self.network != "simnet":
-            return []
+    @property
+    def p2p_port(self) -> int:
         if self.chain == "bitcoin":
-            # TODO better to have --alias
-            # nohup lnd-btc --noseedbackup --rpclisten=127.0.0.1:10002 --listen=127.0.0.1:10012 --restlisten=8002 --datadir=./data --logdir=./logs  --nobootstrap --no-macaroons --bitcoin.active --bitcoin.simnet  --btcd.rpcuser=xu --btcd.rpcpass=xu --debuglevel=debug --alias="BTC@$xname" --btcd.rpchost=127.0.0.1:18556  --btcd.rpccert=$cert --bitcoin.node neutrino  --neutrino.connect btcd.simnet.exchangeunion.com:38555 --chan-enable-timeout=0m10s --max-cltv-expiry=5000 > /dev/null 2>&1 &
-            return [
-                "--debuglevel=debug",
-                "--nobootstrap",
-                "--minbackoff=30s",
-                "--maxbackoff=24h",
-                "--bitcoin.active",
-                "--bitcoin.simnet",
-                "--bitcoin.node=neutrino",
-                "--bitcoin.defaultchanconfs=6",
-                "--routing.assumechanvalid",
-                "--neutrino.connect=btcd.simnet.exchangeunion.com:38555",
-                "--chan-enable-timeout=0m10s",
-                "--max-cltv-expiry=5000"
+            if self.network == "mainnet":
+                return 9735
+            elif self.network == "testnet":
+                return 19735
+            elif self.network == "simnet":
+                return 29735
+        elif self.chain == "litecoin":
+            if self.network == "mainnet":
+                return 10735
+            elif self.network == "testnet":
+                return 20735
+            elif self.network == "simnet":
+                return 30735
+
+    def get_command(self):
+        network = self.network
+        chain = self.chain
+        p2p_port = self.p2p_port
+
+        opts = [
+            f"--listen=0.0.0.0:{p2p_port}",
+            f"--rpclisten=0.0.0.0:10009",
+            f"--restlisten=0.0.0.0:8080",
+            f"--protocol.wumbo-channels",
+            f"--{chain}.active",
+            f"--{chain}.{network}",
+        ]
+
+        externalip = self.config.external_ip
+        if not externalip:
+            opts += [
+                f"--externalip={externalip}:{p2p_port}"
             ]
-        if self.chain == "litecoin":
-            # nohup lnd-ltc --noseedbackup --rpclisten=127.0.0.1:10001 --listen=127.0.0.1:10011 --restlisten=8001 --datadir=./data --logdir=./logs --nobootstrap --no-macaroons --litecoin.active --litecoin.simnet --debuglevel=debug --alias="LTC@$xname" --litecoin.node neutrino --neutrino.connect btcd.simnet.exchangeunion.com:39555 --chan-enable-timeout=0m10s --max-cltv-expiry=20000 > /dev/null 2>&1 &
-            return [
-                "--debuglevel=debug",
-                "--nobootstrap",
-                "--minbackoff=30s",
-                "--maxbackoff=24h",
-                "--litecoin.active",
-                "--litecoin.simnet",
-                "--litecoin.node=neutrino",
-                "--litecoin.defaultchanconfs=6",
-                "--routing.assumechanvalid",
-                "--neutrino.connect=btcd.simnet.exchangeunion.com:39555",
-                "--chan-enable-timeout=0m10s",
-                "--max-cltv-expiry=20000"
+
+        # configure chain specific options (shared between networks)
+        if chain == "bitcoin":
+            opts += [
+                "--max-cltv-expiry=5000",
             ]
+        elif chain == "litecoin":
+            opts += [
+                "--max-cltv-expiry=20000",
+            ]
+
+        # configure network specific options (shared between modes)
+        if network == "simnet":
+            opts += [
+                f"--trickledelay=1",
+                f"--debuglevel=debug",
+                f"--nobootstrap",
+                f"--minbackoff=30s",
+                f"--maxbackoff=24h",
+                f"--chan-enable-timeout=0m10s",
+                f"--routing.assumechanvalid",
+                f"--{chain}.node=neutrino",
+                f"--{chain}.defaultchanconfs=6",
+            ]
+            if chain == "bitcoin":
+                opts += [
+                    "--neutrino.connect=btcd.simnet.exchangeunion.com:38555",
+                ]
+            elif chain == "litecoin":
+                opts += [
+                    "--neutrino.connect=btcd.simnet.exchangeunion.com:39555",
+                ]
+        elif network == "testnet":
+            opts += [
+                f"--trickledelay=15000",
+                f"--autopilot.active=false",
+            ]
+        elif network == "mainnet":
+            opts += [
+                f"--trickledelay=15000",
+                f"--autopilot.active=false",
+            ]
+
+        # configure backend node for testnet and mainnet
+        if network != "simnet":
+            if chain == "bitcoin":
+                backend = "bitcoind"
+                backend_config = self.config.nodes[backend]
+            else:
+                backend = "litecoind"
+                backend_config = self.config.nodes[backend]
+
+            mode = backend_config["mode"]
+
+            if mode == "native":
+                # use bitcoind/litecoind backend
+                if chain == "bitcoin":
+                    block_port = 28332
+                    tx_port = 28333
+                else:
+                    block_port = 29332
+                    tx_port = 29333
+
+                opts += [
+                    f"--{chain}.node={backend}"
+                    f"--{backend}.rpchost={backend}",
+                    f"--{backend}.rpcuser=xu",
+                    f"--{backend}.rpcpass=xu",
+                    f"--{backend}.zmqpubrawblock=tcp://{backend}:{block_port}",
+                    f"--{backend}.zmqpubrawtx=tcp://{backend}:{tx_port}",
+
+                ]
+            elif mode == "external":
+                # use bitcoind/litecoind backend
+                rpchost = backend_config["external_rpc_host"]
+                rpcuser = backend_config["external_rpc_user"]
+                rpcpass = backend_config["external_rpc_password"]
+                zmqpubrawblock = backend_config["external_zmqpubrawblock"]
+                zmqpubrawtx = backend_config["external_zmqpubrawtx"]
+
+                opts += [
+                    f"--{chain}.node={backend}"
+                    f"--{backend}.rpchost={rpchost}",
+                    f"--{backend}.rpcuser={rpcuser}",
+                    f"--{backend}.rpcpass={rpcpass}",
+                    f"--{backend}.zmqpubrawblock={zmqpubrawblock}",
+                    f"--{backend}.zmqpubrawtx={zmqpubrawtx}",
+                ]
+            elif mode == "neutrino" or mode == "light":
+                # use Neutrino backend
+                opts += [
+                    f"--{chain}.node=neutrino",
+                    f"--routing.assumechanvalid",
+                ]
+                # add Neutrino peers
+                if network == "testnet":
+                    if chain == "bitcoin":
+                        opts += [
+                            "--neutrino.addpeer=bitcoin.michael1011.at:18333",
+                            "--neutrino.addpeer=btc.kilrau.com:18333",
+                        ]
+                    elif chain == "litecoin":
+                        opts += [
+                            "--neutrino.connect=ltcd.michael1011.at:19335",
+                            "--neutrino.connect=ltc.kilrau.com:19335"
+                        ]
+                elif network == "mainnet":
+                    if chain == "bitcoin":
+                        opts += [
+                            "--neutrino.addpeer=bitcoin.michael1011.at:8333",
+                            "--neutrino.addpeer=btc.kilrau.com:8333",
+                            "--neutrino.addpeer=thun.droidtech.it:8333",
+                        ]
+                    elif chain == "litecoin":
+                        opts += [
+                            "--neutrino.connect=ltcd.michael1011.at:9333",
+                            "--neutrino.connect=ltc.kilrau.com:9333"
+                        ]
+
+        return opts
 
     def get_environment(self):
-        environment = [f"CHAIN={self.chain}"]
-
-        external_ip = self.config.external_ip
-        if external_ip is not None:
-            environment.append(f"EXTERNAL_IP={external_ip}")
-
-        if self.network in ["testnet", "mainnet"]:
-            if self.name == "lndbtc":
-                layer1_node = self.config.nodes["bitcoind"]
-            else:
-                layer1_node = self.config.nodes["litecoind"]
-
-            if layer1_node["mode"] == "neutrino" or layer1_node["mode"] == "light":
-                environment.extend([
-                    f'NEUTRINO=True',
-                ])
-            elif layer1_node["mode"] == "external":
-                environment.extend([
-                    f'RPCHOST={layer1_node["external_rpc_host"]}',
-                    f'RPCUSER={layer1_node["external_rpc_user"]}',
-                    f'RPCPASS={layer1_node["external_rpc_password"]}',
-                    f'ZMQPUBRAWBLOCK={layer1_node["external_zmqpubrawblock"]}',
-                    f'ZMQPUBRAWTX={layer1_node["external_zmqpubrawtx"]}',
-                ])
+        environment = [
+            f"CHAIN={self.chain}"
+            f"P2P_PORT={self.p2p_port}"
+        ]
         return environment
 
     def get_current_height(self):

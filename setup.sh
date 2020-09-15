@@ -60,11 +60,9 @@ Geth options:
 
 Lndbtc options:
     --lndbtc.expose-ports <port>[,<port>]       Expose lndbtc service ports to your host machine
-    --lndbtc.preserve-config                    Preserve lndbtc lnd.conf file during updates
 
 Lndbtc options:
     --lndltc.expose-ports <port>[,<port>]       Expose lndltc service ports to your host machine
-    --lndltc.preserve-config                    Preserve lndltc lnd.conf file during updates
 
 Connext options:
     --connext.expose-ports <port>[,<port>]      Expose connext service ports to your host machine
