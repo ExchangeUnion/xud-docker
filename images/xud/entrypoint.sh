@@ -8,7 +8,7 @@ set -o monitor # -m
 XUD_DIR="$HOME/.xud"
 XUD_CONF="$XUD_DIR/xud.conf"
 TOR_DIR="$XUD_DIR/tor"
-TOR_LOG="$TOR_DIR/tor.log"
+TOR_LOG="$XUD_DIR/tor.log"
 TOR_DATA_DIR="$XUD_DIR/tor-data"
 LND_HOSTNAME="$TOR_DIR/hostname"
 
