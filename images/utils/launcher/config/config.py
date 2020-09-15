@@ -269,11 +269,6 @@ class Config:
             metavar="<ports>",
             help="Expose xud service ports to your host machine"
         )
-        group.add_argument(
-            "--xud.preserve-config",
-            action="store_true",
-            help="Preserve xud xud.conf file during updates"
-        )
 
         group = parser.add_argument_group("arby")
         group.add_argument(
@@ -656,7 +651,7 @@ class Config:
 
     def update_arby(self, parsed):
         """Update arby related configurations from parsed TOML arby section
-        :param parsed: Parsed xud TOML section
+        :param parsed: Parsed arby TOML section
         """
         node = self.nodes["arby"]
         if "test-centralized-baseasset-balance" in parsed:
@@ -814,10 +809,6 @@ class Config:
                         self.external_ip = parts[1].strip()
         except FileNotFoundError:
             pass
-
-        if hasattr(self.args, "xud.preserve_config"):
-            if "xud" in self.nodes:
-                self.nodes["xud"]["preserve_config"] = True
 
         if hasattr(self.args, "lndbtc.preserve_config"):
             if "lndbtc" in self.nodes:

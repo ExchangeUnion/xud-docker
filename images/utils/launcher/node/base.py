@@ -84,10 +84,13 @@ class Node:
 
     def generate_environment(self):
         environment = [f"NETWORK={self.network}"]
+
+        # TODO deprecate PRESERVE_CONFIG
         if self.node_config["preserve_config"]:
             environment.append("PRESERVE_CONFIG=true")
         else:
             environment.append("PRESERVE_CONFIG=false")
+
         return environment
 
     def generate_volumes(self):

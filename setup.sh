@@ -71,7 +71,6 @@ Connext options:
 
 Xud options:
     --xud.expose-ports <port>[,<port>]          Expose xud service ports to your host machine
-    --xud.preserve-config                       Preserve xud xud.conf file during updates
 
 Arby options:
     --arby.live-cex [true|false]                Production/Demo mode (default: false)
