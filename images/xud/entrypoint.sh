@@ -5,10 +5,11 @@ set -o nounset # -u
 set -o pipefail
 set -o monitor # -m
 
-XUD_DIR=$HOME/.xud
-XUD_CONF=$XUD_DIR/xud.conf
-TOR_DIR=$XUD_DIR/tor
-TOR_DATA_DIR=$XUD_DIR/tor-data
+XUD_DIR="$HOME/.xud"
+XUD_CONF="$XUD_DIR/xud.conf"
+TOR_DIR="$XUD_DIR/tor"
+TOR_LOG="$TOR_DIR/tor.log"
+TOR_DATA_DIR="$XUD_DIR/tor-data"
 LND_HOSTNAME="$TOR_DIR/hostname"
 
 
@@ -42,7 +43,7 @@ HiddenServicePort $P2P_PORT 127.0.0.1:$P2P_PORT
 HiddenServiceVersion 3
 EOF
 
-tor -f /etc/tor/torrc &
+tor -f /etc/tor/torrc >"$TOR_LOG" 2>&1 &
 
 while [[ ! -e $LND_HOSTNAME ]]; do
     echo "[entrypoint] Waiting for xud onion address"
