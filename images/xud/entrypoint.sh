@@ -91,9 +91,11 @@ exec xud \
 --http.host="0.0.0.0" \
 --http.port="$HTTP_PORT" \
 --lnd.BTC.host="lndbtc" \
+--lnd.BTC.port=10009 \
 --lnd.BTC.certpath="/root/.lndbtc/tls.cert" \
 --lnd.BTC.macaroonpath="/root/.lndbtc/data/chain/bitcoin/$NETWORK/admin.macaroon" \
 --lnd.LTC.host="lndltc" \
+--lnd.LTC.port=10009 \
 --lnd.LTC.certpath="/root/.lndltc/tls.cert" \
 --lnd.LTC.macaroonpath="/root/.lndltc/data/chain/litecoin/$NETWORK/admin.macaroon" \
 --p2p.address="$XUD_ADDRESS" \
