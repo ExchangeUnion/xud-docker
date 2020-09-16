@@ -88,11 +88,10 @@ class Lnd(Node):
             else:
                 layer1_node = self.config.nodes["litecoind"]
 
-            if layer1_node["mode"] == "neutrino" or layer1_node["mode"] == "light":
-                environment.extend([
-                    f'NEUTRINO=True',
-                ])
-            elif layer1_node["mode"] == "external":
+            mode = layer1_node["mode"]
+            environment.append(f"MODE={mode}")
+
+            if mode == "external":
                 environment.extend([
                     f'RPCHOST={layer1_node["external_rpc_host"]}',
                     f'RPCUSER={layer1_node["external_rpc_user"]}',
