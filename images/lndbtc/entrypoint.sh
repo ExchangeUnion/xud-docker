@@ -39,6 +39,7 @@ neutrino.addpeer=thun.droidtech.it:8333
 EOF
     fi
 elif [[ $MODE == "native" ]]; then
+    sed -i '/routing/,$d' "$LND_CONF"
     sed -i "s/bitcoin.node=.*/bitcoin.node=bitcoind/g" "$LND_CONF"
     sed -i "s/rpchost.*/rpchost=bitcoind/g" "$LND_CONF"
     sed -i "s/rpcuser.*/rpcuser=xu/g" "$LND_CONF"
@@ -46,6 +47,7 @@ elif [[ $MODE == "native" ]]; then
     sed -i "s|zmqpubrawblock.*|zmqpubrawblock=tcp://bitcoind:28332|g" "$LND_CONF"
     sed -i "s|zmqpubrawtx.*|zmqpubrawtx=tcp://bitcoind:28333|g" "$LND_CONF"
 elif [[ $MODE == "external" ]]; then
+    sed -i '/routing/,$d' "$LND_CONF"
     sed -i "s/bitcoin.node=.*/bitcoin.node=bitcoind/g" "$LND_CONF"
     sed -i "s/rpchost.*/rpchost=$RPCHOST/g" "$LND_CONF"
     sed -i "s/rpcuser.*/rpcuser=$RPCUSER/g" "$LND_CONF"
