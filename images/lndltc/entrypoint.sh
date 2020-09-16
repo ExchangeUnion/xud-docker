@@ -17,7 +17,7 @@ fi
 echo "[entrypoint] Enabling $MODE mode"
 if [[ $MODE == "light" || $MODE == "neutrino" ]]; then
     sed -i "s/litecoin.node.*/litecoin.node=neutrino/g" "$LND_CONF"
-    sed -i '/[routing]/,$d' "$LND_CONF"
+    sed -i '/routing/,$d' "$LND_CONF"
     if [[ $NETWORK == "testnet" ]]; then
         cat <<EOF >> "$LND_CONF"
 [routing]
