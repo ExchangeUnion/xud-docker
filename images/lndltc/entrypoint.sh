@@ -7,7 +7,7 @@ SCRIPT_PATH=$(dirname "$0")
 cd "$SCRIPT_PATH" || exit 1
 
 LND_DIR="/root/.lnd"
-LND_CONF="$LND_CONF/lnd.conf"
+LND_CONF="$LND_DIR/lnd.conf"
 mkdir -p $LND_DIR
 
 if [[ ! -e "$LND_CONF" ]]; then
