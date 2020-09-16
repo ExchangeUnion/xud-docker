@@ -43,8 +43,8 @@ elif [[ $MODE == "native" ]]; then
     sed -i "s/rpchost.*/rpchost=litecoind/g" "$LND_CONF"
     sed -i "s/rpcuser.*/rpcuser=xu/g" "$LND_CONF"
     sed -i "s/rpcpass.*/rpcpass=xu/g" "$LND_CONF"
-    sed -i "s|zmqpubrawblock.*|zmqpubrawblock=tcp://bitcoind:28332|g" "$LND_CONF"
-    sed -i "s|zmqpubrawtx.*|zmqpubrawtx=tcp://bitcoind:28333|g" "$LND_CONF"
+    sed -i "s|zmqpubrawblock.*|zmqpubrawblock=tcp://litecoind:28332|g" "$LND_CONF"
+    sed -i "s|zmqpubrawtx.*|zmqpubrawtx=tcp://litecoind:28333|g" "$LND_CONF"
 elif [[ $MODE == "external" ]]; then
     sed -i '/routing/,$d' "$LND_CONF"
     sed -i "s/litecoin.node=.*/litecoin.node=litecoind/g" "$LND_CONF"
