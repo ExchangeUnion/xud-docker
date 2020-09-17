@@ -21,6 +21,7 @@ from .image import Image, ImageManager
 from .lnd import Lndbtc, Lndltc
 from .webui import Webui
 from .xud import Xud, XudApiError
+from .proxy import Proxy
 from .DockerTemplate import DockerTemplate
 from ..config import Config
 from ..errors import FatalError

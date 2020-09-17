@@ -133,6 +133,21 @@ nodes_config = {
             "use_local_image": False,
             "disabled": True,
         },
+        "proxy": {
+            "name": "proxy",
+            "image": "exchangeunion/proxy:latest",
+            "volumes": [
+                {
+                    "host": "$data_dir/xud",
+                    "container": "/root/.xud",
+                }
+            ],
+            "ports": [PortPublish("8080:8080")],
+            "mode": "native",
+            "preserve_config": False,
+            "use_local_image": False,
+            "disabled": True,
+        },
         "xud": {
             "name": "xud",
             "image": "exchangeunion/xud:latest",
@@ -320,6 +335,21 @@ nodes_config = {
             "use_local_image": False,
             "disabled": True,
         },
+        "proxy": {
+            "name": "proxy",
+            "image": "exchangeunion/proxy:latest",
+            "volumes": [
+                {
+                    "host": "$data_dir/xud",
+                    "container": "/root/.xud",
+                }
+            ],
+            "ports": [PortPublish("8081:8080")],
+            "mode": "native",
+            "preserve_config": False,
+            "use_local_image": False,
+            "disabled": True,
+        },
         "xud": {
             "name": "xud",
             "image": "exchangeunion/xud:latest",
@@ -501,6 +531,21 @@ nodes_config = {
                 }
             ],
             "ports": [PortPublish("8888:8080")],
+            "mode": "native",
+            "preserve_config": False,
+            "use_local_image": False,
+            "disabled": True,
+        },
+        "proxy": {
+            "name": "proxy",
+            "image": "exchangeunion/proxy:latest",
+            "volumes": [
+                {
+                    "host": "$data_dir/xud",
+                    "container": "/root/.xud",
+                }
+            ],
+            "ports": [PortPublish("8082:8080")],
             "mode": "native",
             "preserve_config": False,
             "use_local_image": False,

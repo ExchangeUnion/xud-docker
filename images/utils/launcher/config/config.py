@@ -103,6 +103,11 @@ class Config:
             metavar="<images>",
             help="Use other local built images"
         )
+        parser.add_argument(
+            "--api",
+            action="store_true",
+            help="Expose xud-docker API (REST + WebSocket)"
+        )
 
         group = parser.add_argument_group("bitcoind")
         group.add_argument(
@@ -762,6 +767,12 @@ class Config:
             "28888": "28888:8080",
         })
 
+    def update_proxy(self, parsed):
+        """Update proxy related configurations from parsed TOML webui section
+        :param parsed: Parsed proxy TOML section
+        """
+        pass
+
     def parse_network_config(self):
         network = self.network
 
@@ -826,6 +837,10 @@ class Config:
         if hasattr(self.args, "lndltc.preserve_config"):
             if "lndltc" in self.nodes:
                 self.nodes["lndltc"]["preserve_config"] = True
+
+        if hasattr(self.args, "api"):
+            if "proxy" in self.nodes:
+                self.nodes["proxy"]["disabled"] = False
 
     def expand_vars(self, value):
         if value is None:

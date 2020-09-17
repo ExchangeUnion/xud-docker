@@ -26,6 +26,7 @@ OPTIONS:
     --external-ip <ip>                          Host machine Internet IP address
     --dev                                       Use local built utils image
     --use-local-images <image>[,<image>]        Use other built images
+    --api                                       Expose xud-docker API (REST + WebSocket)
 
 Bitcoind options:
     --bitcoind.mode [light|neutrino|external|native]
