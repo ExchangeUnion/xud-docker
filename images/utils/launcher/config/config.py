@@ -302,14 +302,19 @@ class Config:
             help="Test centralized quote asset balance"
         )
         group.add_argument(
-            "--arby.binance-api-key",
+            "--arby.cex",
             metavar="<key>",
-            help="Binance API key"
+            help="Centralized Exchange"
         )
         group.add_argument(
-            "--arby.binance-api-secret",
+            "--arby.cex-api-key",
+            metavar="<key>",
+            help="CEX API key"
+        )
+        group.add_argument(
+            "--arby.cex-api-secret",
             metavar="<secret>",
-            help="Binance API secret"
+            help="CEX API secret"
         )
         group.add_argument(
             "--arby.margin",
@@ -709,25 +714,35 @@ class Config:
             if value:
                 node["live-cex"] = value
 
-        if "binance-api-key" in parsed:
-            if parsed["binance-api-key"]:
-                value = parsed["binance-api-key"]
-                node["binance-api-key"] = value
-        opt = "arby.binance_api_key"
+        if "cex" in parsed:
+            if parsed["cex"]:
+                value = parsed["cex"]
+                node["cex"] = value
+        opt = "arby.cex"
         if hasattr(self.args, opt):
             value = getattr(self.args, opt)
             if value:
-                node["binance-api-key"] = value
+                node["cex"] = value
 
-        if "binance-api-secret" in parsed:
-            if parsed["binance-api-secret"]:
-                value = parsed["binance-api-secret"]
-                node["binance-api-secret"] = value
-        opt = "arby.binance_api_secret"
+        if "cex-api-key" in parsed:
+            if parsed["cex-api-key"]:
+                value = parsed["cex-api-key"]
+                node["cex-api-key"] = value
+        opt = "arby.cex_api_key"
         if hasattr(self.args, opt):
             value = getattr(self.args, opt)
             if value:
-                node["binance-api-secret"] = value
+                node["cex-api-key"] = value
+
+        if "cex-api-secret" in parsed:
+            if parsed["cex-api-secret"]:
+                value = parsed["cex-api-secret"]
+                node["cex-api-secret"] = value
+        opt = "arby.cex_api_secret"
+        if hasattr(self.args, opt):
+            value = getattr(self.args, opt)
+            if value:
+                node["cex-api-secret"] = value
 
         if "margin" in parsed:
             if parsed["margin"]:

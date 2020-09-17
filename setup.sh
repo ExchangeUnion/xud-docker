@@ -79,8 +79,9 @@ Arby options:
     --arby.quote-asset <string>                 Quote asset symbol
     --arby.test-centralized-baseasset-balance   CEX base asset balance for demo mode
     --arby.test-centralized-quoteasset-balance  CEX quote asset balance for demo mode
-    --arby.binance-api-key <string>             Binance API key
-    --arby.binance-api-secret <string>          Binance API secret
+    --arby.cex <string>                         CEX (Binance/Kraken)
+    --arby.cex-api-key <string>                 CEX API key
+    --arby.cex-api-secret <string>              CEX API secret
     --arby.margin <double>                      Trade margin
     --arby.disabled [true|false]                Enable/Disable arby service
 
