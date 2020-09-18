@@ -349,6 +349,19 @@ class Config:
             help="Expose webui service ports to your host machine"
         )
 
+        group = parser.add_argument_group("proxy")
+        group.add_argument(
+            "--proxy.disabled",
+            nargs='?',
+            metavar="true|false",
+            help="Enable/Disable proxy service"
+        )
+        group.add_argument(
+            "--proxy.expose-ports",
+            metavar="<ports>",
+            help="Expose proxy service ports to your host machine"
+        )
+
         self.args = parser.parse_args()
         self.logger.info("Parsed command-line arguments: %r", self.args)
 
@@ -771,7 +784,13 @@ class Config:
         """Update proxy related configurations from parsed TOML webui section
         :param parsed: Parsed proxy TOML section
         """
-        pass
+        node = self.nodes["proxy"]
+        self.update_disabled(node, parsed, "proxy.disabled")
+        self.update_ports(node, parsed, mapping={
+            "8889": "8889:8080",
+            "18889": "18889:8080",
+            "28889": "28889:8080",
+        })
 
     def parse_network_config(self):
         network = self.network
@@ -837,10 +856,6 @@ class Config:
         if hasattr(self.args, "lndltc.preserve_config"):
             if "lndltc" in self.nodes:
                 self.nodes["lndltc"]["preserve_config"] = True
-
-        if hasattr(self.args, "api"):
-            if "proxy" in self.nodes:
-                self.nodes["proxy"]["disabled"] = False
 
     def expand_vars(self, value):
         if value is None:

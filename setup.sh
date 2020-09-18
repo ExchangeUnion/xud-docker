@@ -26,7 +26,6 @@ OPTIONS:
     --external-ip <ip>                          Host machine Internet IP address
     --dev                                       Use local built utils image
     --use-local-images <image>[,<image>]        Use other built images
-    --api                                       Expose xud-docker API (REST + WebSocket)
 
 Bitcoind options:
     --bitcoind.mode [light|neutrino|external|native]
@@ -91,6 +90,10 @@ Boltz options:
 Webui options:
     --webui.disabled [true|false]               Enable/Disable webui service
     --webui.expose-ports <port>[,<port>]        Expose webui service ports to your host machine
+
+Proxy options:
+    --proxy.disabled [true|false]               Enable/Disable proxy service
+    --proxy.expose-ports <port>[,<port>]        Expose proxy service ports to your host machine
 EOF
 }
 
