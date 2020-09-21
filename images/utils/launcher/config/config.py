@@ -103,6 +103,11 @@ class Config:
             metavar="<images>",
             help="Use other local built images"
         )
+        parser.add_argument(
+            "--api",
+            action="store_true",
+            help="Expose xud-docker API (REST + WebSocket)"
+        )
 
         group = parser.add_argument_group("bitcoind")
         group.add_argument(
@@ -342,6 +347,19 @@ class Config:
             "--webui.expose-ports",
             metavar="<ports>",
             help="Expose webui service ports to your host machine"
+        )
+
+        group = parser.add_argument_group("proxy")
+        group.add_argument(
+            "--proxy.disabled",
+            nargs='?',
+            metavar="true|false",
+            help="Enable/Disable proxy service"
+        )
+        group.add_argument(
+            "--proxy.expose-ports",
+            metavar="<ports>",
+            help="Expose proxy service ports to your host machine"
         )
 
         self.args = parser.parse_args()
@@ -760,6 +778,18 @@ class Config:
             "8888": "8888:8080",
             "18888": "18888:8080",
             "28888": "28888:8080",
+        })
+
+    def update_proxy(self, parsed):
+        """Update proxy related configurations from parsed TOML webui section
+        :param parsed: Parsed proxy TOML section
+        """
+        node = self.nodes["proxy"]
+        self.update_disabled(node, parsed, "proxy.disabled")
+        self.update_ports(node, parsed, mapping={
+            "8889": "8889:8080",
+            "18889": "18889:8080",
+            "28889": "28889:8080",
         })
 
     def parse_network_config(self):
