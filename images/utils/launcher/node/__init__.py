@@ -329,7 +329,7 @@ class NodeManager:
         self.get_node(name).cli(" ".join(args), self.shell)
 
     def _get_status_nodes(self):
-        optional_nodes = ["arby", "boltz", "webui"]
+        optional_nodes = ["arby", "boltz", "webui", "proxy"]
         result = {}
         for node in self.nodes.values():
             if node.name in optional_nodes:
