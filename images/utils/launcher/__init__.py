@@ -1,7 +1,6 @@
 import logging
 import shlex
 import traceback
-import os
 
 from .config import Config, ConfigLoader
 from .shell import Shell
@@ -266,17 +265,17 @@ class Launcher:
             print()
         except ConfigError as e:
             if e.scope == ConfigErrorScope.COMMAND_LINE_ARGS:
-                print("❌ Failed to parse command-line arguments, exiting.")
-                print(f"Error details: {e.__cause__}")
+                print("Failed to parse command-line arguments, exiting.")
+                traceback.print_exc()
             elif e.scope == ConfigErrorScope.GENERAL_CONF:
-                print("❌ Failed to parse config file {}, exiting.".format(e.conf_file))
-                print(f"Error details: {e.__cause__}")
+                print("Failed to parse config file {}, exiting.".format(e.conf_file))
+                traceback.print_exc()
             elif e.scope == ConfigErrorScope.NETWORK_CONF:
-                print("❌ Failed to parse config file {}, exiting.".format(e.conf_file))
-                print(f"Error details: {e.__cause__}")
+                print("Failed to parse config file {}, exiting.".format(e.conf_file))
+                traceback.print_exc()
         except FatalError as e:
             if config and config.logfile:
-                print(f"❌ Error: {e}. For more details, see {config.logfile}")
+                print(f"Error: {e}. For more details, see {config.logfile}")
             else:
                 traceback.print_exc()
         except Exception:  # exclude system exceptions like SystemExit

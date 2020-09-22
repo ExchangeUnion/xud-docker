@@ -42,6 +42,10 @@ class Xud(Node):
 
         self.container_spec.environment.append("NODE_ENV=production")
 
+        if "debug" in self.node_config:
+            debug_port = self.node_config["debug"]
+            self.container_spec.environment.append(f"DEBUG_PORT={debug_port}")
+
         self._cli = "xucli"
 
         self.api = XudApi(CliBackend(self.client, self.container_name, self._logger, self._cli))

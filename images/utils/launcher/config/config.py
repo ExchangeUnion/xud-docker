@@ -279,6 +279,12 @@ class Config:
             action="store_true",
             help="Preserve xud xud.conf file during updates"
         )
+        group.add_argument(
+            "--xud.debug",
+            nargs='?',
+            metavar="<port>",
+            help="Run xud with NodeJS --inspect option on specific port (default: 9229)"
+        )
 
         group = parser.add_argument_group("arby")
         group.add_argument(
@@ -424,6 +430,29 @@ class Config:
                 p = PortPublish(p.strip())
                 if p not in node["ports"]:
                     node["ports"].append(p)
+
+    def update_debug(self, node, parsed):
+        node_name = node["name"]
+
+        def process(value):
+            if not value:
+                if node_name == "xud":
+                    value = 9229
+                else:
+                    raise RuntimeError("No default debug port for node %s" % node_name)
+            if isinstance(value, str):
+                value = int(value)
+            assert isinstance(value, int)
+            node["debug"] = value
+            p = PortPublish("%s" % value)
+            if p not in node["ports"]:
+                node["ports"].append(p)
+
+        if "debug" in parsed:
+            process(parsed["debug"])
+        opt = "{}.debug".format(node_name)
+        if hasattr(self.args, opt):
+            process(getattr(self.args, opt))
 
     def update_bitcoind_kind(self, node, parsed):
         if "external" in parsed:
@@ -655,6 +684,7 @@ class Config:
         """
         node = self.nodes["xud"]
         self.update_ports(node, parsed)
+        self.update_debug(node, parsed)
 
     def update_disabled(self, node, parsed, opt):
         if "disabled" in parsed:
