@@ -16,7 +16,7 @@ class Arby(Node):
         live_cex = self.node_config["live-cex"] \
             if "live-cex" in self.node_config else "false"
         cex = self.node_config["cex"] \
-            if "cex" in self.node_config else "Binance"
+            if "cex" in self.node_config else "binance"
         api_key = self.node_config["cex-api-key"] \
             if "cex-api-key" in self.node_config else "123"
         api_secret = self.node_config["cex-api-secret"] \
