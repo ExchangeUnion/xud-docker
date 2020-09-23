@@ -79,7 +79,7 @@ Arby options:
     --arby.quote-asset <string>                 Quote asset symbol
     --arby.test-centralized-baseasset-balance   CEX base asset balance for demo mode
     --arby.test-centralized-quoteasset-balance  CEX quote asset balance for demo mode
-    --arby.cex <string>                         CEX (Binance/Kraken)
+    --arby.cex <string>                         CEX (binance/kraken)
     --arby.cex-api-key <string>                 CEX API key
     --arby.cex-api-secret <string>              CEX API secret
     --arby.margin <double>                      Trade margin
