@@ -153,9 +153,21 @@ nodes_config = {
             "image": "exchangeunion/proxy:latest",
             "volumes": [
                 {
+                    "host": "/var/run/docker.sock",
+                    "container": "/var/run/docker.sock",
+                },
+                {
                     "host": "$data_dir/xud",
                     "container": "/root/.xud",
-                }
+                },
+                {
+                    "host": "$data_dir/lndbtc",
+                    "container": "/root/.lndbtc",
+                },
+                {
+                    "host": "$data_dir/lndltc",
+                    "container": "/root/.lndltc",
+                },
             ],
             "ports": [PortPublish("28889:8080")],
             "mode": "native",
@@ -355,9 +367,21 @@ nodes_config = {
             "image": "exchangeunion/proxy:latest",
             "volumes": [
                 {
+                    "host": "/var/run/docker.sock",
+                    "container": "/var/run/docker.sock",
+                },
+                {
                     "host": "$data_dir/xud",
                     "container": "/root/.xud",
-                }
+                },
+                {
+                    "host": "$data_dir/lndbtc",
+                    "container": "/root/.lndbtc",
+                },
+                {
+                    "host": "$data_dir/lndltc",
+                    "container": "/root/.lndltc",
+                },
             ],
             "ports": [PortPublish("18889:8080")],
             "mode": "native",
@@ -556,9 +580,21 @@ nodes_config = {
             "image": "exchangeunion/proxy:latest",
             "volumes": [
                 {
+                    "host": "/var/run/docker.sock",
+                    "container": "/var/run/docker.sock",
+                },
+                {
                     "host": "$data_dir/xud",
                     "container": "/root/.xud",
-                }
+                },
+                {
+                    "host": "$data_dir/lndbtc",
+                    "container": "/root/.lndbtc",
+                },
+                {
+                    "host": "$data_dir/lndltc",
+                    "container": "/root/.lndltc",
+                },
             ],
             "ports": [PortPublish("8889:8080")],
             "mode": "native",
