@@ -140,36 +140,44 @@ class Image:
     def _run_command(self, cmd):
         self._logger.info(cmd)
 
-        stop = threading.Event()
+        on_travis = "TRAVIS_BRANCH" in os.environ
 
-        def f():
-            nonlocal stop
-            counter = 0
-            on_travis = "TRAVIS_BRANCH" in os.environ
-            while not stop.is_set():
-                counter = counter + 1
+        if on_travis:
+            stop = threading.Event()
 
-                if on_travis:
-                    print("Still building... ({})".format(counter), flush=True)
-                    stop.wait(10)
-                    continue
+            def f():
+                nonlocal stop
+                counter = 0
 
-                print(".", end="", flush=True)
-                stop.wait(1)
-            if not on_travis:
-                print()
-        threading.Thread(target=f).start()
-        try:
-            output = execute(cmd)
-            self._logger.debug("$ %s\n%s", cmd, output)
-            stop.set()
-        except CalledProcessError as e:
-            stop.set()
-            print(e.output.decode(), end="", flush=True)
-            raise SystemExit(1)
-        except:
-            stop.set()
-            raise
+                while not stop.is_set():
+                    counter = counter + 1
+
+                    if on_travis:
+                        print("Still building... ({})".format(counter), flush=True)
+                        stop.wait(10)
+                        continue
+
+                    print(".", end="", flush=True)
+                    stop.wait(1)
+                if not on_travis:
+                    print()
+            threading.Thread(target=f).start()
+            try:
+                output = execute(cmd)
+                self._logger.debug("$ %s\n%s", cmd, output)
+                stop.set()
+            except CalledProcessError as e:
+                stop.set()
+                print(e.output.decode(), end="", flush=True)
+                raise SystemExit(1)
+            except:
+                stop.set()
+                raise
+        else:
+            print("\033[1m$ %s\033[0m" % cmd)
+            exit_code = os.system(cmd)
+            if exit_code != 0:
+                raise RuntimeError("The command exits with non-zero code %s" % exit_code)
 
     def _build(self, args: List[str], build_dir: str, build_tag: str) -> None:
         cmd = "docker build {} {}".format(" ".join(args), build_dir)

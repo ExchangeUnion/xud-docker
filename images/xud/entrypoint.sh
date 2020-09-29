@@ -109,4 +109,10 @@ cat $XUD_CONF
 /xud-backup.sh &
 
 # use exec to properly respond to SIGINT
-exec xud $@
+if [[ -n ${DEBUG_PORT:-} ]]; then
+    export NODE_ENV=development
+    exec node --inspect-brk=0.0.0.0:$DEBUG_PORT bin/xud
+else
+    exec xud $@
+fi
+
