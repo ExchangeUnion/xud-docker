@@ -720,7 +720,7 @@ class Config:
         if hasattr(self.args, opt):
             value = getattr(self.args, opt)
             if value:
-                node["opendex_base-asset"] = value
+                node["opendex-base-asset"] = value
 
         if "opendex-quote-asset" in parsed:
             if parsed["opendex-quote-asset"]:
@@ -730,7 +730,7 @@ class Config:
         if hasattr(self.args, opt):
             value = getattr(self.args, opt)
             if value:
-                node["opendex_quote-asset"] = value
+                node["opendex-quote-asset"] = value
 
         if "cex-base-asset" in parsed:
             if parsed["cex-base-asset"]:
