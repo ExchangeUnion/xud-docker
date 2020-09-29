@@ -209,13 +209,13 @@ class NodeManager:
 
     def _display_container_status_text(self, status):
         if status == "missing":
-            return "missing"
+            return "create"
         elif status == "outdated":
-            return "outdated"
+            return "recreate"
         elif status == "external_with_container":
-            return "non-native"
+            return "remove"
         elif status == "disabled_with_container":
-            return "disabled"
+            return "remove"
 
     def _readable_details(self, details):
         if not details:
@@ -244,8 +244,8 @@ class NodeManager:
                 outdated = True
                 image_outdated = True
             elif status == "UNAVAILABLE":
-                all_unavailable_images = [x for x in images if x.status == "UNAVAILABLE"]
-                raise FatalError("Image(s) not available: %r" % all_unavailable_images)
+                all_unavailable_images = [x.name for x in images if x.status == "UNAVAILABLE"]
+                raise FatalError("Image(s) not found: %s" % ", ".join(all_unavailable_images))
 
         # Step 2. check all containers
         containers = self.nodes.values()

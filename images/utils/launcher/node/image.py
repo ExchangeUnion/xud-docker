@@ -212,27 +212,35 @@ class Image:
         except:
             self.logger.exception("Failed to fetch cloud image metadata")
 
-    def fetch_cloud_metadata_wrapper(self):
-        for i in range(3):
-            metadata = self.fetch_cloud_metadata()
-            if metadata:
-                return metadata
-            self.logger.exception("Image not found on cloud: %s (retry in 10 seconds)" % self.name)
-            time.sleep(10)
-        raise RuntimeError("Failed to fetch cloud image metadata (3 times): %s" % self.name)
+    def get_status(self) -> str:
+        """Get image update status
 
-    def get_status(self):
+        :return: image status
+        - UP_TO_DATE: The local image is the same as the cloud.
+        - LOCAL_OUTDATED: The local image hash is different from the cloud.
+        - LOCAL_NEWER: The local image is created after the cloud.
+        - LOCAL_MISSING: The cloud image exists but no local image.
+        - LOCAL_ONLY: The image only exists locally.
+        - UNAVAILABLE: The image is not found locally or remotely.
+        """
         if self.node.node_config["use_local_image"]:
             self.cloud_metadata = None
             return "LOCAL_NEWER"
 
-        self.cloud_metadata = self.fetch_cloud_metadata_wrapper()
         local = self.local_metadata
+
+        self.cloud_metadata = self.fetch_cloud_metadata()
         cloud = self.cloud_metadata
-        assert cloud
+
+        if not local and not cloud:
+            return "UNAVAILABLE"
+
+        if local and not cloud:
+            return "LOCAL_ONLY"
 
         if not local and cloud:
             return "LOCAL_MISSING"
+
         if local.digest == cloud.digest:
             return "UP_TO_DATE"
         else:
@@ -243,13 +251,13 @@ class Image:
         if self.status == "UNAVAILABLE":
             return "unavailable"
         elif self.status == "LOCAL_ONLY":
-            return "local"
+            return "using local version"
         elif self.status == "LOCAL_MISSING":
-            return "missing"
+            return "pull"
         elif self.status == "LOCAL_NEWER":
-            return "newer"
+            return "using local version"
         elif self.status == "LOCAL_OUTDATED":
-            return "outdated"
+            return "pull"
         elif self.status == "UP_TO_DATE":
             return "up-to-date"
 
@@ -320,24 +328,16 @@ class ImageManager:
         images = [image for image in images if image.node.mode == "native" and not image.node.disabled]
 
         def print_failed(failed):
-            for image, error in failed:
-                error_message = get_useful_error_message(error)
-                if error_message == "timeout":
-                    raise FatalError("Timeout error: Couldn't connect to Docker to check for updates. Please check your internet connection and https://status.docker.com/.")
-            print("Failed to check for image updates.")
-            for image, error in failed:
-                error_message = get_useful_error_message(error)
-                print("- {}: {}".format(image.name, error_message))
+            pass
 
         def try_again():
-            answer = self.shell.yes_or_no("Try again?")
-            return answer == "yes"
+            return False
 
         parallel_execute(images, lambda i: i.check_for_updates(), 30, print_failed, try_again)
 
         return images
 
-    def update_images(self):
+    def update_images(self) -> None:
         for image in self.images.values():
             status = image.status
             pull_image = image.pull_image

@@ -266,17 +266,14 @@ class Launcher:
             print()
         except ConfigError as e:
             if e.scope == ConfigErrorScope.COMMAND_LINE_ARGS:
-                print("❌ Failed to parse command-line arguments, exiting.")
-                print(f"Error details: {e.__cause__}")
+                print("Failed to parse command-line arguments: {}, exiting.".format(e))
             elif e.scope == ConfigErrorScope.GENERAL_CONF:
-                print("❌ Failed to parse config file {}, exiting.".format(e.conf_file))
-                print(f"Error details: {e.__cause__}")
+                print("Failed to parse config file {}: {}, exiting.".format(e.conf_file, e))
             elif e.scope == ConfigErrorScope.NETWORK_CONF:
-                print("❌ Failed to parse config file {}, exiting.".format(e.conf_file))
-                print(f"Error details: {e.__cause__}")
+                print("Failed to parse config file {}: {}, exiting.".format(e.conf_file, e))
         except FatalError as e:
             if config and config.logfile:
-                print(f"❌ Error: {e}. For more details, see {config.logfile}")
+                print("{}. For more details, see {}".format(e, config.logfile))
             else:
                 traceback.print_exc()
         except Exception:  # exclude system exceptions like SystemExit
