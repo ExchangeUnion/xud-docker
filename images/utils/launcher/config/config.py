@@ -287,14 +287,24 @@ class Config:
             help="Live CEX"
         )
         group.add_argument(
-            "--arby.base-asset",
+            "--arby.opendex-base-asset",
             metavar="<asset>",
-            help="Base asset"
+            help="OpenDEX base asset"
         )
         group.add_argument(
-            "--arby.quote-asset",
+            "--arby.opendex-quote-asset",
             metavar="<asset>",
-            help="Quote asset"
+            help="OpenDEX quote asset"
+        )
+        group.add_argument(
+            "--arby.cex-base-asset",
+            metavar="<asset>",
+            help="Centralized exchange base asset"
+        )
+        group.add_argument(
+            "--arby.cex-quote-asset",
+            metavar="<asset>",
+            help="Centralized exchange quote asset"
         )
         group.add_argument(
             "--arby.test-centralized-baseasset-balance",
@@ -702,25 +712,45 @@ class Config:
             if value:
                 node["test-centralized-quoteasset-balance"] = value
 
-        if "base-asset" in parsed:
-            if parsed["base-asset"]:
-                value = parsed["base-asset"]
-                node["base-asset"] = value
-        opt = "arby.base_asset"
+        if "opendex-base-asset" in parsed:
+            if parsed["opendex-base-asset"]:
+                value = parsed["opendex-base-asset"]
+                node["opendex-base-asset"] = value
+        opt = "arby.opendex_base_asset"
         if hasattr(self.args, opt):
             value = getattr(self.args, opt)
             if value:
-                node["base-asset"] = value
+                node["opendex-base-asset"] = value
 
-        if "quote-asset" in parsed:
-            if parsed["quote-asset"]:
-                value = parsed["quote-asset"]
-                node["quote-asset"] = value
-        opt = "arby.quote_asset"
+        if "opendex-quote-asset" in parsed:
+            if parsed["opendex-quote-asset"]:
+                value = parsed["opendex-quote-asset"]
+                node["opendex-quote-asset"] = value
+        opt = "arby.opendex_quote_asset"
         if hasattr(self.args, opt):
             value = getattr(self.args, opt)
             if value:
-                node["quote-asset"] = value
+                node["opendex-quote-asset"] = value
+
+        if "cex-base-asset" in parsed:
+            if parsed["cex-base-asset"]:
+                value = parsed["cex-base-asset"]
+                node["cex-base-asset"] = value
+        opt = "arby.cex_base_asset"
+        if hasattr(self.args, opt):
+            value = getattr(self.args, opt)
+            if value:
+                node["cex-base-asset"] = value
+
+        if "cex-quote-asset" in parsed:
+            if parsed["cex-quote-asset"]:
+                value = parsed["cex-quote-asset"]
+                node["cex-quote-asset"] = value
+        opt = "arby.cex_quote_asset"
+        if hasattr(self.args, opt):
+            value = getattr(self.args, opt)
+            if value:
+                node["cex-quote-asset"] = value
 
         if "live-cex" in parsed:
             if parsed["live-cex"]:
