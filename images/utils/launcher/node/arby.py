@@ -28,13 +28,13 @@ class Arby(Node):
         test_centralized_quoteasset_balance = self.node_config["test-centralized-quoteasset-balance"] \
             if "test-centralized-baseasset-balance" in self.node_config else "321"
         opendex_base_asset = self.node_config["opendex-base-asset"] \
-            if "opendex-base-asset" in self.node_config else "BTC"
+            if "opendex-base-asset" in self.node_config else ""
         opendex_quote_asset = self.node_config["opendex-quote-asset"] \
-            if "opendex-quote-asset" in self.node_config else "USDT"
+            if "opendex-quote-asset" in self.node_config else ""
         cex_base_asset = self.node_config["cex-base-asset"] \
-            if "cex-base-asset" in self.node_config else "BTC"
+            if "cex-base-asset" in self.node_config else ""
         cex_quote_asset = self.node_config["cex-quote-asset"] \
-            if "cex-quote-asset" in self.node_config else "USDT"
+            if "cex-quote-asset" in self.node_config else ""
 
         if self.network == "simnet":
             rpc_port = "28886"
