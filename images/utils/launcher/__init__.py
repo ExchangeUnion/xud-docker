@@ -254,7 +254,7 @@ def print_config_error_cause(e: ConfigError) -> None:
         if cause == "":
             print(type(e.__cause__))
         else:
-            print(cause)
+            print(cause.capitalize())
 
 
 class Launcher:
