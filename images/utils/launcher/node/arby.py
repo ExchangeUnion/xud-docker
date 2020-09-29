@@ -27,10 +27,10 @@ class Arby(Node):
             if "test-centralized-baseasset-balance" in self.node_config else "123"
         test_centralized_quoteasset_balance = self.node_config["test-centralized-quoteasset-balance"] \
             if "test-centralized-baseasset-balance" in self.node_config else "321"
-        opendex_base_asset = self.node_config["opendex-base-asset"] \
-            if "opendex-base-asset" in self.node_config else ""
-        opendex_quote_asset = self.node_config["opendex-quote-asset"] \
-            if "opendex-quote-asset" in self.node_config else ""
+        base_asset = self.node_config["base-asset"] \
+            if "base-asset" in self.node_config else ""
+        quote_asset = self.node_config["quote-asset"] \
+            if "quote-asset" in self.node_config else ""
         cex_base_asset = self.node_config["cex-base-asset"] \
             if "cex-base-asset" in self.node_config else ""
         cex_quote_asset = self.node_config["cex-quote-asset"] \
@@ -49,8 +49,8 @@ class Arby(Node):
             "DATA_DIR=/root/.arby",
             "OPENDEX_CERT_PATH=/root/.xud/tls.cert",
             "OPENDEX_RPC_HOST=xud",
-            f"OPENDEX_BASEASSET={opendex_base_asset}",
-            f"OPENDEX_QUOTEASSET={opendex_quote_asset}",
+            f"BASEASSET={base_asset}",
+            f"QUOTEASSET={quote_asset}",
             f"CEX_BASEASSET={cex_base_asset}",
             f"CEX_QUOTEASSET={cex_quote_asset}",
             f"OPENDEX_RPC_PORT={rpc_port}",

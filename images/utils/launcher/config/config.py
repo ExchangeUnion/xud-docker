@@ -287,14 +287,14 @@ class Config:
             help="Live CEX"
         )
         group.add_argument(
-            "--arby.opendex-base-asset",
+            "--arby.base-asset",
             metavar="<asset>",
-            help="OpenDEX base asset"
+            help="Base asset"
         )
         group.add_argument(
-            "--arby.opendex-quote-asset",
+            "--arby.quote-asset",
             metavar="<asset>",
-            help="OpenDEX quote asset"
+            help="Quote asset"
         )
         group.add_argument(
             "--arby.cex-base-asset",
@@ -712,25 +712,25 @@ class Config:
             if value:
                 node["test-centralized-quoteasset-balance"] = value
 
-        if "opendex-base-asset" in parsed:
-            if parsed["opendex-base-asset"]:
-                value = parsed["opendex-base-asset"]
-                node["opendex-base-asset"] = value
-        opt = "arby.opendex_base_asset"
+        if "base-asset" in parsed:
+            if parsed["base-asset"]:
+                value = parsed["base-asset"]
+                node["base-asset"] = value
+        opt = "arby.base_asset"
         if hasattr(self.args, opt):
             value = getattr(self.args, opt)
             if value:
-                node["opendex-base-asset"] = value
+                node["base-asset"] = value
 
-        if "opendex-quote-asset" in parsed:
-            if parsed["opendex-quote-asset"]:
-                value = parsed["opendex-quote-asset"]
-                node["opendex-quote-asset"] = value
-        opt = "arby.opendex_quote_asset"
+        if "quote-asset" in parsed:
+            if parsed["quote-asset"]:
+                value = parsed["quote-asset"]
+                node["quote-asset"] = value
+        opt = "arby.quote_asset"
         if hasattr(self.args, opt):
             value = getattr(self.args, opt)
             if value:
-                node["opendex-quote-asset"] = value
+                node["quote-asset"] = value
 
         if "cex-base-asset" in parsed:
             if parsed["cex-base-asset"]:
