@@ -75,8 +75,8 @@ Xud options:
 
 Arby options:
     --arby.live-cex [true|false]                Production/Demo mode (default: false)
-    --arby.opendex-base-asset <string>          OpenDEX base asset symbol
-    --arby.opendex-quote-asset <string>         OpenDEX quote asset symbol
+    --arby.base-asset <string>                  Base asset symbol
+    --arby.quote-asset <string>                 Quote asset symbol
     --arby.cex-base-asset <string>              Centralized exchange base asset symbol
     --arby.cex-quote-asset <string>             Centralized exchange quote asset symbol
     --arby.test-centralized-baseasset-balance   CEX base asset balance for demo mode
