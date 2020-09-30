@@ -97,7 +97,7 @@ class Action:
             c: Container = client.containers.get(name)
             cmd = f"lncli -n {network} -c {chain} getinfo"
             exit_code, output = c.exec_run(cmd)
-            self.logger.debug("[Execute] %s: exit_code=%s, output=%s", cmd, exit_code, output)
+            self.logger.debug("[Execute] %s: exit_code=%s\n%s", cmd, exit_code, output.decode())
 
             if exit_code == 0:
                 self.logger.debug("Skip restarting %s", name)
@@ -119,7 +119,7 @@ class Action:
             self.logger.debug("Sleep 15 seconds. For God's sake may %s work normally!!!", short_name)
             time.sleep(15)
 
-        with ThreadPoolExecutor(max_workers=3) as executor:
+        with ThreadPoolExecutor(max_workers=3, thread_name_prefix="RestartLnd") as executor:
             f1 = executor.submit(lnd_restart, "bitcoin")
             f2 = executor.submit(lnd_restart, "litecoin")
 
@@ -223,7 +223,7 @@ class Action:
         cmd = f"lncli -n {network} -c {chain} getinfo"
         try:
             exit_code, output = lnd.exec_run(cmd)
-            self.logger.debug("[Execute] %s: exit_code=%s, output=%s", cmd, exit_code, output)
+            self.logger.debug("[Execute] %s: exit_code=%s\n%s", cmd, exit_code, output.decode())
         except:
             self.logger.exception("Failed to exec \"%s\" in container %s", cmd, name)
             return False
@@ -261,7 +261,7 @@ class Action:
         # xud is locked, run 'xucli unlock', 'xucli create', or 'xucli restore' then try again
         while True:
             exit_code, output = xud.exec_run(cmd)
-            self.logger.debug("[Execute] %s: exit_code=%s, output=%s", cmd, exit_code, output)
+            self.logger.debug("[Execute] %s: exit_code=%s\n%s", cmd, exit_code, output.decode())
             if exit_code == 0:
                 xud_ok = True
                 break
@@ -287,7 +287,7 @@ class Action:
                 print("Syncing light clients:")
                 self._print_lnd_cfheaders(erase_last_line=False)
 
-        with ThreadPoolExecutor(max_workers=2) as executor:
+        with ThreadPoolExecutor(max_workers=2, thread_name_prefix="LndReady") as executor:
             f1 = executor.submit(self.ensure_lnd_ready, "bitcoin")
             f2 = executor.submit(self.ensure_lnd_ready, "litecoin")
 

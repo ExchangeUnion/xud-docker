@@ -1,18 +1,18 @@
 import logging
 import shlex
 import traceback
-import os
+import os.path
 
-from .config import Config, ConfigLoader
-from .shell import Shell
-from .node import NodeManager, NodeNotFound
-from .utils import ParallelExecutionError, ArgumentError
+from launcher.config import Config, ConfigLoader
+from launcher.shell import Shell
+from launcher.node import NodeManager, NodeNotFound
+from launcher.utils import ParallelExecutionError, ArgumentError
 
-from .check_wallets import Action as CheckWalletsAction
-from .close_other_utils import Action as CloseOtherUtilsAction
-from .auto_unlock import Action as AutoUnlockAction
-from .warm_up import Action as WarmUpAction
-from .errors import FatalError, ConfigError, ConfigErrorScope
+from launcher.check_wallets import Action as CheckWalletsAction
+from launcher.close_other_utils import Action as CloseOtherUtilsAction
+from launcher.auto_unlock import Action as AutoUnlockAction
+from launcher.warm_up import Action as WarmUpAction
+from launcher.errors import FatalError, ConfigError, ConfigErrorScope
 
 
 HELP = """\
@@ -96,9 +96,14 @@ Boltzcli shortcut commands
 
 
 def init_logging():
-    fmt = "%(asctime)s.%(msecs)03d %(levelname)s %(process)d --- [%(threadName)s] %(name)s: %(message)s"
+    fmt = "%(asctime)s.%(msecs)03d %(levelname)5s %(process)d --- [%(threadName)-15s] %(name)-30s: %(message)s"
     datefmt = "%Y-%m-%d %H:%M:%S"
-    logging.basicConfig(format=fmt, datefmt=datefmt, level=logging.ERROR, filename="/var/log/launcher.log")
+    if os.path.exists("/mnt/hostfs/tmp"):
+        logfile = "/mnt/hostfs/tmp/xud-docker.log"
+    else:
+        logfile = "xud-docker.log"
+
+    logging.basicConfig(format=fmt, datefmt=datefmt, level=logging.INFO, filename=logfile, filemode="w")
 
     level_config = {
         "launcher": logging.DEBUG,
@@ -235,16 +240,15 @@ your issue.""")
         self.close_other_utils()
 
     def start(self):
-        up_env = True
-        try:
-            up_env = self.node_manager.update()
-        except ParallelExecutionError:
-            pass
+        self.logger.info("Start %s", self.config.network)
+
+        up_env = self.node_manager.update()
 
         if up_env:
             self.node_manager.up()
             self.pre_start()
 
+        self.logger.info("Start shell")
         self.shell.start(f"{self.config.network} > ", self.handle_command)
 
 
@@ -267,7 +271,6 @@ class Launcher:
         config = None
         try:
             config = Config(ConfigLoader())
-            assert config.network_dir is not None
             shell.set_network_dir(config.network_dir)  # will create shell history file in network_dir
             env = XudEnv(config, shell)
             env.start()
@@ -288,6 +291,8 @@ class Launcher:
                 print("{}. For more details, see {}".format(e, config.logfile))
             else:
                 traceback.print_exc()
+        except ParallelExecutionError:
+            pass
         except Exception:  # exclude system exceptions like SystemExit
             self.logger.exception("Unexpected exception during launching")
             traceback.print_exc()

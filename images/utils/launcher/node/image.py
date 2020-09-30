@@ -15,8 +15,9 @@ import sys
 from docker import DockerClient
 from docker.errors import ImageNotFound
 
-from ..utils import parallel_execute, get_useful_error_message
-from ..errors import FatalError
+from launcher.utils import parallel_execute, ParallelExecutionError
+from launcher.errors import FatalError
+
 if TYPE_CHECKING:
     from .base import Node
 
@@ -333,7 +334,24 @@ class ImageManager:
         def try_again():
             return False
 
-        parallel_execute(images, lambda i: i.check_for_updates(), 30, print_failed, try_again)
+        def wrapper(i):
+            self.logger.info("(%s) Checking for updates", i.name)
+            try:
+                i.check_for_updates()
+            except Exception as e:
+                logging.exception("(%s) Checking for updates: ERRORED", i.name)
+                raise e
+            self.logger.info("(%s) Checking for updates: %s", i.name, i.status)
+
+        try:
+            parallel_execute(images, lambda i: wrapper(i), 20, print_failed, try_again)
+        except ParallelExecutionError as e:
+            for image, error in e.failed:
+                error_msg = str(error)
+                if error_msg == "":
+                    error_msg = type(error)
+                print("- Image %s: %s" % (image.name, error_msg))
+            raise FatalError("Failed to check for image updates")
 
         return images
 
