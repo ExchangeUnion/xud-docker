@@ -98,7 +98,7 @@ Boltzcli shortcut commands
 def init_logging():
     fmt = "%(asctime)s.%(msecs)03d %(levelname)5s %(process)d --- [%(threadName)-15s] %(name)-30s: %(message)s"
     datefmt = "%Y-%m-%d %H:%M:%S"
-    if os.path.exists("/mnt/hostfs"):
+    if os.path.exists("/mnt/hostfs/tmp"):
         logfile = "/mnt/hostfs/tmp/xud-docker.log"
     else:
         logfile = "xud-docker.log"
