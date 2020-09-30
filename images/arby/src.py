@@ -13,7 +13,6 @@ class SourceManager(src.SourceManager):
 
     def get_ref(self, version):
         if version == "latest":
-            # change "master" to a another xud branch for testing
-            return "feat/config-defaults"
+            return "master"
         else:
             return "v" + version
