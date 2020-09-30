@@ -97,7 +97,7 @@ class Geth(Node):
         timeout = 30
         min_delay = timedelta(seconds=timeout)
         provider = None
-        with ThreadPoolExecutor(max_workers=len(providers)) as executor:
+        with ThreadPoolExecutor(max_workers=len(providers), thread_name_prefix="GethProvider") as executor:
             fs = {executor.submit(self.get_provider_delay, p): p for p in providers}
             done, not_done = wait(fs, timeout)
             for f in done:

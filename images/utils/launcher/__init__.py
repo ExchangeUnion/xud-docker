@@ -1,7 +1,6 @@
 import logging
 import shlex
 import traceback
-import os
 
 from .config import Config, ConfigLoader
 from .shell import Shell
@@ -96,9 +95,9 @@ Boltzcli shortcut commands
 
 
 def init_logging():
-    fmt = "%(asctime)s.%(msecs)03d %(levelname)s %(process)d --- [%(threadName)s] %(name)s: %(message)s"
+    fmt = "%(asctime)s.%(msecs)03d %(levelname)5s %(process)d --- [%(threadName)-15s] %(name)-30s: %(message)s"
     datefmt = "%Y-%m-%d %H:%M:%S"
-    logging.basicConfig(format=fmt, datefmt=datefmt, level=logging.ERROR, filename="/var/log/launcher.log")
+    logging.basicConfig(format=fmt, datefmt=datefmt, level=logging.INFO, filename="/mnt/hostfs/tmp/xud-docker.log", filemode="w")
 
     level_config = {
         "launcher": logging.DEBUG,
@@ -235,16 +234,15 @@ your issue.""")
         self.close_other_utils()
 
     def start(self):
-        up_env = True
-        try:
-            up_env = self.node_manager.update()
-        except ParallelExecutionError:
-            pass
+        self.logger.info("Start %s", self.config.network)
+
+        up_env = self.node_manager.update()
 
         if up_env:
             self.node_manager.up()
             self.pre_start()
 
+        self.logger.info("Start shell")
         self.shell.start(f"{self.config.network} > ", self.handle_command)
 
 
@@ -267,7 +265,6 @@ class Launcher:
         config = None
         try:
             config = Config(ConfigLoader())
-            assert config.network_dir is not None
             shell.set_network_dir(config.network_dir)  # will create shell history file in network_dir
             env = XudEnv(config, shell)
             env.start()
@@ -288,6 +285,8 @@ class Launcher:
                 print("{}. For more details, see {}".format(e, config.logfile))
             else:
                 traceback.print_exc()
+        except ParallelExecutionError:
+            pass
         except Exception:  # exclude system exceptions like SystemExit
             self.logger.exception("Unexpected exception during launching")
             traceback.print_exc()

@@ -12,10 +12,14 @@ class ParallelExecutionError(Exception):
         self.failed = failed
 
 
-def parallel_execute(tasks, execute, timeout, print_failed, try_again, handle_result=None):
+def parallel_execute(tasks, execute, timeout, print_failed, try_again, handle_result=None, single_thread=False):
     while len(tasks) > 0:
         failed = []
-        with ThreadPoolExecutor(max_workers=len(tasks)) as executor:
+        if single_thread:
+            workers = 1
+        else:
+            workers = len(tasks)
+        with ThreadPoolExecutor(max_workers=workers, thread_name_prefix="P") as executor:
             fs = {executor.submit(execute, t): t for t in tasks}
             done, not_done = wait(fs, timeout)
             for f in done:
@@ -25,12 +29,11 @@ def parallel_execute(tasks, execute, timeout, print_failed, try_again, handle_re
                     if handle_result:
                         handle_result(task, result)
                 except Exception as e:
-                    logger.exception("Task %r failed", task)
                     failed.append((task, e))
             for f in not_done:
                 task = fs[f]
-                logger.error("Task %r timeout", task)
-                failed.append((task, TimeoutError()))
+                f.cancel()
+                failed.append((task, TimeoutError("timeout")))
         if len(failed) > 0:
             print_failed(failed)
             if try_again():

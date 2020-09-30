@@ -332,18 +332,37 @@ class Node:
         return CompareResult(True, "", old, new)
 
     def compare_environment(self, container: Container) -> CompareResult:
+
+        old_environment = []
+
+        ignore = [
+            "NODE_VERSION",
+            "YARN_VERSION",
+            "PATH",
+        ]
+
         attrs = container.attrs
-        old_environment = attrs["Config"]["Env"]
+        env = attrs["Config"]["Env"]
+
+        def ignored(item):
+            for key in ignore:
+                if item.startswith(key):
+                    return True
+            return False
+
+        if env:
+            for item in env:
+                if ignored(item):
+                    continue
+                old_environment.append(item)
+
         new_environment = self.container_spec.environment
-
-        if not old_environment:
-            old_environment = []
-
-        old = CompareEntity(old_environment)
-        new = CompareEntity(new_environment)
 
         old_set = set(old_environment)
         new_set = set(new_environment)
+
+        old = CompareEntity(old_set)
+        new = CompareEntity(new_set)
 
         if old_set != new_set:
             old.diff = old_set - new_set
@@ -380,10 +399,13 @@ class Node:
         attrs = container.attrs
         old_volumes = ["{}:{}:{}".format(m["Source"], m["Destination"], m["Mode"]) for m in attrs["Mounts"]]
         new_volumes = ["{}:{}:{}".format(key, value["bind"], value["mode"]) for key, value in self.container_spec.volumes.items()]
-        old = CompareEntity(old_volumes)
-        new = CompareEntity(new_volumes)
+
         old_set = set(old_volumes)
         new_set = set(new_volumes)
+
+        old = CompareEntity(old_set)
+        new = CompareEntity(new_set)
+
         if old_set != new_set:
             old.diff = old_set - new_set
             new.diff = new_set - old_set
@@ -421,17 +443,42 @@ class Node:
 
         new_ports = [key + "-" + normalize(value) for key, value in self.container_spec.ports.items()]
 
-        old = CompareEntity(old_ports)
-        new = CompareEntity(new_ports)
-
         old_set = set(old_ports)
         new_set = set(new_ports)
+
+        old = CompareEntity(old_set)
+        new = CompareEntity(new_set)
 
         if old_set != new_set:
             old.diff = old_set - new_set
             new.diff = new_set - old_set
             return CompareResult(False, "Ports are different", old, new)
         return CompareResult(True, "", old, new)
+
+    @staticmethod
+    def _beautify_details(details):
+        def expand(c):
+            result = ""
+            result += "  old: %s\n" % c.old.obj
+            result += "  diff: %s\n" % c.old.diff
+            result += "  new: %s\n" % c.new.obj
+            result += "  diff: %s\n" % c.new.diff
+            return result
+
+        result = ""
+        result += "- Image:\n"
+        result += expand(details["image"])
+        result += "- Hostname:\n"
+        result += expand(details["hostname"])
+        result += "- Environment:\n"
+        result += expand(details["environment"])
+        result += "- Command:\n"
+        result += expand(details["command"])
+        result += "- Volumes:\n"
+        result += expand(details["volumes"])
+        result += "- Ports:\n"
+        result += expand(details["ports"])
+        return result
 
     def compare(self, container):
 
@@ -449,6 +496,8 @@ class Node:
             if not d.same:
                 same = False
                 break
+
+        self._logger.info("(%s) Comparing result\n%s", self.container_name, self._beautify_details(details))
 
         return same, details
 
@@ -535,7 +584,7 @@ class CliBackend:
                 self.client = docker.from_env(timeout=20)
             exit_code, output = self.get_container().exec_run(full_cmd)
             text: str = output.decode()
-            self.logger.debug("[Execute] %s: exit_code=%s, output=%s", full_cmd, exit_code, output)
+            self.logger.debug("[Execute] %s: exit_code=%s\n%s", full_cmd, exit_code, text)
             if exit_code != 0:
                 raise CliError(exit_code, text)
             return text

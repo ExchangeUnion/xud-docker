@@ -54,6 +54,21 @@ class PortPublish:
             return False
         return True
 
+    def __str__(self):
+        if self.host:
+            host = "{}:{}".format(self.host, self.host_port)
+        else:
+            host = "{}".format(self.host_port)
+
+        container = "{}".format(self.port)
+
+        if self.protocol == "tcp":
+            return "{}:{}".format(host, container)
+        elif self.protocol == "udp":
+            return "{}:{}/udp".format(host, container)
+        elif self.protocol == "sctp":
+            return "{}:{}/sctp".format(host, container)
+
 
 nodes_config = {
     "simnet": {
