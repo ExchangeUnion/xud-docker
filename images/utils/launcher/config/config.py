@@ -1007,15 +1007,15 @@ class Config:
                 if node in ["bitcoind", "litecoind"]:
                     dump_node_attr(node, "external_rpc_host")
                     dump_node_attr(node, "external_rpc_port")
-                    dump_node_attr(node, "external_rpc_user")
-                    dump_node_attr(node, "external_rpc_password")
+                    #dump_node_attr(node, "external_rpc_user")
+                    #dump_node_attr(node, "external_rpc_password")
                     dump_node_attr(node, "external_zmqpubrawblock")
                     dump_node_attr(node, "external_zmqpubrawtx")
                 elif node == "geth":
                     dump_node_attr(node, "external_rpc_host")
                     dump_node_attr(node, "external_rpc_port")
-                    dump_node_attr(node, "infura_project_id")
-                    dump_node_attr(node, "infura_project_secret")
+                    #dump_node_attr(node, "infura_project_id")
+                    #dump_node_attr(node, "infura_project_secret")
                     dump_node_attr(node, "cache")
                 elif node == "arby":
                     dump_node_attr(node, "test_centralized_baseasset_balance")
@@ -1026,6 +1026,6 @@ class Config:
                     dump_node_attr(node, "cex_quote_asset")
                     dump_node_attr(node, "live_cex")
                     dump_node_attr(node, "cex")
-                    dump_node_attr(node, "cex_api_key")
-                    dump_node_attr(node, "cex_api_secret")
+                    #dump_node_attr(node, "cex_api_key")
+                    #dump_node_attr(node, "cex_api_secret")
                     dump_node_attr(node, "margin")
