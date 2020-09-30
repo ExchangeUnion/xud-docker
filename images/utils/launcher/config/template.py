@@ -157,6 +157,10 @@ nodes_config = {
                     "container": "/var/run/docker.sock",
                 },
                 {
+                    "host": "$data_dir/logs/config.sh",
+                    "container": "/root/config.sh",
+                },
+                {
                     "host": "$data_dir/xud",
                     "container": "/root/.xud",
                 },
@@ -371,6 +375,10 @@ nodes_config = {
                     "container": "/var/run/docker.sock",
                 },
                 {
+                    "host": "$data_dir/logs/config.sh",
+                    "container": "/root/config.sh",
+                },
+                {
                     "host": "$data_dir/xud",
                     "container": "/root/.xud",
                 },
@@ -582,6 +590,10 @@ nodes_config = {
                 {
                     "host": "/var/run/docker.sock",
                     "container": "/var/run/docker.sock",
+                },
+                {
+                    "host": "$data_dir/logs/config.sh",
+                    "container": "/root/config.sh",
                 },
                 {
                     "host": "$data_dir/xud",
