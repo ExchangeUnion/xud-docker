@@ -1,17 +1,18 @@
 import logging
 import shlex
 import traceback
+import os.path
 
-from .config import Config, ConfigLoader
-from .shell import Shell
-from .node import NodeManager, NodeNotFound
-from .utils import ParallelExecutionError, ArgumentError
+from launcher.config import Config, ConfigLoader
+from launcher.shell import Shell
+from launcher.node import NodeManager, NodeNotFound
+from launcher.utils import ParallelExecutionError, ArgumentError
 
-from .check_wallets import Action as CheckWalletsAction
-from .close_other_utils import Action as CloseOtherUtilsAction
-from .auto_unlock import Action as AutoUnlockAction
-from .warm_up import Action as WarmUpAction
-from .errors import FatalError, ConfigError, ConfigErrorScope
+from launcher.check_wallets import Action as CheckWalletsAction
+from launcher.close_other_utils import Action as CloseOtherUtilsAction
+from launcher.auto_unlock import Action as AutoUnlockAction
+from launcher.warm_up import Action as WarmUpAction
+from launcher.errors import FatalError, ConfigError, ConfigErrorScope
 
 
 HELP = """\
@@ -97,7 +98,12 @@ Boltzcli shortcut commands
 def init_logging():
     fmt = "%(asctime)s.%(msecs)03d %(levelname)5s %(process)d --- [%(threadName)-15s] %(name)-30s: %(message)s"
     datefmt = "%Y-%m-%d %H:%M:%S"
-    logging.basicConfig(format=fmt, datefmt=datefmt, level=logging.INFO, filename="/mnt/hostfs/tmp/xud-docker.log", filemode="w")
+    if os.path.exists("/mnt/hostfs"):
+        logfile = "/mnt/hostfs/tmp/xud-docker.log"
+    else:
+        logfile = "xud-docker.log"
+
+    logging.basicConfig(format=fmt, datefmt=datefmt, level=logging.INFO, filename=logfile, filemode="w")
 
     level_config = {
         "launcher": logging.DEBUG,
