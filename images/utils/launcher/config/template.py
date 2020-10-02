@@ -435,7 +435,7 @@ nodes_config = {
         },
         "geth": {
             "name": "geth",
-            "image": "exchangeunion/geth:1.9.20",
+            "image": "exchangeunion/geth:1.9.22",
             "volumes": [
                 {
                     "host": "$data_dir/geth",
@@ -454,7 +454,7 @@ nodes_config = {
         },
         "lndbtc": {
             "name": "lndbtc",
-            "image": "exchangeunion/lndbtc:0.11.0-beta",
+            "image": "exchangeunion/lndbtc:0.11.1-beta",
             "volumes": [
                 {
                     "host": "$data_dir/lndbtc",
