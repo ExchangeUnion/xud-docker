@@ -15,7 +15,7 @@ function parse_arguments() {
                 OPTION=$1
                 shift
                 if [[ $# -eq 0 || $1 =~ ^- ]]; then
-                    echo >&2 "❌ Missing option value: $OPTION"
+                    echo >&2 "Missing option value: $OPTION"
                     exit 1
                 fi
                 VALUE=$1
@@ -30,15 +30,28 @@ function parse_arguments() {
 
 parse_arguments "$@"
 
-temp_file=$(mktemp)
-HTTPCODE=$(curl -Ls -w "%{http_code}" -o temp_file "https://raw.githubusercontent.com/ExchangeUnion/xud-docker/$BRANCH/setup.sh" || 
-           echo >&2 "Timeout error: Couldn't connect to GitHub: please check your internet connection and githubstatus.com")
-if [ $HTTPCODE -eq 404 ]; then
-    echo >&2 "❌ Branch \"$BRANCH\" does not exist"
-elif [ $HTTPCODE -ne 200 ]; then
-    echo >&2 "Something went wrong: got "$HTTPCODE" response code from GitHub. Please check githubstatus.com"
+URL="https://raw.githubusercontent.com/ExchangeUnion/xud-docker/$BRANCH/setup.sh"
+
+if SCRIPT=$(curl -s "$URL"); then
+    if [[ "$SCRIPT" == "404: Not Found" ]]; then
+        echo >&2 "Xud-docker branch \"$BRANCH\" does not exist"
+        exit 1
+    fi
+    bash -c "$SCRIPT"
 else
-    bash temp_file "$@"
-    rm ${temp_file} && exit 0
+    EXIT_CODE="$?"
+    case "$EXIT_CODE" in
+    6)
+        echo >&2 "Couldn't resolve host: raw.githubusercontent.com (please check your internet connection and https://githubstatus.com)"
+        exit 1
+        ;;
+    7)
+        echo >&2 "Failed to connect to host: raw.githubusercontent.com (please check your internet connection and https://githubstatus.com)"
+        exit 1
+        ;;
+    *)
+        echo >&2 "Failed to fetch setup.sh for branch \"$BRANCH\" (curl exits with $EXIT_CODE)"
+        exit 1
+        ;;
+    esac
 fi
-exit 1
