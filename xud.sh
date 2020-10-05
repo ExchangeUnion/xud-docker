@@ -42,11 +42,11 @@ else
     EXIT_CODE="$?"
     case "$EXIT_CODE" in
     6)
-        echo >&2 "Couldn't resolve host: raw.githubusercontent.com (please check your internet connection and https://githubstatus.com)"
+        echo >&2 "Couldn't resolve host: raw.githubusercontent.com (please check your Internet connection and https://githubstatus.com)"
         exit 1
         ;;
     7)
-        echo >&2 "Failed to connect to host: raw.githubusercontent.com (please check your internet connection and https://githubstatus.com)"
+        echo >&2 "Failed to connect to host: raw.githubusercontent.com (please check your Internet connection and https://githubstatus.com)"
         exit 1
         ;;
     *)
