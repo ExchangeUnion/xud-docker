@@ -929,6 +929,8 @@ class Config:
                 value = value.replace(f"${self.network}_dir", self.network_dir)
             if "$data_dir" in value:
                 value = value.replace("$data_dir", self.network_dir + "/data")
+            if "$logs_dir" in value:
+                value = value.replace("$logs_dir", self.logs_dir)
         return value
 
     @property
