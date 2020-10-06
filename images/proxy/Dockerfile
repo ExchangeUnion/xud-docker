@@ -1,4 +1,4 @@
-FROM golang:1.15.2-alpine3.12 as builder
+FROM golang:1.15-alpine3.12 as builder
 WORKDIR github.com/ExchangeUnion/xud-docker-api-poc
 COPY .src/go.mod .
 COPY .src/go.sum .
