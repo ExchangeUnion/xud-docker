@@ -344,7 +344,7 @@ class ImageManager:
             self.logger.info("(%s) Checking for updates: %s", i.name, i.status)
 
         try:
-            parallel_execute(images, lambda i: wrapper(i), 20, print_failed, try_again)
+            parallel_execute(images, lambda i: wrapper(i), 30, print_failed, try_again)
         except ParallelExecutionError as e:
             for image, error in e.failed:
                 error_msg = str(error)
