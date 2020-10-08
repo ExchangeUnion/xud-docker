@@ -6,7 +6,7 @@ class PortPublish:
     def __init__(self, value):
         p1 = re.compile(r"^(\d+)$")  # 8080
         p2 = re.compile(r"^(\d+):(\d+)$")  # 80:8080
-        p3 = re.compile(r"^(\d+):(\d+):(\d+)$")  # 127.0.0.1:80:8080
+        p3 = re.compile(r"^(.+):(\d+):(\d+)$")  # 127.0.0.1:80:8080
 
         protocol = "tcp"
         if "/" in value:
@@ -35,6 +35,8 @@ class PortPublish:
                     host = m.group(1)
                     host_port = int(m.group(2))
                     port = int(m.group(3))
+                else:
+                    raise FatalError("Invalid port publish: {}".format(value))
 
         self.protocol = protocol
         self.host = host
@@ -153,11 +155,27 @@ nodes_config = {
             "image": "exchangeunion/proxy:latest",
             "volumes": [
                 {
+                    "host": "/var/run/docker.sock",
+                    "container": "/var/run/docker.sock",
+                },
+                {
+                    "host": "$logs_dir/config.sh",
+                    "container": "/root/config.sh",
+                },
+                {
                     "host": "$data_dir/xud",
                     "container": "/root/.xud",
-                }
+                },
+                {
+                    "host": "$data_dir/lndbtc",
+                    "container": "/root/.lndbtc",
+                },
+                {
+                    "host": "$data_dir/lndltc",
+                    "container": "/root/.lndltc",
+                },
             ],
-            "ports": [PortPublish("28889:8080")],
+            "ports": [PortPublish("127.0.0.1:28889:8080")],
             "mode": "native",
             "preserve_config": False,
             "use_local_image": False,
@@ -355,11 +373,28 @@ nodes_config = {
             "image": "exchangeunion/proxy:latest",
             "volumes": [
                 {
+                    "host": "/var/run/docker.sock",
+                    "container": "/var/run/docker.sock",
+                },
+                {
+                    "host": "$logs_dir/config.sh",
+                    "container": "/root/config.sh",
+                },
+                {
                     "host": "$data_dir/xud",
                     "container": "/root/.xud",
-                }
+                },
+                {
+                    "host": "$data_dir/lndbtc",
+                    "container": "/root/.lndbtc",
+                },
+                {
+                    "host": "$data_dir/lndltc",
+                    "container": "/root/.lndltc",
+                },
+
             ],
-            "ports": [PortPublish("18889:8080")],
+            "ports": [PortPublish("127.0.0.1:18889:8080")],
             "mode": "native",
             "preserve_config": False,
             "use_local_image": False,
@@ -556,11 +591,27 @@ nodes_config = {
             "image": "exchangeunion/proxy:latest",
             "volumes": [
                 {
+                    "host": "/var/run/docker.sock",
+                    "container": "/var/run/docker.sock",
+                },
+                {
+                    "host": "$logs_dir/config.sh",
+                    "container": "/root/config.sh",
+                },
+                {
                     "host": "$data_dir/xud",
                     "container": "/root/.xud",
-                }
+                },
+                {
+                    "host": "$data_dir/lndbtc",
+                    "container": "/root/.lndbtc",
+                },
+                {
+                    "host": "$data_dir/lndltc",
+                    "container": "/root/.lndltc",
+                },
             ],
-            "ports": [PortPublish("8889:8080")],
+            "ports": [PortPublish("127.0.0.1:8889:8080")],
             "mode": "native",
             "preserve_config": False,
             "use_local_image": False,
