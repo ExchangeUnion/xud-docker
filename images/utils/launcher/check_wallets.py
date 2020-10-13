@@ -290,18 +290,27 @@ class Action:
                 print("Syncing light clients:")
                 self._print_lnd_cfheaders(erase_last_line=False)
 
-        with ThreadPoolExecutor(max_workers=len(self.lnd_cfheaders), thread_name_prefix="LndReady") as executor:
-            futs = {}
-            for chain in self.lnd_cfheaders:
-                futs[executor.submit(self.ensure_lnd_ready, chain)] = chain
+        with ThreadPoolExecutor(max_workers=2, thread_name_prefix="LndReady") as executor:
+            native_lndbtc = self.config.nodes["lndbtc"]["mode"] == "native"
+            native_lndltc = self.config.nodes["lndltc"]["mode"] == "native"
 
-            done, not_done = wait(futs)
+            if native_lndbtc:
+                f1 = executor.submit(self.ensure_lnd_ready, "bitcoin")
 
-            if len(not_done) > 0:
-                for f in not_done:
-                    f.cancel()
-                lnds = ", ".join([futs[f] for f in not_done])
-                raise FatalError("Failed to wait for {} to be ready".format(lnds))
+            if native_lndltc:
+                f2 = executor.submit(self.ensure_lnd_ready, "litecoin")
+
+            if native_lndbtc:
+                try:
+                    f1.result()
+                except Exception as e:
+                    raise FatalError("Failed to wait for lndbtc to be ready") from e
+
+            if native_lndltc:
+                try:
+                    f2.result()
+                except Exception as e:
+                    raise FatalError("Failed to wait for lndltc to be ready") from e
 
         if self.node_manager.newly_installed:
             print()
