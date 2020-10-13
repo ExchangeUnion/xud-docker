@@ -3,7 +3,7 @@ import sys
 import os
 import docker
 import time
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor, wait
 from docker.models.containers import Container
 from datetime import datetime
 import re
@@ -276,7 +276,10 @@ class Action:
         nodes = self.config.nodes
         if self.node_manager.newly_installed:
             if self.network == "simnet":
-                self.lnd_cfheaders["bitcoin"] = CFHeaderState()
+                if self.config.nodes["lndbtc"]["mode"] == "native":
+                    self.lnd_cfheaders["bitcoin"] = CFHeaderState()
+                if self.config.nodes["lndltc"]["mode"] == "native":
+                    self.lnd_cfheaders["litecoin"] = CFHeaderState()
                 self.lnd_cfheaders["litecoin"] = CFHeaderState()
             if "bitcoind" in nodes and nodes["bitcoind"]["mode"] in ["neutrino", "light"]:
                 self.lnd_cfheaders["bitcoin"] = CFHeaderState()
@@ -287,19 +290,18 @@ class Action:
                 print("Syncing light clients:")
                 self._print_lnd_cfheaders(erase_last_line=False)
 
-        with ThreadPoolExecutor(max_workers=2, thread_name_prefix="LndReady") as executor:
-            f1 = executor.submit(self.ensure_lnd_ready, "bitcoin")
-            f2 = executor.submit(self.ensure_lnd_ready, "litecoin")
+        with ThreadPoolExecutor(max_workers=len(self.lnd_cfheaders), thread_name_prefix="LndReady") as executor:
+            futs = {}
+            for chain in self.lnd_cfheaders:
+                futs[executor.submit(self.ensure_lnd_ready, chain)] = chain
 
-            try:
-                f1.result()
-            except Exception as e:
-                raise FatalError("Failed to wait for lndbtc to be ready") from e
+            done, not_done = wait(futs)
 
-            try:
-                f2.result()
-            except Exception as e:
-                raise FatalError("Failed to wait for lndltc to be ready") from e
+            if len(not_done) > 0:
+                for f in not_done:
+                    f.cancel()
+                lnds = ", ".join([futs[f] for f in not_done])
+                raise FatalError("Failed to wait for {} to be ready".format(lnds))
 
         if self.node_manager.newly_installed:
             print()

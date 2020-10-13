@@ -1,6 +1,8 @@
 import json
-from .base import Node, CliBackend, CliError
 import re
+from typing import List
+
+from .base import Node, CliBackend, CliError
 
 
 class XudApiError(Exception):
@@ -40,11 +42,38 @@ class Xud(Node):
     def __init__(self, name, ctx):
         super().__init__(name, ctx)
 
-        self.container_spec.environment.append("NODE_ENV=production")
+        self.container_spec.environment.extend(self._get_environment())
 
         self._cli = "xucli"
 
         self.api = XudApi(CliBackend(self.client, self.container_name, self._logger, self._cli))
+
+    def _get_environment(self) -> List[str]:
+        env = [
+            "NODE_ENV=production"
+        ]
+
+        lndbtc = self.config.nodes["lndbtc"]
+        env.append("LNDBTC_MODE={}".format(lndbtc["mode"]))
+        if lndbtc["mode"] == "external":
+            env.extend([
+                "LNDBTC_RPC_HOST={}".format(lndbtc["rpc_host"]),
+                "LNDBTC_RPC_PORT={}".format(lndbtc["rpc_port"]),
+                "LNDBTC_CERTPATH={}".format(lndbtc["certpath"]),
+                "LNDBTC_MACAROONPATH={}".format(lndbtc["macaroonpath"]),
+            ])
+
+        lndltc = self.config.nodes["lndltc"]
+        env.append("LNDLTC_MODE={}".format(lndltc["mode"]))
+        if lndltc["mode"] == "external":
+            env.extend([
+                "LNDLTC_RPC_HOST={}".format(lndbtc["rpc_host"]),
+                "LNDLTC_RPC_PORT={}".format(lndbtc["rpc_port"]),
+                "LNDLTC_CERTPATH={}".format(lndbtc["certpath"]),
+                "LNDLTC_MACAROONPATH={}".format(lndbtc["macaroonpath"]),
+            ])
+
+        return env
 
     def status(self):
         status = super().status()

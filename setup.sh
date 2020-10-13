@@ -61,10 +61,20 @@ Geth options:
 Lndbtc options:
     --lndbtc.expose-ports <port>[,<port>]       Expose lndbtc service ports to your host machine
     --lndbtc.preserve-config                    Preserve lndbtc lnd.conf file during updates
+    --lndbtc.mode [native|external]             Lndbtc service mode (default: native)
+    --lndbtc.rpc-host <string>                  External lndbtc RPC hostname
+    --lndbtc.rpc-port <int>                     External lndbtc RPC port
+    --lndbtc.certpath                           External lndbtc TLS certificate file
+    --lndbtc.macaroonpath                       External lndbtc admin.macaroon path
 
 Lndbtc options:
     --lndltc.expose-ports <port>[,<port>]       Expose lndltc service ports to your host machine
     --lndltc.preserve-config                    Preserve lndltc lnd.conf file during updates
+    --lndltc.mode [native|external]             Lndltc service mode (default: native)
+    --lndltc.rpc-host <string>                  External lndltc RPC hostname
+    --lndltc.rpc-port <int>                     External lndltc RPC port
+    --lndltc.certpath                           External lndltc TLS certificate file
+    --lndltc.macaroonpath                       External lndltc admin.macaroon path
 
 Connext options:
     --connext.expose-ports <port>[,<port>]      Expose connext service ports to your host machine

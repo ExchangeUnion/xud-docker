@@ -367,10 +367,7 @@ class Node:
         if old_set != new_set:
             old.diff = old_set - new_set
             new.diff = new_set - old_set
-            if len(new.diff) == 0:
-                return CompareResult(True, "", old, new)
-            else:
-                return CompareResult(False, "Environments are different", old, new)
+            return CompareResult(False, "Environments are different", old, new)
 
         return CompareResult(True, "", old, new)
 

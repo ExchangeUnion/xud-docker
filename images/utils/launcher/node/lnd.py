@@ -116,7 +116,14 @@ class Lnd(Node):
         except:
             return None
 
+    def get_external_status(self) -> str:
+        # TODO check external status
+        return "Ready (connected to external)"
+
     def status(self):
+        if self.mode == "external":
+            return self.get_external_status()
+
         status = super().status()
         if status == "exited":
             # TODO analyze exit reason
