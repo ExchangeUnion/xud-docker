@@ -1,7 +1,9 @@
+from __future__ import annotations
 import argparse
 import logging
 from logging.handlers import TimedRotatingFileHandler
 import os
+from typing import Optional, List
 
 import toml
 
@@ -12,6 +14,16 @@ from .loader import ConfigLoader
 
 
 class Config:
+    branch: str
+    network: str
+    home_dir: str
+    network_dir: str
+    disable_update: bool
+    external_ip: Optional[str]
+    backup_dir: Optional[str]
+    restore_dir: Optional[str]
+    eth_providers: List[str]
+
     def __init__(self, loader: ConfigLoader):
         self.logger = logging.getLogger("launcher.Config")
 
@@ -23,7 +35,7 @@ class Config:
         self.network = os.environ["NETWORK"]
 
         self.home_dir = self.loader.ensure_home_dir(os.environ["HOST_HOME"])
-        self.network_dir = None
+        self.network_dir = os.path.join(self.home_dir, self.network)
         self.backup_dir = None
         self.restore_dir = None
 
@@ -31,35 +43,40 @@ class Config:
 
         self.nodes = nodes_config[self.network]
 
+        self._parse_command_line_arguments()
+        self._parse_general_config_file()
+        self.network_dir = self.loader.ensure_network_dir(self.network_dir)
+
+        self._parse_network_config_file()
+
+        for node in self.nodes.values():
+            for v in node["volumes"]:
+                v["host"] = self.expand_vars(v["host"])
+
+        self.dump()
+
+    def _parse_command_line_arguments(self) -> None:
         self.args = None
-
-        self.parse()
-
-    def parse(self):
         try:
             self.parse_command_line_arguments()
         except Exception as e:
             raise ConfigError(ConfigErrorScope.COMMAND_LINE_ARGS) from e
 
-        self.network_dir = "{}/{}".format(self.home_dir, self.network)
-
+    def _parse_general_config_file(self) -> None:
+        filename = "xud-docker.conf"
+        conf_file = os.path.join(self.home_dir, filename)
         try:
             self.parse_general_config()
         except Exception as e:
-            conf_file = "{}/{}.conf".format(self.home_dir, "xud-docker")
             raise ConfigError(ConfigErrorScope.GENERAL_CONF, conf_file=conf_file) from e
 
-        self.network_dir = self.loader.ensure_network_dir(self.network_dir)
-
+    def _parse_network_config_file(self) -> None:
+        filename = "{}.conf".format(self.network)
+        conf_file = os.path.join(self.network_dir, filename)
         try:
             self.parse_network_config()
         except Exception as e:
-            conf_file = "{}/{}.conf".format(self.network_dir, self.network)
             raise ConfigError(ConfigErrorScope.NETWORK_CONF, conf_file=conf_file) from e
-
-        for node in self.nodes.values():
-            for v in node["volumes"]:
-                v["host"] = self.expand_vars(v["host"])
 
     def parse_command_line_arguments(self):
         parser = ArgumentParser(argument_default=argparse.SUPPRESS, prog="xud.sh", usage="bash xud.sh [OPTIONS]")
@@ -102,6 +119,11 @@ class Config:
             "--use-local-images",
             metavar="<images>",
             help="Use other local built images"
+        )
+        parser.add_argument(
+            "--api",
+            action="store_true",
+            help="Expose xud-docker API (REST + WebSocket)"
         )
 
         group = parser.add_argument_group("bitcoind")
@@ -292,6 +314,16 @@ class Config:
             help="Quote asset"
         )
         group.add_argument(
+            "--arby.cex-base-asset",
+            metavar="<asset>",
+            help="Centralized exchange base asset"
+        )
+        group.add_argument(
+            "--arby.cex-quote-asset",
+            metavar="<asset>",
+            help="Centralized exchange quote asset"
+        )
+        group.add_argument(
             "--arby.test-centralized-baseasset-balance",
             metavar="<value>",
             help="Test centralized base asset balance"
@@ -302,14 +334,19 @@ class Config:
             help="Test centralized quote asset balance"
         )
         group.add_argument(
-            "--arby.binance-api-key",
+            "--arby.cex",
             metavar="<key>",
-            help="Binance API key"
+            help="Centralized Exchange"
         )
         group.add_argument(
-            "--arby.binance-api-secret",
+            "--arby.cex-api-key",
+            metavar="<key>",
+            help="CEX API key"
+        )
+        group.add_argument(
+            "--arby.cex-api-secret",
             metavar="<secret>",
-            help="Binance API secret"
+            help="CEX API secret"
         )
         group.add_argument(
             "--arby.margin",
@@ -342,6 +379,19 @@ class Config:
             "--webui.expose-ports",
             metavar="<ports>",
             help="Expose webui service ports to your host machine"
+        )
+
+        group = parser.add_argument_group("proxy")
+        group.add_argument(
+            "--proxy.disabled",
+            nargs='?',
+            metavar="true|false",
+            help="Enable/Disable proxy service"
+        )
+        group.add_argument(
+            "--proxy.expose-ports",
+            metavar="<ports>",
+            help="Expose proxy service ports to your host machine"
         )
 
         self.args = parser.parse_args()
@@ -626,7 +676,7 @@ class Config:
 
     def update_connext(self, parsed):
         """Update Connext related configurations from parsed TOML connext section
-        :param parsed: Parsed raiden TOML section
+        :param parsed: Parsed connext TOML section
         """
         node = self.nodes["connext"]
         self.update_ports(node, parsed)
@@ -699,6 +749,26 @@ class Config:
             if value:
                 node["quote-asset"] = value
 
+        if "cex-base-asset" in parsed:
+            if parsed["cex-base-asset"]:
+                value = parsed["cex-base-asset"]
+                node["cex-base-asset"] = value
+        opt = "arby.cex_base_asset"
+        if hasattr(self.args, opt):
+            value = getattr(self.args, opt)
+            if value:
+                node["cex-base-asset"] = value
+
+        if "cex-quote-asset" in parsed:
+            if parsed["cex-quote-asset"]:
+                value = parsed["cex-quote-asset"]
+                node["cex-quote-asset"] = value
+        opt = "arby.cex_quote_asset"
+        if hasattr(self.args, opt):
+            value = getattr(self.args, opt)
+            if value:
+                node["cex-quote-asset"] = value
+
         if "live-cex" in parsed:
             if parsed["live-cex"]:
                 value = parsed["live-cex"]
@@ -709,25 +779,35 @@ class Config:
             if value:
                 node["live-cex"] = value
 
-        if "binance-api-key" in parsed:
-            if parsed["binance-api-key"]:
-                value = parsed["binance-api-key"]
-                node["binance-api-key"] = value
-        opt = "arby.binance_api_key"
+        if "cex" in parsed:
+            if parsed["cex"]:
+                value = parsed["cex"]
+                node["cex"] = value
+        opt = "arby.cex"
         if hasattr(self.args, opt):
             value = getattr(self.args, opt)
             if value:
-                node["binance-api-key"] = value
+                node["cex"] = value
 
-        if "binance-api-secret" in parsed:
-            if parsed["binance-api-secret"]:
-                value = parsed["binance-api-secret"]
-                node["binance-api-secret"] = value
-        opt = "arby.binance_api_secret"
+        if "cex-api-key" in parsed:
+            if parsed["cex-api-key"]:
+                value = parsed["cex-api-key"]
+                node["cex-api-key"] = value
+        opt = "arby.cex_api_key"
         if hasattr(self.args, opt):
             value = getattr(self.args, opt)
             if value:
-                node["binance-api-secret"] = value
+                node["cex-api-key"] = value
+
+        if "cex-api-secret" in parsed:
+            if parsed["cex-api-secret"]:
+                value = parsed["cex-api-secret"]
+                node["cex-api-secret"] = value
+        opt = "arby.cex_api_secret"
+        if hasattr(self.args, opt):
+            value = getattr(self.args, opt)
+            if value:
+                node["cex-api-secret"] = value
 
         if "margin" in parsed:
             if parsed["margin"]:
@@ -744,7 +824,7 @@ class Config:
 
     def update_boltz(self, parsed):
         """Update webui related configurations from parsed TOML boltz section
-        :param parsed: Parsed raiden TOML section
+        :param parsed: Parsed boltz TOML section
         """
         node = self.nodes["boltz"]
         self.update_disabled(node, parsed, "boltz.disabled")
@@ -752,7 +832,7 @@ class Config:
 
     def update_webui(self, parsed):
         """Update webui related configurations from parsed TOML webui section
-        :param parsed: Parsed raiden TOML section
+        :param parsed: Parsed webui TOML section
         """
         node = self.nodes["webui"]
         self.update_disabled(node, parsed, "webui.disabled")
@@ -760,6 +840,18 @@ class Config:
             "8888": "8888:8080",
             "18888": "18888:8080",
             "28888": "28888:8080",
+        })
+
+    def update_proxy(self, parsed):
+        """Update proxy related configurations from parsed TOML webui section
+        :param parsed: Parsed proxy TOML section
+        """
+        node = self.nodes["proxy"]
+        self.update_disabled(node, parsed, "proxy.disabled")
+        self.update_ports(node, parsed, mapping={
+            "8889": "8889:8080",
+            "18889": "18889:8080",
+            "28889": "28889:8080",
         })
 
     def parse_network_config(self):
@@ -837,11 +929,105 @@ class Config:
                 value = value.replace(f"${self.network}_dir", self.network_dir)
             if "$data_dir" in value:
                 value = value.replace("$data_dir", self.network_dir + "/data")
+            if "$logs_dir" in value:
+                value = value.replace("$logs_dir", self.logs_dir)
         return value
 
     @property
-    def logfile(self):
-        if self.network_dir:
-            network = self.network
-            return f"{self.network_dir}/logs/{network}.log"
-        return None
+    def logs_dir(self) -> str:
+        return os.path.join(self.network_dir, "logs")
+
+    @property
+    def logfile(self) -> str:
+        filename = f"{self.network}.log"
+        return os.path.join(self.logs_dir, filename)
+
+    @property
+    def dumpfile(self) -> str:
+        filename = f"config.sh"
+        return os.path.join(self.logs_dir, filename)
+
+    def dump(self) -> None:
+        """Dump xud-docker configurations as bash key-value file in logs_dir"""
+        prefix = "XUD_DOCKER"
+
+        with open("/mnt/hostfs" + self.dumpfile, "w") as f:
+            def dump_attr(attr: str) -> None:
+                key = f"{prefix}_{attr.upper()}"
+                value = getattr(self, attr)
+                if not value:
+                    value = ""
+                if isinstance(value, bool):
+                    value = str(value).lower()
+                print("{}=\"{}\"".format(key, value), file=f)
+            dump_attr("branch")
+            dump_attr("disable_update")
+            dump_attr("external_ip")
+            dump_attr("network")
+            dump_attr("home_dir")
+            dump_attr("network_dir")
+            dump_attr("backup_dir")
+            dump_attr("restore_dir")
+
+            # dump nodes config
+            def dump_node_attr(node: str, attr: str) -> None:
+                node_config = self.nodes[node]
+                node_prefix = f"{prefix}_SERVICE_{node.upper()}"
+                if attr == "volumes":
+                    for volume in node_config["volumes"]:
+                        key = f"{node_prefix}_VOLUME"
+                        value = "{}:{}".format(volume["host"], volume["container"])
+                        print("{}=\"{}\"".format(key, value), file=f)
+                elif attr == "ports":
+                    for port in node_config["ports"]:
+                        key = f"{node_prefix}_PORT"
+                        value = str(port)
+                        print("{}=\"{}\"".format(key, value), file=f)
+                else:
+                    key = f"{node_prefix}_{attr.upper()}"
+                    value = ""
+                    try:
+                        value = node_config[attr]
+                    except KeyError:
+                        if node == "arby":
+                            value = node_config.get(attr.replace("_", "-"), "")
+                    if not value:
+                        value = ""
+                    if isinstance(value, bool):
+                        value = str(value).lower()
+                    print("{}=\"{}\"".format(key, value), file=f)
+
+            for node in self.nodes.keys():
+                dump_node_attr(node, "image")
+                dump_node_attr(node, "volumes")
+                dump_node_attr(node, "ports")
+                dump_node_attr(node, "mode")
+                dump_node_attr(node, "disabled")
+                dump_node_attr(node, "preserve_config")
+                dump_node_attr(node, "use_local_image")
+
+                if node in ["bitcoind", "litecoind"]:
+                    dump_node_attr(node, "external_rpc_host")
+                    dump_node_attr(node, "external_rpc_port")
+                    #dump_node_attr(node, "external_rpc_user")
+                    #dump_node_attr(node, "external_rpc_password")
+                    dump_node_attr(node, "external_zmqpubrawblock")
+                    dump_node_attr(node, "external_zmqpubrawtx")
+                elif node == "geth":
+                    dump_node_attr(node, "external_rpc_host")
+                    dump_node_attr(node, "external_rpc_port")
+                    #dump_node_attr(node, "infura_project_id")
+                    #dump_node_attr(node, "infura_project_secret")
+                    dump_node_attr(node, "cache")
+                elif node == "arby":
+                    dump_node_attr(node, "test_centralized_baseasset_balance")
+                    dump_node_attr(node, "test_centralized_quoteasset_balance")
+                    dump_node_attr(node, "opendex_base_asset")
+                    dump_node_attr(node, "opendex_quote_asset")
+                    dump_node_attr(node, "cex_base_asset")
+                    dump_node_attr(node, "cex_quote_asset")
+                    dump_node_attr(node, "live_cex")
+                    dump_node_attr(node, "cex")
+                    #dump_node_attr(node, "cex_api_key")
+                    #dump_node_attr(node, "cex_api_secret")
+                    dump_node_attr(node, "margin")

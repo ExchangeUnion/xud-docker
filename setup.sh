@@ -5,12 +5,12 @@ set -euo pipefail
 BRANCH=master
 DEV=false
 DOCKER_REGISTRY="https://registry-1.docker.io"
-UTILS_TAG="20.09.01"
+UTILS_TAG="20.10.16"
 
 
 function print_help() {
     cat <<EOF
-xud.sh 20.09.01
+xud.sh 20.10.16
 The launcher script for Exchange Union environment
 
 USAGE:
@@ -77,10 +77,13 @@ Arby options:
     --arby.live-cex [true|false]                Production/Demo mode (default: false)
     --arby.base-asset <string>                  Base asset symbol
     --arby.quote-asset <string>                 Quote asset symbol
+    --arby.cex-base-asset <string>              Centralized exchange base asset symbol
+    --arby.cex-quote-asset <string>             Centralized exchange quote asset symbol
     --arby.test-centralized-baseasset-balance   CEX base asset balance for demo mode
     --arby.test-centralized-quoteasset-balance  CEX quote asset balance for demo mode
-    --arby.binance-api-key <string>             Binance API key
-    --arby.binance-api-secret <string>          Binance API secret
+    --arby.cex <string>                         CEX (binance/kraken)
+    --arby.cex-api-key <string>                 CEX API key
+    --arby.cex-api-secret <string>              CEX API secret
     --arby.margin <double>                      Trade margin
     --arby.disabled [true|false]                Enable/Disable arby service
 
@@ -90,6 +93,10 @@ Boltz options:
 Webui options:
     --webui.disabled [true|false]               Enable/Disable webui service
     --webui.expose-ports <port>[,<port>]        Expose webui service ports to your host machine
+
+Proxy options:
+    --proxy.disabled [true|false]               Enable/Disable proxy service
+    --proxy.expose-ports <port>[,<port>]        Expose proxy service ports to your host machine
 EOF
 }
 

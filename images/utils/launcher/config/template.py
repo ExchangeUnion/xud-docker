@@ -6,7 +6,7 @@ class PortPublish:
     def __init__(self, value):
         p1 = re.compile(r"^(\d+)$")  # 8080
         p2 = re.compile(r"^(\d+):(\d+)$")  # 80:8080
-        p3 = re.compile(r"^(\d+):(\d+):(\d+)$")  # 127.0.0.1:80:8080
+        p3 = re.compile(r"^(.+):(\d+):(\d+)$")  # 127.0.0.1:80:8080
 
         protocol = "tcp"
         if "/" in value:
@@ -35,6 +35,8 @@ class PortPublish:
                     host = m.group(1)
                     host_port = int(m.group(2))
                     port = int(m.group(3))
+                else:
+                    raise FatalError("Invalid port publish: {}".format(value))
 
         self.protocol = protocol
         self.host = host
@@ -53,6 +55,21 @@ class PortPublish:
         if self.protocol != other.protocol:
             return False
         return True
+
+    def __str__(self):
+        if self.host:
+            host = "{}:{}".format(self.host, self.host_port)
+        else:
+            host = "{}".format(self.host_port)
+
+        container = "{}".format(self.port)
+
+        if self.protocol == "tcp":
+            return "{}:{}".format(host, container)
+        elif self.protocol == "udp":
+            return "{}:{}/udp".format(host, container)
+        elif self.protocol == "sctp":
+            return "{}:{}/sctp".format(host, container)
 
 
 nodes_config = {
@@ -128,6 +145,37 @@ nodes_config = {
                 }
             ],
             "ports": [PortPublish("28888:8080")],
+            "mode": "native",
+            "preserve_config": False,
+            "use_local_image": False,
+            "disabled": True,
+        },
+        "proxy": {
+            "name": "proxy",
+            "image": "exchangeunion/proxy:latest",
+            "volumes": [
+                {
+                    "host": "/var/run/docker.sock",
+                    "container": "/var/run/docker.sock",
+                },
+                {
+                    "host": "$logs_dir/config.sh",
+                    "container": "/root/config.sh",
+                },
+                {
+                    "host": "$data_dir/xud",
+                    "container": "/root/.xud",
+                },
+                {
+                    "host": "$data_dir/lndbtc",
+                    "container": "/root/.lndbtc",
+                },
+                {
+                    "host": "$data_dir/lndltc",
+                    "container": "/root/.lndltc",
+                },
+            ],
+            "ports": [PortPublish("127.0.0.1:28889:8080")],
             "mode": "native",
             "preserve_config": False,
             "use_local_image": False,
@@ -320,6 +368,38 @@ nodes_config = {
             "use_local_image": False,
             "disabled": True,
         },
+        "proxy": {
+            "name": "proxy",
+            "image": "exchangeunion/proxy:latest",
+            "volumes": [
+                {
+                    "host": "/var/run/docker.sock",
+                    "container": "/var/run/docker.sock",
+                },
+                {
+                    "host": "$logs_dir/config.sh",
+                    "container": "/root/config.sh",
+                },
+                {
+                    "host": "$data_dir/xud",
+                    "container": "/root/.xud",
+                },
+                {
+                    "host": "$data_dir/lndbtc",
+                    "container": "/root/.lndbtc",
+                },
+                {
+                    "host": "$data_dir/lndltc",
+                    "container": "/root/.lndltc",
+                },
+
+            ],
+            "ports": [PortPublish("127.0.0.1:18889:8080")],
+            "mode": "native",
+            "preserve_config": False,
+            "use_local_image": False,
+            "disabled": True,
+        },
         "xud": {
             "name": "xud",
             "image": "exchangeunion/xud:latest",
@@ -390,7 +470,7 @@ nodes_config = {
         },
         "geth": {
             "name": "geth",
-            "image": "exchangeunion/geth:1.9.20",
+            "image": "exchangeunion/geth:1.9.22",
             "volumes": [
                 {
                     "host": "$data_dir/geth",
@@ -409,7 +489,7 @@ nodes_config = {
         },
         "lndbtc": {
             "name": "lndbtc",
-            "image": "exchangeunion/lndbtc:0.11.0-beta",
+            "image": "exchangeunion/lndbtc:0.11.1-beta",
             "volumes": [
                 {
                     "host": "$data_dir/lndbtc",
@@ -437,7 +517,7 @@ nodes_config = {
         },
         "connext": {
             "name": "connext",
-            "image": "exchangeunion/connext:1.3.2",
+            "image": "exchangeunion/connext:1.3.6",
             "volumes": [
                 {
                     "host": "$data_dir/connext",
@@ -451,7 +531,7 @@ nodes_config = {
         },
         "arby": {
             "name": "arby",
-            "image": "exchangeunion/arby:1.1.8",
+            "image": "exchangeunion/arby:1.2.3",
             "volumes": [
                 {
                     "host": "$data_dir/arby",
@@ -470,7 +550,7 @@ nodes_config = {
         },
         "boltz": {
             "name": "boltz",
-            "image": "exchangeunion/boltz:1.1.0",
+            "image": "exchangeunion/boltz:1.1.1",
             "volumes": [
                 {
                     "host": "$data_dir/boltz",
@@ -506,9 +586,40 @@ nodes_config = {
             "use_local_image": False,
             "disabled": True,
         },
+        "proxy": {
+            "name": "proxy",
+            "image": "exchangeunion/proxy:latest",
+            "volumes": [
+                {
+                    "host": "/var/run/docker.sock",
+                    "container": "/var/run/docker.sock",
+                },
+                {
+                    "host": "$logs_dir/config.sh",
+                    "container": "/root/config.sh",
+                },
+                {
+                    "host": "$data_dir/xud",
+                    "container": "/root/.xud",
+                },
+                {
+                    "host": "$data_dir/lndbtc",
+                    "container": "/root/.lndbtc",
+                },
+                {
+                    "host": "$data_dir/lndltc",
+                    "container": "/root/.lndltc",
+                },
+            ],
+            "ports": [PortPublish("127.0.0.1:8889:8080")],
+            "mode": "native",
+            "preserve_config": False,
+            "use_local_image": False,
+            "disabled": True,
+        },
         "xud": {
             "name": "xud",
-            "image": "exchangeunion/xud:1.0.0",
+            "image": "exchangeunion/xud:1.2.0",
             "volumes": [
                 {
                     "host": "$data_dir/xud",

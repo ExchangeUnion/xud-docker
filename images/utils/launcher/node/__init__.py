@@ -21,6 +21,7 @@ from .image import Image, ImageManager
 from .lnd import Lndbtc, Lndltc
 from .webui import Webui
 from .xud import Xud, XudApiError
+from .proxy import Proxy
 from .DockerTemplate import DockerTemplate
 from ..config import Config
 from ..errors import FatalError
@@ -208,34 +209,28 @@ class NodeManager:
 
     def _display_container_status_text(self, status):
         if status == "missing":
-            return "missing"
+            return "create"
         elif status == "outdated":
-            return "outdated"
+            return "recreate"
         elif status == "external_with_container":
-            return "non-native"
+            return "remove"
         elif status == "disabled_with_container":
-            return "disabled"
-
-    def _readable_details(self, details):
-        if not details:
-            return None
-        diff_keys = [key for key, value in details.items() if not value.same]
-        return ", ".join(diff_keys)
+            return "remove"
 
     def update(self) -> bool:
         if self.config.disable_update:
+            self.logger.info("Disable update checking")
             return True
 
+        self.logger.info("Checking for updates")
+        print("🌍 Checking for updates...")
+
+        # Checking for image updates
+        self.logger.info("Checking for image updates")
         outdated = False
         image_outdated = False
-
-        # Step 1. check all images
-        print("🌍 Checking for updates...")
         images = self.image_manager.check_for_updates()
 
-        self.logger.debug("[Update] Image checking result: %r", images)
-
-        # TODO handle image local status. Print a warning or give users a choice
         for image in images:
             status = image.status
             if status in ["LOCAL_MISSING", "LOCAL_OUTDATED"]:
@@ -243,28 +238,34 @@ class NodeManager:
                 outdated = True
                 image_outdated = True
             elif status == "UNAVAILABLE":
-                all_unavailable_images = [x for x in images if x.status == "UNAVAILABLE"]
-                raise FatalError("Image(s) not available: %r" % all_unavailable_images)
+                all_unavailable_images = [x.name for x in images if x.status == "UNAVAILABLE"]
+                raise FatalError("Image(s) not found: %s" % ", ".join(all_unavailable_images))
 
-        # Step 2. check all containers
+        # Checking for container updates
+        self.logger.info("Checking for container updates")
         containers = self.nodes.values()
         container_check_result = {c: None for c in containers}
 
         def print_failed(failed):
-            print("Failed to check for container updates.")
-            for container, error in failed:
-                print("- {}: {}".format(container.name, get_useful_error_message(error)))
+            pass
 
         def try_again():
-            answer = self.shell.yes_or_no("Try again?")
-            return answer == "yes"
+            return False
 
         def handle_result(container, result):
             container_check_result[container] = result
 
-        parallel_execute(containers, lambda c: c.check_for_updates(), 60, print_failed, try_again, handle_result)
+        def wrapper(c):
+            self.logger.info("(%s) Checking for updates", c.container_name)
+            try:
+                status, details = c.check_for_updates()
+                self.logger.info("(%s) Checking for updates: %s", c.container_name, status)
+                return status, details
+            except Exception as e:
+                self.logger.exception("(%s) Checking for updates: ERRORED", c.container_name)
+                raise e
 
-        self.logger.debug("[Update] Container checking result: %r", container_check_result)
+        parallel_execute(containers, lambda c: wrapper(c), 30, print_failed, try_again, handle_result)
 
         for container, result in container_check_result.items():
             status, details = result
@@ -273,11 +274,7 @@ class NodeManager:
             # when disabled False -> True, status will be "disabled_with_container"
             # when disabled True -> False, status will be "missing" because we deleted the container before
             if status in ["missing", "outdated", "external_with_container", "disabled_with_container"]:
-                readable_details = self._readable_details(details)
-                if readable_details:
-                    print("- Container %s: %s (%s)" % (container.container_name, self._display_container_status_text(status), readable_details))
-                else:
-                    print("- Container %s: %s" % (container.container_name, self._display_container_status_text(status)))
+                print("- Container %s: %s" % (container.container_name, self._display_container_status_text(status)))
                 outdated = True
 
         if not outdated:
@@ -328,7 +325,7 @@ class NodeManager:
         self.get_node(name).cli(" ".join(args), self.shell)
 
     def _get_status_nodes(self):
-        optional_nodes = ["arby", "boltz", "webui"]
+        optional_nodes = ["arby", "boltz", "webui", "proxy"]
         result = {}
         for node in self.nodes.values():
             if node.name in optional_nodes:

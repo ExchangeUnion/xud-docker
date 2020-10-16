@@ -15,10 +15,12 @@ class Arby(Node):
 
         live_cex = self.node_config["live-cex"] \
             if "live-cex" in self.node_config else "false"
-        api_key = self.node_config["binance-api-key"] \
-            if "binance-api-key" in self.node_config else "123"
-        api_secret = self.node_config["binance-api-secret"] \
-            if "binance-api-secret" in self.node_config else "abc"
+        cex = self.node_config["cex"] \
+            if "cex" in self.node_config else "binance"
+        api_key = self.node_config["cex-api-key"] \
+            if "cex-api-key" in self.node_config else "123"
+        api_secret = self.node_config["cex-api-secret"] \
+            if "cex-api-secret" in self.node_config else "abc"
         margin = self.node_config["margin"] \
             if "margin" in self.node_config else "0.04"
         test_centralized_baseasset_balance = self.node_config["test-centralized-baseasset-balance"] \
@@ -26,9 +28,13 @@ class Arby(Node):
         test_centralized_quoteasset_balance = self.node_config["test-centralized-quoteasset-balance"] \
             if "test-centralized-baseasset-balance" in self.node_config else "321"
         base_asset = self.node_config["base-asset"] \
-            if "base-asset" in self.node_config else "BTC"
+            if "base-asset" in self.node_config else ""
         quote_asset = self.node_config["quote-asset"] \
-            if "quote-asset" in self.node_config else "USDT"
+            if "quote-asset" in self.node_config else ""
+        cex_base_asset = self.node_config["cex-base-asset"] \
+            if "cex-base-asset" in self.node_config else ""
+        cex_quote_asset = self.node_config["cex-quote-asset"] \
+            if "cex-quote-asset" in self.node_config else ""
 
         if self.network == "simnet":
             rpc_port = "28886"
@@ -45,9 +51,12 @@ class Arby(Node):
             "OPENDEX_RPC_HOST=xud",
             f"BASEASSET={base_asset}",
             f"QUOTEASSET={quote_asset}",
+            f"CEX_BASEASSET={cex_base_asset}",
+            f"CEX_QUOTEASSET={cex_quote_asset}",
             f"OPENDEX_RPC_PORT={rpc_port}",
-            f'BINANCE_API_SECRET={api_secret}',
-            f'BINANCE_API_KEY={api_key}',
+            f'CEX={cex}',
+            f'CEX_API_SECRET={api_secret}',
+            f'CEX_API_KEY={api_key}',
             f'LIVE_CEX={live_cex}',
             f'MARGIN={margin}',
             f'TEST_CENTRALIZED_EXCHANGE_BASEASSET_BALANCE={test_centralized_baseasset_balance}',

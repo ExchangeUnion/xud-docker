@@ -1,18 +1,18 @@
 import logging
 import shlex
 import traceback
-import os
+import os.path
 
-from .config import Config, ConfigLoader
-from .shell import Shell
-from .node import NodeManager, NodeNotFound
-from .utils import ParallelExecutionError, ArgumentError
+from launcher.config import Config, ConfigLoader
+from launcher.shell import Shell
+from launcher.node import NodeManager, NodeNotFound
+from launcher.utils import ParallelExecutionError, ArgumentError
 
-from .check_wallets import Action as CheckWalletsAction
-from .close_other_utils import Action as CloseOtherUtilsAction
-from .auto_unlock import Action as AutoUnlockAction
-from .warm_up import Action as WarmUpAction
-from .errors import FatalError, ConfigError, ConfigErrorScope
+from launcher.check_wallets import Action as CheckWalletsAction
+from launcher.close_other_utils import Action as CloseOtherUtilsAction
+from launcher.auto_unlock import Action as AutoUnlockAction
+from launcher.warm_up import Action as WarmUpAction
+from launcher.errors import FatalError, ConfigError, ConfigErrorScope
 
 
 HELP = """\
@@ -50,7 +50,6 @@ Xucli shortcut commands
   removeorder <order_id> [quantity]         remove an order
   removepair <pair_id>                      remove a trading pair
   restore [backup_directory]                restore an xud instance from seed
-  [raiden_database_path]
   sell <quantity> <pair_id> <price>         place a sell order
   [order_id]
   shutdown                                  gracefully shutdown local xud node
@@ -97,9 +96,14 @@ Boltzcli shortcut commands
 
 
 def init_logging():
-    fmt = "%(asctime)s.%(msecs)03d %(levelname)s %(process)d --- [%(threadName)s] %(name)s: %(message)s"
+    fmt = "%(asctime)s.%(msecs)03d %(levelname)5s %(process)d --- [%(threadName)-15s] %(name)-30s: %(message)s"
     datefmt = "%Y-%m-%d %H:%M:%S"
-    logging.basicConfig(format=fmt, datefmt=datefmt, level=logging.ERROR, filename="/var/log/launcher.log")
+    if os.path.exists("/mnt/hostfs/tmp"):
+        logfile = "/mnt/hostfs/tmp/xud-docker.log"
+    else:
+        logfile = "xud-docker.log"
+
+    logging.basicConfig(format=fmt, datefmt=datefmt, level=logging.INFO, filename=logfile, filemode="w")
 
     level_config = {
         "launcher": logging.DEBUG,
@@ -180,6 +184,8 @@ your issue.""")
                     self.node_manager.cli("boltz", "btc", "deposit", *args)
                 elif chain == "ltc":
                     self.node_manager.cli("boltz", "ltc", "deposit", *args)
+                else:
+                    self.node_manager.cli("xud", "walletdeposit", chain, *args)
             elif arg0 == "withdraw":
                 if len(args) == 0:
                     print("Missing chain")
@@ -189,6 +195,8 @@ your issue.""")
                     self.node_manager.cli("boltz", "btc", "withdraw", *args)
                 elif chain == "ltc":
                     self.node_manager.cli("boltz", "ltc", "withdraw", *args)
+                else:
+                    self.node_manager.cli("xud", "walletwithdraw", chain, *args)
             elif arg0 == "help":
                 print(HELP)
             else:
@@ -232,17 +240,25 @@ your issue.""")
         self.close_other_utils()
 
     def start(self):
-        up_env = True
-        try:
-            up_env = self.node_manager.update()
-        except ParallelExecutionError:
-            pass
+        self.logger.info("Start %s", self.config.network)
+
+        up_env = self.node_manager.update()
 
         if up_env:
             self.node_manager.up()
             self.pre_start()
 
+        self.logger.info("Start shell")
         self.shell.start(f"{self.config.network} > ", self.handle_command)
+
+
+def print_config_error_cause(e: ConfigError) -> None:
+    if e.__cause__:
+        cause = str(e.__cause__)
+        if cause == "":
+            print(type(e.__cause__))
+        else:
+            print(cause.capitalize())
 
 
 class Launcher:
@@ -255,7 +271,6 @@ class Launcher:
         config = None
         try:
             config = Config(ConfigLoader())
-            assert config.network_dir is not None
             shell.set_network_dir(config.network_dir)  # will create shell history file in network_dir
             env = XudEnv(config, shell)
             env.start()
@@ -263,19 +278,21 @@ class Launcher:
             print()
         except ConfigError as e:
             if e.scope == ConfigErrorScope.COMMAND_LINE_ARGS:
-                print("❌ Failed to parse command-line arguments, exiting.")
-                print(f"Error details: {e.__cause__}")
+                print("Failed to parse command-line arguments, exiting.")
+                print_config_error_cause(e)
             elif e.scope == ConfigErrorScope.GENERAL_CONF:
-                print("❌ Failed to parse config file {}, exiting.".format(e.conf_file))
-                print(f"Error details: {e.__cause__}")
+                print("Failed to parse config file {}, exiting.".format(e.conf_file))
+                print_config_error_cause(e)
             elif e.scope == ConfigErrorScope.NETWORK_CONF:
-                print("❌ Failed to parse config file {}, exiting.".format(e.conf_file))
-                print(f"Error details: {e.__cause__}")
+                print("Failed to parse config file {}, exiting.".format(e.conf_file))
+                print_config_error_cause(e)
         except FatalError as e:
             if config and config.logfile:
-                print(f"❌ Error: {e}. For more details, see {config.logfile}")
+                print("{}. For more details, see {}".format(e, config.logfile))
             else:
                 traceback.print_exc()
+        except ParallelExecutionError:
+            pass
         except Exception:  # exclude system exceptions like SystemExit
             self.logger.exception("Unexpected exception during launching")
             traceback.print_exc()
