@@ -619,7 +619,7 @@ nodes_config = {
         },
         "xud": {
             "name": "xud",
-            "image": "exchangeunion/xud:1.1.0",
+            "image": "exchangeunion/xud:1.2.0",
             "volumes": [
                 {
                     "host": "$data_dir/xud",
