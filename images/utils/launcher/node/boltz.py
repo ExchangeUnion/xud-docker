@@ -18,7 +18,7 @@ class BoltzApi:
 
     def getinfo(self, node):
         try:
-            info = self._backend[node + " getinfo"]()
+            info = self._backend.invoke(node + " getinfo")
             return json.loads(info)
         except CliError as e:
             raise BoltzApiError(e.output)
@@ -33,7 +33,7 @@ class Boltz(Node):
         self.container_spec.environment.extend(environment)
 
         self._cli = "wrapper"
-        self.api = BoltzApi(CliBackend(self.client, self.container_name, self._logger, self._cli))
+        self.api = BoltzApi(CliBackend(self.name, self.container_name, self._cli))
 
     def check_node(self, node):
         try:
@@ -44,17 +44,13 @@ class Boltz(Node):
 
     def status(self):
         status = super().status()
-
-        if status == "exited":
-            return "Container exited"
-        elif status == "running":
-            btc_status = self.check_node("btc")
-            ltc_status = self.check_node("ltc")
-
-            if btc_status.isUp and ltc_status.isUp:
-                return "Ready"
-            else:
-                return btc_status.status + "; " + ltc_status.status
-
-        else:
+        if status != "Container running":
             return status
+
+        btc_status = self.check_node("btc")
+        ltc_status = self.check_node("ltc")
+
+        if btc_status.isUp and ltc_status.isUp:
+            return "Ready"
+        else:
+            return btc_status.status + "; " + ltc_status.status

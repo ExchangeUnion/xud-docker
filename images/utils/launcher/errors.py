@@ -17,3 +17,11 @@ class ConfigError(Exception):
         super().__init__(scope)
         self.scope = scope
         self.conf_file = conf_file
+
+
+class NoWaiting(Exception):
+    pass
+
+
+class ParallelError(Exception):
+    pass

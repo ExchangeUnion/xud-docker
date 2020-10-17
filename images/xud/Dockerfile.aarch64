@@ -1,9 +1,12 @@
+FROM node:12-alpine3.12 AS builder-seedutil
+RUN apk add --no-cache go gcc musl-dev
+WORKDIR /xud
+ADD .src .
+RUN npm run compile:seedutil
+RUN strip seedutil/seedutil
+
 FROM node:12-alpine3.12 AS builder
-# Use pure JS implemented secp256k1 bindings
-RUN apk add --no-cache git rsync bash musl-dev go python3 make g++
-# Pre-built binaries not found for sqlite3@4.1.0 and node@12.16.1 (node-v72 ABI, musl) (falling back to source compile with node-gyp)
-# python: not found
-RUN apk add --no-cache python2
+RUN apk add --no-cache git rsync
 WORKDIR /xud
 ADD .src .
 ARG GIT_REVISION
@@ -11,13 +14,13 @@ RUN echo "" > parseGitCommit.js
 RUN echo "export default '-$GIT_REVISION';" > lib/Version.ts
 RUN cp package.json /tmp/package.json
 RUN sed -Ei 's/"grpc-tools": "1.8.0",//g' package.json
-RUN npm install
+RUN npm install \
+--grpc_node_binary_host_mirror=https://raw.githubusercontent.com/ExchangeUnion/grpc-node-precompiled-binaries/master \
+--node_sqlite3_binary_host_mirror=https://raw.githubusercontent.com/ExchangeUnion/grpc-node-precompiled-binaries/master
 RUN cp /tmp/package.json package.json
 RUN npm run compile
-RUN npm run compile:seedutil
 RUN npm prune --production
-RUN rm -rf seedutil/go
-RUN strip seedutil/seedutil
+COPY --from=builder-seedutil /xud/seedutil/seedutil seedutil/
 
 FROM node:12-alpine3.12
 RUN apk add --no-cache bash tor
@@ -27,5 +30,3 @@ WORKDIR /app
 RUN ln -s /app/bin/xud /usr/local/bin/xud
 RUN ln -s /app/bin/xucli /usr/local/bin/xucli
 ENTRYPOINT ["/entrypoint.sh"]
-VOLUME [ "/root/.xud" ]
-EXPOSE 8887 18887 28887

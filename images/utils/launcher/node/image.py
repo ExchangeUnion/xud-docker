@@ -1,25 +1,30 @@
 from __future__ import annotations
-import logging
-from typing import Dict, TYPE_CHECKING
-import platform
-from datetime import datetime
-from urllib.request import urlopen, Request
-from urllib.error import HTTPError
-import json
+
 import http.client
+import json
+import logging
+import platform
 import re
-import time
-from typing import List
 import sys
+import time
+from concurrent.futures import wait
+from dataclasses import dataclass
+from datetime import datetime
+from typing import TYPE_CHECKING, Dict, Any
+from urllib.error import HTTPError
+from urllib.request import urlopen, Request
 
 from docker import DockerClient
 from docker.errors import ImageNotFound
 
-from launcher.utils import parallel_execute, ParallelExecutionError
-from launcher.errors import FatalError
+from launcher.errors import FatalError, NoWaiting
+from launcher.utils import yes_or_no
 
 if TYPE_CHECKING:
     from .base import Node
+    from launcher.config import Config
+
+logger = logging.getLogger(__name__)
 
 
 def get_line(record):
@@ -65,18 +70,16 @@ class ImageMetadata:
         self.revision = revision
         self.name = name
 
-    def __repr__(self):
-        digest = self.digest
-        created = self.created
-        branch = self.branch
-        revision = self.revision
-        name = self.name
-        return f"<ImageMetadata {name=} {digest=} {created=} {branch=} {revision=}>"
+
+@dataclass
+class Action:
+    type: str
+    details: Any
 
 
 class Image:
     def __init__(self, repo: str, tag: str, branch: str, client: DockerClient, node: Node):
-        self.logger = logging.getLogger("launcher.node.Image")
+        self.logger = logger
         self.id = None
         self.repo = repo
         self.tag = tag
@@ -92,6 +95,9 @@ class Image:
             self.use_image = self.local_metadata.name
         else:
             self.use_image = self.name
+
+    def __repr__(self):
+        return "<Image %s>" % self.name
 
     @property
     def name(self):
@@ -213,7 +219,7 @@ class Image:
         except:
             self.logger.exception("Failed to fetch cloud image metadata")
 
-    def get_status(self) -> str:
+    def _get_update_status(self) -> str:
         """Get image update status
 
         :return: image status
@@ -223,10 +229,11 @@ class Image:
         - LOCAL_MISSING: The cloud image exists but no local image.
         - LOCAL_ONLY: The image only exists locally.
         - UNAVAILABLE: The image is not found locally or remotely.
+        - USE_LOCAL
         """
         if self.node.node_config["use_local_image"]:
             self.cloud_metadata = None
-            return "LOCAL_NEWER"
+            return "USE_LOCAL"
 
         local = self.local_metadata
 
@@ -247,44 +254,57 @@ class Image:
         else:
             return "LOCAL_OUTDATED"
 
-    @property
-    def status_message(self):
-        if self.status == "UNAVAILABLE":
-            return "unavailable"
-        elif self.status == "LOCAL_ONLY":
-            return "using local version"
-        elif self.status == "LOCAL_MISSING":
-            return "pull"
-        elif self.status == "LOCAL_NEWER":
-            return "using local version"
-        elif self.status == "LOCAL_OUTDATED":
-            return "pull"
-        elif self.status == "UP_TO_DATE":
-            return "up-to-date"
+    def get_update_action(self) -> str:
+        status = self._get_update_status()
 
-    def check_for_updates(self):
-        self.status = self.get_status()
-        if self.status in ["LOCAL_MISSING", "LOCAL_OUTDATED"]:
+        if status in ["LOCAL_MISSING", "LOCAL_OUTDATED"]:
             self.pull_image = self.cloud_metadata.name
             self.use_image = self.pull_image
 
-    def __repr__(self):
-        name = self.name
-        use = self.use_image
-        pull = self.pull_image
-        return f"<Image {name=} {use=} {pull=}>"
+        if status == "UNAVAILABLE":
+            raise Exception("Image unavailable: " + self.name)
+        elif status == "LOCAL_ONLY":
+            raise UserWarning("Registry image not found (will use local version): " + self.name)
+        elif status == "LOCAL_MISSING":
+            action = "PULL"
+        elif status == "LOCAL_NEWER":
+            raise UserWarning("Your local image version is newer than registry one: " + self.name)
+        elif status == "LOCAL_OUTDATED":
+            action = "PULL"
+        elif status == "UP_TO_DATE":
+            action = "NONE"
+        elif status == "USE_LOCAL":
+            action = "NONE"
+        else:
+            raise Exception("Unexpected status " + status)
+
+        logger.info("Image %s: status=%s, action=%s", self.name, status, action)
+        return action
+
+    def pull(self):
+        print("Pulling %s..." % self.pull_image)
+        repo, tag = self.pull_image.split(":")
+        output = self.client.api.pull(repo, tag=tag, stream=True, decode=True)
+        print_status(output)
 
 
 class ImageManager:
-    def __init__(self, config, shell, client):
-        self.logger = logging.getLogger("launcher.node.ImageManager")
+    config: Config
+    client: DockerClient
 
-        self.branch = config.branch
-        self.client = client
-        self.shell = shell
-        self.nodes = config.nodes
+    def __init__(self, config: Config, docker_client: DockerClient):
+        self.config = config
+        self.client = docker_client
 
         self.images: Dict[str, Image] = {}
+
+    @property
+    def branch(self):
+        return self.config.branch
+
+    @property
+    def nodes(self):
+        return self.config.nodes
 
     def normalize_name(self, name):
         if "/" in name:
@@ -323,44 +343,33 @@ class ImageManager:
         else:
             raise FatalError("Invalid image name: " + name)
 
-    def check_for_updates(self) -> List[Image]:
+    def check_for_updates(self) -> Dict[Image, str]:
+        logger.info("Checking for image updates")
+
         images = list(self.images.values())
 
         images = [image for image in images if image.node.mode == "native" and not image.node.disabled]
 
-        def print_failed(failed):
-            pass
+        executor = self.config.executor
 
-        def try_again():
-            return False
+        futs = {executor.submit(img.get_update_action): img for img in images}
 
-        def wrapper(i):
-            self.logger.info("(%s) Checking for updates", i.name)
+        while True:
+            done, not_done = wait(futs, 30)
+            if len(not_done) > 0:
+                names = ", ".join([futs[f].name for f in not_done])
+                print("Still waiting for update checking results of image(s): %s" % names)
+                reply = yes_or_no("Would you like to keep waiting?")
+                if reply == "no":
+                    raise NoWaiting
+            else:
+                break
+
+        result = {}
+        for f in done:
             try:
-                i.check_for_updates()
-            except Exception as e:
-                logging.exception("(%s) Checking for updates: ERRORED", i.name)
-                raise e
-            self.logger.info("(%s) Checking for updates: %s", i.name, i.status)
+                result[futs[f]] = f.result()
+            except UserWarning as e:
+                print("WARNING: %s" % e)
 
-        try:
-            parallel_execute(images, lambda i: wrapper(i), 30, print_failed, try_again)
-        except ParallelExecutionError as e:
-            for image, error in e.failed:
-                error_msg = str(error)
-                if error_msg == "":
-                    error_msg = type(error)
-                print("- Image %s: %s" % (image.name, error_msg))
-            raise FatalError("Failed to check for image updates")
-
-        return images
-
-    def update_images(self) -> None:
-        for image in self.images.values():
-            status = image.status
-            pull_image = image.pull_image
-            if status in ["LOCAL_MISSING", "LOCAL_OUTDATED"]:
-                print("Pulling %s..." % pull_image)
-                repo, tag = pull_image.split(":")
-                output = self.client.api.pull(repo, tag=tag, stream=True, decode=True)
-                print_status(output)
+        return result

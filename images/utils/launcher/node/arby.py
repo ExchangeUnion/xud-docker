@@ -80,7 +80,7 @@ class Arby(Node):
         self.container_spec.environment.extend(environment)
 
         self._cli = "curl -s"
-        self.api = ArbyApi(CliBackend(self.client, self.container_name, self._logger, self._cli))
+        self.api = ArbyApi(CliBackend(self.name, self.container_name, self._cli))
 
     def status(self):
         status = super().status()

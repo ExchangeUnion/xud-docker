@@ -1,4 +1,8 @@
+import logging
 from .base import Node, CliBackend, CliError
+
+
+logger = logging.getLogger(__name__)
 
 
 class ConnextApiError(Exception):
@@ -11,10 +15,12 @@ class ConnextApi:
 
     def is_healthy(self):
         try:
-            result = self._backend["http://localhost:5040/health"]()
+            result = self._backend.invoke("http://localhost:5040/health")
             return result == ""
         except CliError as e:
-            raise ConnextApiError("Starting...")
+            logger.info(e.exit_code)
+            logger.info(e.output)
+            raise ConnextApiError("Starting...") from e
 
 
 class Connext(Node):
@@ -72,7 +78,7 @@ class Connext(Node):
         self.container_spec.environment.extend(environment)
 
         self._cli = "curl -s"
-        self.api = ConnextApi(CliBackend(self.client, self.container_name, self._logger, self._cli))
+        self.api = ConnextApi(CliBackend(self.name, self.container_name, self._cli))
 
     def get_xud_getinfo_connext_status(self):
         xud = self.node_manager.nodes["xud"]
@@ -87,25 +93,21 @@ class Connext(Node):
 
     def status(self):
         status = super().status()
-        if status == "exited":
-            # TODO: analyze exit reason
-            return "Container exited"
-        elif status == "running":
-            try:
-                return self.get_xud_getinfo_connext_status()
-            except:
-                self._logger.exception("Failed to get connext status from xud getinfo")
-            try:
-                healthy = self.api.is_healthy()
-                if healthy:
-                    return "Ready"
-                else:
-                    return "Starting..."
-            except ConnextApiError as e:
-                self._logger.exception("Failed to get advanced running status")
-                return str(e)
-            except:
-                self._logger.exception("Failed to get advanced running status")
-                return "Waiting for connext to come up..."
-        else:
+        if status != "Container running":
             return status
+        try:
+            return self.get_xud_getinfo_connext_status()
+        except:
+            self._logger.exception("Failed to get connext status from xud getinfo")
+        try:
+            healthy = self.api.is_healthy()
+            if healthy:
+                return "Ready"
+            else:
+                return "Starting..."
+        except ConnextApiError as e:
+            self._logger.exception("Failed to get advanced running status")
+            return str(e)
+        except:
+            self._logger.exception("Failed to get advanced running status")
+            return "Waiting for connext to come up..."

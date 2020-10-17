@@ -1,57 +1,14 @@
+import argparse
 import logging
 import os
-from concurrent.futures import ThreadPoolExecutor, wait
-import argparse
+import random
+import threading
+import time
+from concurrent.futures import ThreadPoolExecutor
+from typing import List, Callable, TypeVar
+from launcher.errors import ParallelError
 
-logger = logging.getLogger("launcher.utils")
-
-
-class ParallelExecutionError(Exception):
-    def __init__(self, failed):
-        super()
-        self.failed = failed
-
-
-def parallel_execute(tasks, execute, timeout, print_failed, try_again, handle_result=None, single_thread=False):
-    while len(tasks) > 0:
-        failed = []
-        if single_thread:
-            workers = 1
-        else:
-            workers = len(tasks)
-        with ThreadPoolExecutor(max_workers=workers, thread_name_prefix="P") as executor:
-            fs = {executor.submit(execute, t): t for t in tasks}
-            done, not_done = wait(fs, timeout)
-            for f in done:
-                task = fs[f]
-                try:
-                    result = f.result()
-                    if handle_result:
-                        handle_result(task, result)
-                except Exception as e:
-                    failed.append((task, e))
-            for f in not_done:
-                task = fs[f]
-                f.cancel()
-                failed.append((task, TimeoutError("timeout")))
-        if len(failed) > 0:
-            print_failed(failed)
-            if try_again():
-                tasks = [f[0] for f in failed]
-            else:
-                raise ParallelExecutionError(failed)
-        else:
-            tasks = []
-
-
-def get_useful_error_message(error):
-    msg = str(error).strip()
-    if len(msg) == 0:
-        if isinstance(error, TimeoutError):
-            return "timeout"
-        else:
-            return "%s" % type(error)
-    return msg
+logger = logging.getLogger(__name__)
 
 
 def normalize_path(path: str) -> str:
@@ -99,3 +56,118 @@ class ArgumentParser(argparse.ArgumentParser):
 
     def error(self, message):
         raise ArgumentError(message, self.format_usage())
+
+
+def yes_or_no(prompt, default="yes"):
+    assert default in ["yes", "no"]
+    while True:
+        if default == "yes":
+            reply = input(prompt + " [Y/n] ")
+        else:
+            reply = input(prompt + " [y/N] ")
+        reply = reply.strip().lower()
+        if reply == "":
+            return default
+        if reply in ["y", "yes"]:
+            return "yes"
+        if reply in ["n", "no"]:
+            return "no"
+
+
+def get_percentage(current, total):
+    if total == 0:
+        return "0.00%% (%d/%d)" % (current, total)
+    if current >= total:
+        return "100.00%% (%d/%d)" % (current, total)
+    p = current / total * 100
+    if p > 0.005:
+        p = p - 0.005
+    else:
+        p = 0
+    return "%.2f%% (%d/%d)" % (p, current, total)
+
+
+def color(text: str) -> str:
+    if text == "done":
+        return "\033[32mdone\033[0m"
+    elif text == "error":
+        return "\033[31merror\033[0m"
+    else:
+        return text
+
+
+T = TypeVar('T')
+
+
+def parallel(
+        executor: ThreadPoolExecutor,
+        items: List[T],
+        linehead: Callable[[T], str],
+        run: Callable[[T, threading.Event], None]
+):
+    result = {item: None for item in items}
+    stop = threading.Event()
+
+    def animate():
+        nonlocal result
+        nonlocal stop
+
+        lines = []
+        width = 0
+        for item in items:
+            line = linehead(item)
+            line = line.capitalize()
+            if len(line) > width:
+                width = len(line)
+            lines.append(line)
+        fmt = "%-{}s ...".format(width)
+        lines = [fmt % line for line in lines]
+        print("\n".join(lines))
+
+        i = 0
+        error = False
+        while not stop.is_set():
+            print("\033[%dA" % len(items), end="", flush=True)
+            finish = 0
+            for item in items:
+                r = result[item]
+                if r:
+                    if r == "error":
+                        error = True
+                    suffix = "... " + color(r)
+                    suffix_len = 4 + len(r)
+                    finish += 1
+                else:
+                    suffix = "%-3s" % ("." * abs(3 - i % 6))
+                    suffix_len = 3
+                print("\033[%dC" % (width + 1), end="", flush=True)
+                print(suffix, end="", flush=True)
+                print("\033[%dD\033[1B" % (width + 1 + suffix_len), end="", flush=True)
+            print("\033[K", end="", flush=True)
+            if finish == len(items):
+                break
+            stop.wait(0.5)
+            i += 1
+
+        if error:
+            # TODO create ParallelError with all task errors
+            raise ParallelError
+
+    def wrapper(item):
+        nonlocal result
+        nonlocal stop
+        try:
+            run(item, stop)
+            # time.sleep(random.randint(3, 10))
+            result[item] = "done"
+        except Exception as e:
+            logger.exception("[Parallel] %s: %s", linehead(item), str(e))
+            result[item] = "error"
+
+    f = executor.submit(animate)
+    try:
+        for item in items:
+            executor.submit(wrapper, item)
+        f.result()
+    finally:
+        stop.set()
