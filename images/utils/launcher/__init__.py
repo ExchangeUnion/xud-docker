@@ -178,7 +178,7 @@ your issue.""")
             elif arg0 == "deposit":
                 if len(args) == 0:
                     print("Missing chain")
-                chain = args[0]
+                chain = args[0].lower()
                 args = args[1:]
                 if chain == "btc":
                     self.node_manager.cli("boltz", "btc", "deposit", *args)
@@ -189,7 +189,7 @@ your issue.""")
             elif arg0 == "withdraw":
                 if len(args) == 0:
                     print("Missing chain")
-                chain = args[0]
+                chain = args[0].lower()
                 args = args[1:]
                 if chain == "btc":
                     self.node_manager.cli("boltz", "btc", "withdraw", *args)
