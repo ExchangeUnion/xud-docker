@@ -1,4 +1,4 @@
-FROM node:12-alpine3.11 AS builder
+FROM node:12-alpine3.12 AS builder
 RUN apk add --no-cache git rsync bash musl-dev go python3 make g++
 WORKDIR /xud
 ADD .src .
@@ -12,7 +12,7 @@ RUN npm prune --production
 RUN rm -rf seedutil/go
 RUN strip seedutil/seedutil
 
-FROM node:12-alpine3.11
+FROM node:12-alpine3.12
 RUN apk add --no-cache bash tor
 COPY --from=builder /xud /app
 COPY entrypoint.sh update-backup-dir.sh xud-backup.sh /
