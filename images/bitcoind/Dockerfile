@@ -3,7 +3,7 @@ RUN apk --no-cache add musl-dev g++ make autoconf automake libtool pkgconfig boo
 WORKDIR /bitcoin
 ADD .src .
 RUN ./autogen.sh
-RUN ./configure --disable-ccache --disable-tests --disable-bench --without-gui --with-daemon --with-utils --without-libs --disable-wallet
+RUN ./configure --disable-ccache --disable-tests --disable-bench --without-gui --with-daemon --with-utils --without-libs --disable-wallet --enable-endomorphism
 RUN make -j$(nproc)
 RUN make install
 RUN strip /usr/local/bin/bitcoind /usr/local/bin/bitcoin-cli

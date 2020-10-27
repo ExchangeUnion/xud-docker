@@ -1,5 +1,5 @@
 FROM node:12-alpine3.12 AS builder
-RUN apk add --no-cache git bash python3 make g++ python
+RUN apk add --no-cache git bash python3 make g++ python2
 WORKDIR /connext
 ADD .src .
 RUN npm install

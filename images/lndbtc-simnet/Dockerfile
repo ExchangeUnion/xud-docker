@@ -1,5 +1,5 @@
 FROM golang:1.14-alpine3.12 as builder
-RUN apk add --no-cache bash git make gcc musl-dev
+RUN apk add --no-cache bash git make gcc musl-dev patch
 WORKDIR $GOPATH/src/github.com/lightningnetwork/lnd
 ADD .src .
 RUN go mod vendor
