@@ -13,6 +13,6 @@ class SourceManager(src.SourceManager):
 
     def get_ref(self, version):
         if version == "latest":
-            return "master"
+            return "feat/test-mode"
         else:
             return "v" + version

@@ -13,8 +13,16 @@ class Arby(Node):
     def __init__(self, name, ctx):
         super().__init__(name, ctx)
 
-        live_cex = self.node_config["live-cex"] \
+        if self.network == "mainnet":
+            default_test_mode = "false"
+        else:
+            default_test_mode = "true"
+        # legacy option (delete after 1st of January 2022)
+        test_mode = self.node_config["live-cex"] \
             if "live-cex" in self.node_config else "false"
+        # new option overwrites the legacy value
+        test_mode = self.node_config["test-mode"] \
+            if "test-mode" in self.node_config else default_test_mode
         cex = self.node_config["cex"] \
             if "cex" in self.node_config else "binance"
         api_key = self.node_config["cex-api-key"] \
@@ -57,7 +65,7 @@ class Arby(Node):
             f'CEX={cex}',
             f'CEX_API_SECRET={api_secret}',
             f'CEX_API_KEY={api_key}',
-            f'LIVE_CEX={live_cex}',
+            f'TEST_MODE={test_mode}',
             f'MARGIN={margin}',
             f'TEST_CENTRALIZED_EXCHANGE_BASEASSET_BALANCE={test_centralized_baseasset_balance}',
             f'TEST_CENTRALIZED_EXCHANGE_QUOTEASSET_BALANCE={test_centralized_quoteasset_balance}',

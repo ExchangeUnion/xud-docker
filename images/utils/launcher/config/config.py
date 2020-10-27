@@ -301,7 +301,12 @@ class Config:
         group.add_argument(
             "--arby.live-cex",
             metavar="<value>",
-            help="Live CEX"
+            help="Live CEX (deprecated)"
+        )
+        group.add_argument(
+            "--arby.test-mode",
+            metavar="<value>",
+            help="Whether to issue real orders on the centralized exchange"
         )
         group.add_argument(
             "--arby.base-asset",
@@ -779,6 +784,16 @@ class Config:
             if value:
                 node["live-cex"] = value
 
+        if "test-mode" in parsed:
+            if parsed["test-mode"]:
+                value = parsed["test-mode"]
+                node["test-mode"] = value
+        opt = "arby.test_mode"
+        if hasattr(self.args, opt):
+            value = getattr(self.args, opt)
+            if value:
+                node["test-mode"] = value
+
         if "cex" in parsed:
             if parsed["cex"]:
                 value = parsed["cex"]
@@ -1027,6 +1042,7 @@ class Config:
                     dump_node_attr(node, "cex_base_asset")
                     dump_node_attr(node, "cex_quote_asset")
                     dump_node_attr(node, "live_cex")
+                    dump_node_attr(node, "test_mode")
                     dump_node_attr(node, "cex")
                     #dump_node_attr(node, "cex_api_key")
                     #dump_node_attr(node, "cex_api_secret")
