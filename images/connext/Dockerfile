@@ -1,11 +1,11 @@
-FROM node:12-alpine3.11 AS builder
-RUN apk add --no-cache git bash python3 make g++ python
+FROM node:12-alpine3.12 AS builder
+RUN apk add --no-cache git bash python3 make g++ python2
 WORKDIR /connext
 ADD .src .
 RUN npm install
 RUN npm run build
 
-FROM node:12-alpine3.11
+FROM node:12-alpine3.12
 RUN apk add --no-cache bash supervisor curl
 RUN mkdir /root/.connext
 COPY --from=builder /connext /app
