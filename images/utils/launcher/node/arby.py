@@ -27,8 +27,8 @@ class Arby(Node):
             else:
                 test_mode = "false"
         # new option overwrites the legacy value
-        test_mode = self.node_config["test-mode"] \
-            if "test-mode" in self.node_config
+        if "test-mode" in self.node_config:
+            test_mode = self.node_config["test-mode"]
         cex = self.node_config["cex"] \
             if "cex" in self.node_config else "binance"
         api_key = self.node_config["cex-api-key"] \
