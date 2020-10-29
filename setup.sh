@@ -74,7 +74,7 @@ Xud options:
     --xud.preserve-config                       Preserve xud xud.conf file during updates
 
 Arby options:
-    --arby.live-cex [true|false]                Production/Demo mode (default: false)
+    --arby.test-mode [true|false]               Production/Demo mode (default: true for simnet and testnet; false for mainnet)
     --arby.base-asset <string>                  Base asset symbol
     --arby.quote-asset <string>                 Quote asset symbol
     --arby.cex-base-asset <string>              Centralized exchange base asset symbol
