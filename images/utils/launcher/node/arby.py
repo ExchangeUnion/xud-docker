@@ -17,12 +17,18 @@ class Arby(Node):
             default_test_mode = "false"
         else:
             default_test_mode = "true"
+        test_mode = default_test_mode
         # legacy option (delete after 1st of January 2022)
-        test_mode = self.node_config["live-cex"] \
-            if "live-cex" in self.node_config else "false"
+        if "live-cex" in self.node_config:
+            live_cex = self.node_config["live-cex"]
+            # we map the legacy live_cex value to the new (opposite) test_mode value
+            if live_cex is "false":
+                test_mode = "true"
+            else:
+                test_mode = "false"
         # new option overwrites the legacy value
         test_mode = self.node_config["test-mode"] \
-            if "test-mode" in self.node_config else default_test_mode
+            if "test-mode" in self.node_config
         cex = self.node_config["cex"] \
             if "cex" in self.node_config else "binance"
         api_key = self.node_config["cex-api-key"] \
