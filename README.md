@@ -11,7 +11,7 @@ The following instructions are geared towards developers, intending to contribut
 
 ### Prerequisites
 
-Python 3.8 (or higher)
+Python 3.7 (or higher)
 
 ### Initial setup
 

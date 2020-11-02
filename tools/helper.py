@@ -13,14 +13,14 @@ def main():
     build_parser = subparsers.add_parser("build", prog="build")
     build_parser.add_argument("--dry-run", action="store_true")
     build_parser.add_argument("--no-cache", action="store_true")
-    build_parser.add_argument("--platform", action="append")
+    build_parser.add_argument("--platform", "-p", action="append")
     build_parser.add_argument("images", type=str, nargs="*")
 
     push_parser = subparsers.add_parser("push")
     push_parser.add_argument("--dirty-push", action="store_true")
     push_parser.add_argument("--dry-run", action="store_true")
     push_parser.add_argument("--no-cache", action="store_true")
-    push_parser.add_argument("--platform", action="append")
+    push_parser.add_argument("--platform", "-p", action="append")
     push_parser.add_argument("images", type=str, nargs="*")
 
     subparsers.add_parser("test")
