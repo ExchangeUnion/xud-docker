@@ -119,7 +119,7 @@ class Toolkit:
         output = output.decode()
         print("%s" % output.rstrip(), flush=True)
         lines = output.splitlines()
-        p = re.compile(r"^images/(.+)/.*$")
+        p = re.compile(r"^images/(.+?)/.*$")
         images = set()
         for line in lines:
             m = p.match(line)
