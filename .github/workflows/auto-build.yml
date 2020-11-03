@@ -1,4 +1,4 @@
-name: ci
+name: Auto Build
 
 on: push
 
@@ -24,8 +24,6 @@ jobs:
         with:
           python-version: '3.9'
           architecture: 'x64'
-      - name: Show Python version
-        run: python -c "import sys; print(sys.version)"
       - name: Build and push
         run: tools/push -p linux/amd64
   build-arm64:
