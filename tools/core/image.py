@@ -138,6 +138,16 @@ class Image:
         return repo
 
     def _run_command(self, cmd):
+        on_travis = "TRAVIS_BRANCH" in os.environ
+        if on_travis:
+            self._run_command_on_travis(cmd)
+            return
+        print("\033[34m$ %s\033[0m" % cmd, flush=True)
+        exit_code = os.system(cmd)
+        if exit_code != 0:
+            raise RuntimeError("Failed to build (exit_code=%s)" % exit_code)
+
+    def _run_command_on_travis(self, cmd):
         self._logger.info(cmd)
 
         stop = threading.Event()
@@ -145,19 +155,12 @@ class Image:
         def f():
             nonlocal stop
             counter = 0
-            on_travis = "TRAVIS_BRANCH" in os.environ
+
             while not stop.is_set():
                 counter = counter + 1
+                print("Still building... ({})".format(counter), flush=True)
+                stop.wait(10)
 
-                if on_travis:
-                    print("Still building... ({})".format(counter), flush=True)
-                    stop.wait(10)
-                    continue
-
-                print(".", end="", flush=True)
-                stop.wait(1)
-            if not on_travis:
-                print()
         threading.Thread(target=f).start()
         try:
             output = execute(cmd)
@@ -183,8 +186,14 @@ class Image:
         self._run_command(cmd)
 
     def build(self, platform: Platform, no_cache: bool) -> None:
-        self._logger.info("Build %s:%s (%s)", self.name, self.tag, platform.tag_suffix)
-        print("Build %s:%s (%s)" % (self.name, self.tag, platform.tag_suffix))
+        self._logger.info("Building %s:%s (%s)", self.name, self.tag, platform.tag_suffix)
+
+        print()
+        print("=" * 80)
+        print("Building %s:%s (%s)" % (self.name, self.tag, platform.tag_suffix))
+        print("=" * 80)
+
+        sys.stdout.flush()
 
         source_manager = self.prepare()
 
@@ -257,11 +266,17 @@ class Image:
 
         tag = self.get_build_tag(self.branch, platform)
 
-        print("Push {}".format(tag))
+        print()
+        print("=" * 80)
+        print("Pushing {}".format(tag))
+        print("=" * 80)
+
+        sys.stdout.flush()
 
         cmd = "docker push {}".format(tag)
+        print("\033[34m$ %s\033[0m" % cmd, flush=True)
         output = execute(cmd)
-        self._logger.debug("$ %s\n%s", cmd, output)
+        print("%s" % output.rstrip(), flush=True)
         last_line = output.splitlines()[-1]
         p = re.compile(r"^(.*): digest: (.*) size: (\d+)$")
         m = p.match(last_line)
@@ -269,6 +284,7 @@ class Image:
         assert m.group(1) in tag
 
         new_manifest = "{}/{}@{}".format(self.group, self.name, m.group(2))
+        print("New manifest: %s" % new_manifest, flush=True)
 
         # append to manifest list
         os.environ["DOCKER_CLI_EXPERIMENTAL"] = "enabled"
@@ -284,22 +300,28 @@ class Image:
                     tags.append("{}@{}".format(repo, m.digest))
             tags = " ".join(tags)
             cmd = f"docker manifest create {t0} {new_manifest}"
+
             if len(tags) > 0:
                 cmd += " " + tags
-            output = execute(cmd)
-            self._logger.debug("$ %s\n%s", cmd, output)
+            print("\033[34m$ %s\033[0m" % cmd, flush=True)
+            if os.system(cmd) != 0:
+                raise Exception("Failed to create manifest")
 
             cmd = f"docker manifest push -p {t0}"
-            output = execute(cmd)
-            self._logger.debug("$ %s\n%s", cmd, output)
+            print("\033[34m$ %s\033[0m" % cmd, flush=True)
+            if os.system(cmd) != 0:
+                raise Exception("Failed to push manifest")
+
         else:
             cmd = f"docker manifest create {t0} {new_manifest}"
-            output = execute(cmd)
-            self._logger.debug("$ %s\n%s", cmd, output)
+            print("\033[34m$ %s\033[0m" % cmd, flush=True)
+            if os.system(cmd) != 0:
+                raise Exception("Failed to create manifest")
 
             cmd = f"docker manifest push -p {t0}"
-            output = execute(cmd)
-            self._logger.debug("$ %s\n%s", cmd, output)
+            print("\033[34m$ %s\033[0m" % cmd, flush=True)
+            if os.system(cmd) != 0:
+                raise Exception("Failed to push manifest")
 
     def __repr__(self):
         return "<Image name=%r tag=%r branch=%r>" % (self.name, self.tag, self.branch)

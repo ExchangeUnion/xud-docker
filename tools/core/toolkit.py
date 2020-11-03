@@ -3,7 +3,8 @@ import os
 import sys
 from datetime import datetime
 from typing import Optional, List
-from subprocess import CalledProcessError
+from subprocess import CalledProcessError, check_output
+import re
 
 from .docker import DockerTemplate, Platform, Platforms
 from .git import GitTemplate
@@ -111,6 +112,22 @@ class Toolkit:
             current_platform=self.current_platform,
         )
 
+    def _get_modified_images(self) -> List[str]:
+        cmd = "git diff --name-only $(git merge-base --fork-point origin/master)..HEAD images"
+        print("\033[34m$ %s" % cmd, flush=True)
+        output = check_output(cmd, shell=True)
+        output = output.decode()
+        print("%s" % output.rstrip(), flush=True)
+        lines = output.splitlines()
+        p = re.compile(r"^images/(.+)/.*$")
+        images = set()
+        for line in lines:
+            m = p.match(line)
+            assert m, "mismatch line (%r): %s" % (p, line)
+            image = m.group(1)
+            images.add(image)
+        return list(images)
+
     def build(self,
               images: List[str] = None,
               dry_run: bool = False,
@@ -125,12 +142,15 @@ class Toolkit:
 
             ctx = self._create_context(dry_run, platforms)
 
-            if images:
-                for i, name in enumerate(images):
-                    if i > 0:
-                        print()
-                    for p in platforms:
-                        Image(ctx, name).build(platform=p, no_cache=no_cache)
+            if not images:
+                images = self._get_modified_images()
+
+            for i, name in enumerate(images):
+                if i > 0:
+                    print()
+                for p in platforms:
+                    Image(ctx, name).build(platform=p, no_cache=no_cache)
+
         except Exception as e:
             p = e
             while p:
@@ -156,12 +176,15 @@ class Toolkit:
 
             ctx = self._create_context(dry_run, platforms)
 
-            if images:
-                for i, name in enumerate(images):
-                    if i > 0:
-                        print()
-                    for p in platforms:
-                        Image(ctx, name).push(platform=p, no_cache=no_cache, dirty_push=dirty_push)
+            if not images:
+                images = self._get_modified_images()
+
+            for i, name in enumerate(images):
+                if i > 0:
+                    print()
+                for p in platforms:
+                    Image(ctx, name).push(platform=p, no_cache=no_cache, dirty_push=dirty_push)
+
         except Exception as e:
             p = e
             while p:
@@ -171,7 +194,6 @@ class Toolkit:
                     break
                 p = e.__cause__
             raise
-
 
     def test(self):
         os.chdir(self.project_dir)
