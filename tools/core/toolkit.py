@@ -126,6 +126,11 @@ class Toolkit:
             assert m, "mismatch line (%r): %s" % (p, line)
             image = m.group(1)
             images.add(image)
+
+        print()
+        print("Modified images: " + ", ".join(images))
+        print()
+
         return list(images)
 
     def build(self,
