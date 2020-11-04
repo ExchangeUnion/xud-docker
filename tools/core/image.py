@@ -12,7 +12,7 @@ import threading
 
 from .docker import ManifestList
 from .src import SourceManager
-from .utils import execute
+from .utils import execute, get_github_job_url
 
 if TYPE_CHECKING:
     from .toolkit import Platform, Context
@@ -71,7 +71,7 @@ class Image:
     def get_labels(self, application_revision) -> List[str]:
         image_revision = ""
         image_source = ""
-        image_travis = ""
+        image_ci = ""
 
         if self.revision:
 
@@ -81,15 +81,17 @@ class Image:
                 source = "{}/blob/{}/images/{}/Dockerfile".format(self.context.project_repo, image_revision, self.name)
                 image_source = source
 
-        if "TRAVIS_BUILD_WEB_URL" in os.environ:
-            image_travis = os.environ["TRAVIS_BUILD_WEB_URL"]
+        if "GITHUB_RUN_ID" in os.environ:
+            run_id = os.environ["GITHUB_RUN_ID"]
+            job_name = os.environ["GITHUB_JOB"]
+            image_ci = get_github_job_url(run_id, job_name)
 
         prefix = self.label_prefix
 
         return [
             f"--label {prefix}.image.revision='{image_revision}'",
             f"--label {prefix}.image.source='{image_source}'",
-            f"--label {prefix}.image.travis='{image_travis}'",
+            f"--label {prefix}.image.ci='{image_ci}'",
             f"--label {prefix}.application.revision='{application_revision}'",
             # TODO remove labels below
             f"--label {prefix}.image.branch='master'",
