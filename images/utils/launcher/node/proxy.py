@@ -6,4 +6,8 @@ class Proxy(Node):
         super().__init__(name, ctx)
 
     def status(self):
+        status = super().status()
+        if status != "Container running":
+            return status
+
         return "Ready"

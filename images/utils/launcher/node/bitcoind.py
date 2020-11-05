@@ -11,7 +11,8 @@ class BitcoindApi:
 
     def getblockchaininfo(self):
         try:
-            return json.loads(self._backend["getblockchaininfo"]())
+            info = self._backend.invoke("getblockchaininfo")
+            return json.loads(info)
         except CliError as e:
             # error code: -28
             # error message:
@@ -70,7 +71,7 @@ class Bitcoind(Node):
         if self.network == "testnet":
             self._cli += " -testnet"
 
-        self.api = BitcoindApi(CliBackend(self.client, self.container_name, self._logger, self._cli))
+        self.api = BitcoindApi(CliBackend(self.name, self.container_name, self._cli))
 
     def get_external_status(self):
         s = socket.socket()
@@ -94,33 +95,30 @@ class Bitcoind(Node):
             return "Ready (light mode)"
 
         status = super().status()
-        if status == "exited":
-            # TODO analyze exit reason
-            return "Container exited"
-        elif status == "running":
-            try:
-                info = self.api.getblockchaininfo()
-                current: int = info["blocks"]
-                total: int = info["headers"]
-                if current > 0 and current == total:
-                    return "Ready"
-                else:
-                    if total == 0:
-                        return "Syncing 0.00% (0/0)"
-                    else:
-                        p = current / total * 100
-                        if p > 0.005:
-                            p = p - 0.005
-                        else:
-                            p = 0
-                        return "Syncing %.2f%% (%d/%d)" % (p, current, total)
-            except BitcoindApiError as e:
-                return str(e)
-            except:
-                self._logger.exception("Failed to get advanced running status")
-                return "Waiting for bitcoind to come up..."
-        else:
+        if status != "Container running":
             return status
+
+        try:
+            info = self.api.getblockchaininfo()
+            current: int = info["blocks"]
+            total: int = info["headers"]
+            if current > 0 and current == total:
+                return "Ready"
+            else:
+                if total == 0:
+                    return "Syncing 0.00% (0/0)"
+                else:
+                    p = current / total * 100
+                    if p > 0.005:
+                        p = p - 0.005
+                    else:
+                        p = 0
+                    return "Syncing %.2f%% (%d/%d)" % (p, current, total)
+        except BitcoindApiError as e:
+            return str(e)
+        except:
+            self._logger.exception("Failed to get advanced running status")
+            return "Waiting for bitcoind to come up..."
 
 
 class Litecoind(Bitcoind):

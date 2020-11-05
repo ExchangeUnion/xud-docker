@@ -1,7 +1,13 @@
-from .base import Node, CliBackend, CliError
 import json
+import logging
 import re
 from datetime import datetime, timedelta
+from threading import Event
+
+from launcher.utils import get_percentage
+from .base import Node, CliBackend, CliError
+
+logger = logging.getLogger(__name__)
 
 
 class InvalidChain(Exception):
@@ -19,9 +25,24 @@ class LndApi:
 
     def getinfo(self):
         try:
-            return json.loads(self._backend["getinfo"]())
+            info = self._backend.invoke("getinfo")
+            return json.loads(info)
         except CliError as e:
             raise LndApiError(e.output)
+
+
+class CFHeaderState:
+    def __init__(self):
+        self.current = 0
+        self.total = 0
+        self.ready = False
+
+    def __repr__(self):
+        return "%s/%s (%s)" % (self.current, self.total, self.ready)
+
+    @property
+    def message(self):
+        return "Syncing " + get_percentage(self.current, self.total)
 
 
 class Lnd(Node):
@@ -36,7 +57,7 @@ class Lnd(Node):
         self.container_spec.environment.extend(environment)
 
         self._cli = f"lncli -n {self.network} -c {self.chain}"
-        self.api = LndApi(CliBackend(self.client, self.container_name, self._logger, self._cli))
+        self.api = LndApi(CliBackend(self.name, self.container_name, self._cli))
 
     def get_command(self):
         if self.network != "simnet":
@@ -106,6 +127,7 @@ class Lnd(Node):
         try:
             c = self.get_container()
             since = datetime.now() - timedelta(hours=1)
+            # TODO use base logs
             lines = c.logs(since=since).decode().splitlines()
             p = re.compile(r".*New block: height=(\d+),.*")
             for line in reversed(lines):
@@ -125,41 +147,96 @@ class Lnd(Node):
             return self.get_external_status()
 
         status = super().status()
-        if status == "exited":
-            # TODO analyze exit reason
-            return "Container exited"
-        elif status == "running":
-            try:
-                info = self.api.getinfo()
-                synced_to_chain = info["synced_to_chain"]
-                total = info["block_height"]
-                current = self.get_current_height()
-                if current:
-                    if total <= current:
-                        msg = "Ready"
-                    else:
-                        msg = "Syncing"
-                        p = current / total * 100
-                        if p > 0.005:
-                            p = p - 0.005
-                        else:
-                            p = 0
-                        msg += " %.2f%% (%d/%d)" % (p, current, total)
-                else:
-                    if synced_to_chain:
-                        msg = "Ready"
-                    else:
-                        msg = "Syncing"
-                return msg
-            except LndApiError as e:
-                # [lncli] Wallet is encrypted. Please unlock using 'lncli unlock', or set password using 'lncli create' if this is the first time starting lnd.
-                if "Wallet is encrypted" in str(e):
-                    return "Wallet locked. Unlock with xucli unlock."
-            except:
-                self._logger.exception("Failed to get advanced running status")
-            return "Waiting for lnd ({}) to come up...".format(self.chain)
-        else:
+        if status != "Container running":
             return status
+        try:
+            info = self.api.getinfo()
+            synced_to_chain = info["synced_to_chain"]
+            total = info["block_height"]
+            current = self.get_current_height()
+            if current:
+                if total <= current:
+                    msg = "Ready"
+                else:
+                    msg = "Syncing"
+                    p = current / total * 100
+                    if p > 0.005:
+                        p = p - 0.005
+                    else:
+                        p = 0
+                    msg += " %.2f%% (%d/%d)" % (p, current, total)
+            else:
+                if synced_to_chain:
+                    msg = "Ready"
+                else:
+                    msg = "Syncing"
+            return msg
+        except LndApiError as e:
+            # [lncli] Wallet is encrypted. Please unlock using 'lncli unlock', or set password using 'lncli create' if this is the first time starting lnd.
+            if "Wallet is encrypted" in str(e):
+                return "Wallet locked. Unlock with xucli unlock."
+        except:
+            self._logger.exception("Failed to get advanced running status")
+        return "Waiting for lnd ({}) to come up...".format(self.chain)
+
+    def ensure_ready(self, stop: Event):
+        # [lncli] open /root/.lnd/tls.cert: no such file or directory
+        # [lncli] unable to read macaroon path (check the network setting!): open /root/.lnd/data/chain/bitcoin/testnet/admin.macaroon: no such file or directory
+        # [lncli] Wallet is encrypted. Please unlock using 'lncli unlock', or set password using 'lncli create' if this is the first time starting lnd.
+        while not stop.is_set():
+            exit_code, output = self.exec(self._cli + " getinfo")
+            if exit_code == 0:
+                break
+            if "unable to read macaroon path" in output:
+                break
+            if "Wallet is encrypted" in output:
+                break
+            stop.wait(3)
+
+    def update_cfheader(self, state: CFHeaderState, stop: Event):
+        container = self.container
+        started_at = container.attrs["State"]["StartedAt"]  # e.g. 2020-06-22T17:26:01.541780733Z
+        started_at = started_at.split(".")[0]
+        t_utc = datetime.strptime(started_at, "%Y-%m-%dT%H:%M:%S")
+        t_local = datetime.fromtimestamp(t_utc.timestamp())
+
+        p0 = re.compile(r"^.*Fully caught up with cfheaders at height (\d+), waiting at tip for new blocks$")
+        if self.config.network == "simnet":
+            p1 = re.compile(r"^.*Writing cfheaders at height=(\d+) to next checkpoint$")
+        else:
+            p1 = re.compile(r"^.*Fetching set of checkpointed cfheaders filters from height=(\d+).*$")
+        p2 = re.compile(r"^.*Syncing to block height (\d+) from peer.*$")
+
+        if stop.is_set():
+            return
+
+        for line in container.logs(stream=True, follow=True, since=t_local):
+            if stop.is_set():
+                break
+            line = line.decode().strip()
+            m = p0.match(line)
+
+            if m:
+                #logger.debug("[%s] (match 1) %s", self.name, line)
+                state.current = int(m.group(1))
+                state.ready = True
+                h = max(state.current, state.total)
+                state.current = h
+                state.total = h
+                break
+
+            m = p1.match(line)
+            if m:
+                #logger.debug("[%s] (match 2) %s", self.name, line)
+                state.current = int(m.group(1))
+                continue
+
+            m = p2.match(line)
+            if m:
+                #logger.debug("[%s] (match 3) %s", self.name, line)
+                state.total = int(m.group(1))
+
+        logger.debug("[%s] update_cfheader ends" % self.name)
 
 
 class Lndbtc(Lnd):

@@ -1,19 +1,17 @@
 import logging
 import shlex
 import traceback
-import os.path
+from threading import Event
 
-from launcher.config import Config, ConfigLoader
-from launcher.shell import Shell
-from launcher.node import NodeManager, NodeNotFound
-from launcher.utils import ParallelExecutionError, ArgumentError
-
-from launcher.check_wallets import Action as CheckWalletsAction
 from launcher.close_other_utils import Action as CloseOtherUtilsAction
-from launcher.auto_unlock import Action as AutoUnlockAction
-from launcher.warm_up import Action as WarmUpAction
-from launcher.errors import FatalError, ConfigError, ConfigErrorScope
+from launcher.config import Config
+from launcher.errors import FatalError, ConfigError, ConfigErrorScope, NoWaiting, ParallelError
+from launcher.node import NodeManager, ServiceNotFound, ContainerNotFound
+from launcher.utils import ArgumentError
+import docker.errors
+import os
 
+logger = logging.getLogger(__name__)
 
 HELP = """\
 Xucli shortcut commands
@@ -91,165 +89,153 @@ Boltzcli shortcut commands
   --inbound [inbound_balance]               deposit from boltz (btc/ltc)
   boltzcli <chain> withdraw 
   <amount> <address>                        withdraw from boltz channel
-  
 """
 
-
-def init_logging():
-    fmt = "%(asctime)s.%(msecs)03d %(levelname)5s %(process)d --- [%(threadName)-15s] %(name)-30s: %(message)s"
-    datefmt = "%Y-%m-%d %H:%M:%S"
-    if os.path.exists("/mnt/hostfs/tmp"):
-        logfile = "/mnt/hostfs/tmp/xud-docker.log"
-    else:
-        logfile = "xud-docker.log"
-
-    logging.basicConfig(format=fmt, datefmt=datefmt, level=logging.INFO, filename=logfile, filemode="w")
-
-    level_config = {
-        "launcher": logging.DEBUG,
-    }
-
-    for logger, level in level_config.items():
-        logging.getLogger(logger).setLevel(level)
-
-
-init_logging()
+REPORT = """Please click on https://github.com/ExchangeUnion/xud/issues/new?assignees=kilrau&labels=bug&template=bug-\
+report.md&title=Short%2C+concise+description+of+the+bug, describe your issue, drag and drop the file "{network}.log" \
+which is located in "{logs_dir}" into your browser window and submit your issue."""
 
 
 class XudEnv:
-    def __init__(self, config, shell):
-        self.logger = logging.getLogger("launcher.XudEnv")
-
+    def __init__(self, config: Config):
         self.config = config
-        self.shell = shell
+        self.node_manager = NodeManager(config)
 
-        self.node_manager = NodeManager(config, shell)
+    def handle_command(self, cmd: str) -> None:
+        args = shlex.split(cmd)
+        arg0 = args[0]
+        args = args[1:]
 
-    def delegate_cmd_to_xucli(self, cmd):
-        self.node_manager.get_node("xud").cli(cmd, self.shell)
-
-    def command_report(self):
-        logs_dir = f"{self.config.home_dir}/{self.config.network}/logs"
-        print(f"""Please click on https://github.com/ExchangeUnion/xud/issues/\
-new?assignees=kilrau&labels=bug&template=bug-report.md&title=Short%2C+concise+\
-description+of+the+bug, describe your issue, drag and drop the file "{self.config.network}\
-.log" which is located in "{logs_dir}" into your browser window and submit \
-your issue.""")
-
-    def handle_command(self, cmd):
-        try:
-            args = shlex.split(cmd)
-            arg0 = args[0]
+        if arg0 == "help":
+            print(HELP)
+        elif arg0 == "status":
+            self.node_manager.status()
+        elif arg0 == "report":
+            print(REPORT.format(self.config.network, self.config.logs_dir))
+        elif arg0 == "logs":
+            self.node_manager.cmd_logs.execute(*args)
+        elif arg0 == "start":
+            self.node_manager.cmd_start.execute(*args)
+        elif arg0 == "stop":
+            self.node_manager.cmd_stop.execute(*args)
+        elif arg0 == "restart":
+            self.node_manager.cmd_restart.execute(*args)
+        elif arg0 == "_create":
+            self.node_manager.cmd_create.execute(*args)
+        elif arg0 == "rm":
+            self.node_manager.cmd_remove.execute(*args)
+        elif arg0 == "down":
+            self.node_manager.down()
+        elif arg0 == "up":
+            self.node_manager.up()
+        elif arg0 == "bitcoin-cli":
+            bitcoind = self.node_manager.get_service("bitcoind")
+            bitcoind.cli(" ".join(args))
+        elif arg0 == "litecoin-cli":
+            litecoind = self.node_manager.get_service("litecoind")
+            litecoind.cli(" ".join(args))
+        elif arg0 == "lndbtc-lncli":
+            lndbtc = self.node_manager.get_service("lndbtc")
+            lndbtc.cli(" ".join(args))
+        elif arg0 == "lndltc-lncli":
+            lndltc = self.node_manager.get_service("lndltc")
+            lndltc.cli(" ".join(args))
+        elif arg0 == "geth":
+            geth = self.node_manager.get_service("geth")
+            geth.cli(" ".join(args))
+        elif arg0 == "xucli":
+            xud = self.node_manager.get_service("xud")
+            xud.cli(" ".join(args))
+        elif arg0 == "boltzcli":
+            boltz = self.node_manager.get_service("boltz")
+            boltz.cli(" ".join(args))
+        elif arg0 == "deposit":
+            boltz = self.node_manager.get_service("boltz")
+            if len(args) == 0:
+                print("Missing chain")
+            chain = args[0].lower()
             args = args[1:]
-            if arg0 == "status":
-                self.node_manager.status()
-            elif arg0 == "report":
-                self.command_report()
-            elif arg0 == "logs":
-                self.node_manager.logs(*args)
-            elif arg0 == "start":
-                self.node_manager.start(*args)
-            elif arg0 == "stop":
-                self.node_manager.stop(*args)
-            elif arg0 == "restart":
-                self.node_manager.restart(*args)
-            elif arg0 == "down":
-                self.node_manager.down()
-            elif arg0 == "up":
-                self.node_manager.up()
-            elif arg0 == "btcctl":
-                self.node_manager.cli("btcd", *args)
-            elif arg0 == "ltcctl":
-                self.node_manager.cli("ltcd", *args)
-            elif arg0 == "bitcoin-cli":
-                self.node_manager.cli("bitcoind", *args)
-            elif arg0 == "litecoin-cli":
-                self.node_manager.cli("litecoind", *args)
-            elif arg0 == "lndbtc-lncli":
-                self.node_manager.cli("lndbtc", *args)
-            elif arg0 == "lndltc-lncli":
-                self.node_manager.cli("lndltc", *args)
-            elif arg0 == "geth":
-                self.node_manager.cli("geth", *args)
-            elif arg0 == "xucli":
-                self.node_manager.cli("xud", *args)
-            elif arg0 == "boltzcli":
-                self.node_manager.cli("boltz", *args)
-            elif arg0 == "deposit":
-                if len(args) == 0:
-                    print("Missing chain")
-                chain = args[0].lower()
-                args = args[1:]
-                if chain == "btc":
-                    self.node_manager.cli("boltz", "btc", "deposit", *args)
-                elif chain == "ltc":
-                    self.node_manager.cli("boltz", "ltc", "deposit", *args)
-                else:
-                    self.node_manager.cli("xud", "walletdeposit", chain, *args)
-            elif arg0 == "withdraw":
-                if len(args) == 0:
-                    print("Missing chain")
-                chain = args[0].lower()
-                args = args[1:]
-                if chain == "btc":
-                    self.node_manager.cli("boltz", "btc", "withdraw", *args)
-                elif chain == "ltc":
-                    self.node_manager.cli("boltz", "ltc", "withdraw", *args)
-                else:
-                    self.node_manager.cli("xud", "walletwithdraw", chain, *args)
-            elif arg0 == "help":
-                print(HELP)
+            if chain == "btc":
+                boltz.cli("btc deposit " + " ".join(args))
+            elif chain == "ltc":
+                boltz.cli("ltc deposit " + " ".join(args))
             else:
-                self.delegate_cmd_to_xucli(cmd)
-
-        except NodeNotFound as e:
-            if str(e) == "boltz" and self.config.network == "simnet":
-                print("Not available on simnet")
-                return
-
-            print(f"Node not found: {e}")
-        except ArgumentError as e:
-            print(e.usage)
-            print(f"error: {e}")
-
-    def check_wallets(self):
-        CheckWalletsAction(self.node_manager).execute()
-
-    def wait_for_channels(self):
-        # TODO wait for channels
-        pass
-
-    def auto_unlock(self):
-        AutoUnlockAction(self.node_manager).execute()
+                xud = self.node_manager.get_service("xud")
+                xud.cli("walletdeposit %s %s" % (chain, " ".join(args)))
+        elif arg0 == "withdraw":
+            boltz = self.node_manager.get_service("boltz")
+            if len(args) == 0:
+                print("Missing chain")
+            chain = args[0].lower()
+            args = args[1:]
+            if chain == "btc":
+                boltz.cli("btc withdraw " + " ".join(args))
+            elif chain == "ltc":
+                boltz.cli("ltc withdraw " + " ".join(args))
+            else:
+                xud = self.node_manager.get_service("xud")
+                xud.cli("walletwithdraw %s %s" % (chain, " ".join(args)))
+        else:
+            xud = self.node_manager.get_service("xud")
+            xud.cli(cmd)
 
     def close_other_utils(self):
-        CloseOtherUtilsAction(self.config.network, self.shell).execute()
+        CloseOtherUtilsAction(self.config.network).execute()
 
-    def warm_up(self):
-        WarmUpAction(self.node_manager).execute()
+    def pre_shell(self):
+        print("\n🏃 Warming up...\n")
 
-    def pre_start(self):
-        self.warm_up()
-        self.check_wallets()
-
-        if self.config.network == "simnet":
-            self.wait_for_channels()
-
-        self.auto_unlock()
+        xud = self.node_manager.get_service("xud")
+        stop = Event()
+        try:
+            # FIXME pty signal only works in main thread
+            xud.ensure_ready(stop)
+        except (KeyboardInterrupt, NoWaiting):
+            stop.set()
+            raise
 
         self.close_other_utils()
 
     def start(self):
-        self.logger.info("Start %s", self.config.network)
+        logger.info("Start %s", self.config.network)
 
-        up_env = self.node_manager.update()
+        self.node_manager.update()
 
-        if up_env:
-            self.node_manager.up()
-            self.pre_start()
+        self.node_manager.up()
 
-        self.logger.info("Start shell")
-        self.shell.start(f"{self.config.network} > ", self.handle_command)
+        self.pre_shell()
+
+        logger.info("Start shell")
+        banner_file = os.path.dirname(__file__) + "/banner.txt"
+        with open(banner_file) as f:
+            print(f.read(), end="", flush=True)
+        prompt = f"{self.config.network} > "
+        while True:
+            try:
+                cmd = input(prompt)
+                cmd = cmd.strip()
+                if cmd == "":
+                    continue
+                if cmd == "exit":
+                    break
+                try:
+                    self.handle_command(cmd)
+                except KeyboardInterrupt:
+                    pass
+                except ServiceNotFound as e:
+                    print("Service not found: %s" % e)
+                except ContainerNotFound as e:
+                    print("Service not running: %s" % e)
+                except docker.errors.APIError as e:
+                    print(e)
+                except ArgumentError as e:
+                    print(e.usage)
+                    print(f"Error: {e}")
+                except:
+                    logger.exception("[Shell] Failed to execute command: %s", cmd)
+                    traceback.print_exc()
+            except KeyboardInterrupt:
+                print()
 
 
 def print_config_error_cause(e: ConfigError) -> None:
@@ -262,40 +248,25 @@ def print_config_error_cause(e: ConfigError) -> None:
 
 
 class Launcher:
-    def __init__(self):
-        self.logger = logging.getLogger("launcher.Launcher")
-        self.logfile = None
-
     def launch(self):
-        shell = Shell()
         config = None
         try:
-            config = Config(ConfigLoader())
-            shell.set_network_dir(config.network_dir)  # will create shell history file in network_dir
-            env = XudEnv(config, shell)
+            config = Config()
+            env = XudEnv(config)
             env.start()
         except KeyboardInterrupt:
             print()
-        except ConfigError as e:
-            if e.scope == ConfigErrorScope.COMMAND_LINE_ARGS:
-                print("Failed to parse command-line arguments, exiting.")
-                print_config_error_cause(e)
-            elif e.scope == ConfigErrorScope.GENERAL_CONF:
-                print("Failed to parse config file {}, exiting.".format(e.conf_file))
-                print_config_error_cause(e)
-            elif e.scope == ConfigErrorScope.NETWORK_CONF:
-                print("Failed to parse config file {}, exiting.".format(e.conf_file))
-                print_config_error_cause(e)
+            exit(1)
+        except NoWaiting:
+            exit(1)
         except FatalError as e:
-            if config and config.logfile:
-                print("{}. For more details, see {}".format(e, config.logfile))
-            else:
-                traceback.print_exc()
-        except ParallelExecutionError:
-            pass
-        except Exception:  # exclude system exceptions like SystemExit
-            self.logger.exception("Unexpected exception during launching")
-            traceback.print_exc()
-        finally:
-            shell.stop()
-
+            msg = "💀 %s." % str(e)
+            if config:
+                msg += " For more details, see %s" % config.host_logfile
+            print(msg)
+            exit(1)
+        except ParallelError:
+            if config:
+                msg = "For more details, see %s" % config.host_logfile
+                print(msg)
+            exit(1)

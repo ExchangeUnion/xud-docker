@@ -6,7 +6,37 @@ BRANCH=master
 DEV=false
 DOCKER_REGISTRY="https://registry-1.docker.io"
 UTILS_TAG="20.11.02"
+NETWORK=""
+HOME_DIR="$HOME/.xud-docker"
+SIMNET_DIR="$HOME_DIR/simnet"
+TESTNET_DIR="$HOME_DIR/testnet"
+MAINNET_DIR="$HOME_DIR/mainnet"
+XUD_DOCKER_CONF="$HOME_DIR/xud-docker.conf"
 
+if [[ -e $XUD_DOCKER_CONF ]]; then
+    function get_value() {
+        sed -nE "s/^\s*$1 = \"(.+)\"$/\1/p" "$XUD_DOCKER_CONF"
+    }
+    # shellcheck disable=2034
+    home_dir=$HOME_DIR
+
+    if VALUE=$(get_value "simnet-dir"); then
+        SIMNET_DIR=$(eval echo "$VALUE")
+    fi
+    if VALUE=$(get_value "testnet-dir"); then
+        SIMNET_DIR=$(eval echo "$VALUE")
+    fi
+    if VALUE=$(get_value "mainnet-dir"); then
+        SIMNET_DIR=$(eval echo "$VALUE")
+    fi
+    unset home_dir
+    unset VALUE
+    unset get_value
+fi
+
+###############################################################################
+# Functions
+###############################################################################
 
 function print_help() {
     cat <<EOF
@@ -115,7 +145,7 @@ function parse_opts() {
     local OPTION VALUE
     while [[ $# -gt 0 ]]; do
         case $1 in
-        "-h" | "--help" )
+        "-h" | "--help")
             print_help
             exit 1
             ;;
@@ -126,7 +156,7 @@ function parse_opts() {
                 OPTION=$1
                 shift
                 if [[ $# -eq 0 || $1 =~ ^- ]]; then
-                    echo >&2 "❌ Missing option value: $OPTION"
+                    echo >&2 "Command-line option \"$OPTION\" needs value"
                     exit 1
                 fi
                 VALUE=$1
@@ -136,6 +166,62 @@ function parse_opts() {
         "--dev")
             DEV=true
             shift
+            ;;
+        "-n" | "--network" )
+            if [[ $1 =~ = ]]; then
+                VALUE=$(echo "$1" | cut -d'=' -f2)
+            else
+                OPTION=$1
+                shift
+                if [[ $# -eq 0 || $1 =~ ^- ]]; then
+                    echo >&2 "Command-line option \"$OPTION\" needs value"
+                    exit 1
+                fi
+                VALUE=$1
+            fi
+            NETWORK=$VALUE
+            ;;
+        "--simnet-dir")
+            if [[ $1 =~ = ]]; then
+                VALUE=$(echo "$1" | cut -d'=' -f2)
+            else
+                OPTION=$1
+                shift
+                if [[ $# -eq 0 || $1 =~ ^- ]]; then
+                    echo >&2 "Command-line option \"$OPTION\" needs value"
+                    exit 1
+                fi
+                VALUE=$1
+            fi
+            SIMNET_DIR=$VALUE
+            ;;
+        "--testnet-dir")
+            if [[ $1 =~ = ]]; then
+                VALUE=$(echo "$1" | cut -d'=' -f2)
+            else
+                OPTION=$1
+                shift
+                if [[ $# -eq 0 || $1 =~ ^- ]]; then
+                    echo >&2 "Command-line option \"$OPTION\" needs value"
+                    exit 1
+                fi
+                VALUE=$1
+            fi
+            TESTNET_DIR=$VALUE
+            ;;
+        "--mainnet-dir")
+            if [[ $1 =~ = ]]; then
+                VALUE=$(echo "$1" | cut -d'=' -f2)
+            else
+                OPTION=$1
+                shift
+                if [[ $# -eq 0 || $1 =~ ^- ]]; then
+                    echo >&2 "Command-line option \"$OPTION\" needs value"
+                    exit 1
+                fi
+                VALUE=$1
+            fi
+            MAINNET_DIR=$VALUE
             ;;
         *)
             shift
@@ -366,15 +452,30 @@ function get_utils_name() {
     echo "${NETWORK}_utils_${N}"
 }
 
-################################################################################
+
+###############################################################################
 # MAIN
-################################################################################
+###############################################################################
 
 LOG_TIMESTAMP="$(date +%F-%H-%M-%S)"
 
 parse_opts "$@"
 
-choose_network
+if [[ -z $NETWORK ]]; then
+    choose_network
+fi
+
+case $NETWORK in
+    simnet)
+        NETWORK_DIR=$SIMNET_DIR
+        ;;
+    testnet)
+        NETWORK_DIR=$TESTNET_DIR
+        ;;
+    mainnet)
+        NETWORK_DIR=$MAINNET_DIR
+        ;;
+esac
 
 ensure_utils_image
 
@@ -383,11 +484,13 @@ echo "🚀 Launching $NETWORK environment"
 docker run --rm -it \
 --name "$(get_utils_name)" \
 -v /var/run/docker.sock:/var/run/docker.sock \
+-v "$NETWORK_DIR:/root/$NETWORK" \
 -v /:/mnt/hostfs \
+-e LOG_TIMESTAMP="$LOG_TIMESTAMP" \
+-e NETWORK="$NETWORK" \
+-e NETWORK_DIR="$NETWORK_DIR" \
 -e HOST_PWD="$PWD" \
 -e HOST_HOME="$HOME" \
--e NETWORK="$NETWORK" \
--e LOG_TIMESTAMP="$LOG_TIMESTAMP" \
 --entrypoint python \
 "$UTILS_IMG" \
 -m launcher "$@"

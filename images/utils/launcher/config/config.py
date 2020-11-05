@@ -4,13 +4,13 @@ import logging
 from logging.handlers import TimedRotatingFileHandler
 import os
 from typing import Optional, List
+from concurrent.futures import ThreadPoolExecutor
 
 import toml
 
 from ..utils import get_hostfs_file, ArgumentParser
 from ..errors import ConfigError, ConfigErrorScope
 from .template import nodes_config, general_config, PortPublish
-from .loader import ConfigLoader
 
 
 class Config:
@@ -24,18 +24,21 @@ class Config:
     restore_dir: Optional[str]
     eth_providers: List[str]
 
-    def __init__(self, loader: ConfigLoader):
-        self.logger = logging.getLogger("launcher.Config")
+    executor: ThreadPoolExecutor
 
-        self.loader = loader
+    def __init__(self):
+        self.logger = logging.getLogger("launcher.Config")
+        self.executor = ThreadPoolExecutor(max_workers=10, thread_name_prefix="Pool")
 
         self.branch = "master"
         self.disable_update = False
         self.external_ip = None
         self.network = os.environ["NETWORK"]
 
-        self.home_dir = self.loader.ensure_home_dir(os.environ["HOST_HOME"])
-        self.network_dir = os.path.join(self.home_dir, self.network)
+        self.network_dir = os.path.join("/root", self.network)
+        self.host_network_dir = os.environ["NETWORK_DIR"]
+        self.host_home = os.environ["HOST_HOME"]
+        self.host_pwd = os.environ["HOST_PWD"]
         self.backup_dir = None
         self.restore_dir = None
 
@@ -44,8 +47,28 @@ class Config:
         self.nodes = nodes_config[self.network]
 
         self._parse_command_line_arguments()
-        self._parse_general_config_file()
-        self.network_dir = self.loader.ensure_network_dir(self.network_dir)
+
+
+        if not os.path.exists(self.logs_dir):
+            os.mkdir(self.logs_dir)
+
+
+        fmt = "%(asctime)s.%(msecs)03d %(levelname)5s %(process)d --- [%(threadName)-15s] %(name)-30s: %(message)s"
+        datefmt = "%Y-%m-%d %H:%M:%S"
+        logging.basicConfig(format=fmt, datefmt=datefmt, level=logging.INFO, filename=self.logfile, filemode="w")
+        logging.getLogger("launcher").setLevel(logging.DEBUG)
+        # fh = TimedRotatingFileHandler(self.logfile, when="d", interval=1, backupCount=7)
+        # fh.setFormatter(logging.Formatter(fmt=fmt))
+        # logging.getLogger().addHandler(fh)
+
+        if hasattr(self.args, "branch"):
+            self.branch = self.args.branch
+
+        if hasattr(self.args, "disable_update"):
+            self.disable_update = True
+
+        if hasattr(self.args, "external_ip"):
+            self.external_ip = self.args.external_ip
 
         self._parse_network_config_file()
 
@@ -61,14 +84,6 @@ class Config:
             self.parse_command_line_arguments()
         except Exception as e:
             raise ConfigError(ConfigErrorScope.COMMAND_LINE_ARGS) from e
-
-    def _parse_general_config_file(self) -> None:
-        filename = "xud-docker.conf"
-        conf_file = os.path.join(self.home_dir, filename)
-        try:
-            self.parse_general_config()
-        except Exception as e:
-            raise ConfigError(ConfigErrorScope.GENERAL_CONF, conf_file=conf_file) from e
 
     def _parse_network_config_file(self) -> None:
         filename = "{}.conf".format(self.network)
@@ -350,6 +365,12 @@ class Config:
             action="store_true",
             help="Preserve xud xud.conf file during updates"
         )
+        group.add_argument(
+            "--xud.debug",
+            nargs='?',
+            metavar="<port>",
+            help="Run xud with NodeJS --inspect option on specific port (default: 9229)"
+        )
 
         group = parser.add_argument_group("arby")
         group.add_argument(
@@ -453,38 +474,8 @@ class Config:
             help="Expose proxy service ports to your host machine"
         )
 
-        self.args = parser.parse_args()
+        self.args, unknown = parser.parse_known_args()
         self.logger.info("Parsed command-line arguments: %r", self.args)
-
-    def parse_general_config(self):
-        network = self.network
-
-        parsed = toml.loads(self.loader.load_general_config(self.home_dir))
-        self.logger.info("Parsed xud-docker.conf: %r", parsed)
-
-        key = f"{network}-dir"
-        if key in parsed:
-            self.network_dir = parsed[key]
-        if hasattr(self.args, f"{self.network}_dir"):
-            self.network_dir = getattr(self.args, f"{self.network}_dir")
-
-        logs_dir = get_hostfs_file(f"{self.network_dir}/logs")
-        if not os.path.exists(logs_dir):
-            os.makedirs(logs_dir, exist_ok=True)
-        logfile = f"{logs_dir}/{self.network}.log"
-        fh = TimedRotatingFileHandler(logfile, when="d", interval=1, backupCount=7)
-        fmt = "%(asctime)s %(levelname)s %(process)d --- [%(threadName)s] %(name)s: %(message)s"
-        fh.setFormatter(logging.Formatter(fmt=fmt))
-        logging.getLogger().addHandler(fh)
-
-        if hasattr(self.args, "branch"):
-            self.branch = self.args.branch
-
-        if hasattr(self.args, "disable_update"):
-            self.disable_update = True
-
-        if hasattr(self.args, "external_ip"):
-            self.external_ip = self.args.external_ip
 
     def update_volume(self, volumes, container_dir, host_dir):
         target = [v for v in volumes if v["container"] == container_dir]
@@ -798,6 +789,9 @@ class Config:
         """
         node = self.nodes["xud"]
         self.update_ports(node, parsed)
+        node["debug"] = self._get_value("debug", node, parsed, converter=lambda v: int(v))
+        if node["debug"]:
+            node["ports"].append(PortPublish("%s" % node["debug"]))
 
     def update_disabled(self, node, parsed, opt):
         if "disabled" in parsed:
@@ -975,11 +969,19 @@ class Config:
             "28889": "28889:8080",
         })
 
-    def parse_network_config(self):
-        network = self.network
+    @property
+    def conf_file(self) -> str:
+        filename = "{}.conf".format(self.network)
+        return os.path.join(self.network_dir, filename)
 
-        parsed = toml.loads(self.loader.load_network_config(network, self.network_dir))
-        self.logger.info("Parsed %s.conf: %r", network, parsed)
+    def parse_network_config(self):
+        try:
+            with open(self.conf_file) as f:
+                conf = f.read()
+        except FileNotFoundError:
+            conf = ""
+
+        parsed = toml.loads(conf)
 
         # parse backup-dir value from
         # 1) data/xud/.backup-dir-value
@@ -1008,7 +1010,11 @@ class Config:
             parts = value.split(",")
             parts = [p.strip() for p in parts]
             for p in parts:
-                self.nodes[p]["use_local_image"] = True
+                node = self.nodes[p]
+                node["use_local_image"] = True
+                image = node["image"]
+                parts = image.split(":")
+                node["image"] = parts[0] + ":" + "latest"
 
         for node in self.nodes.values():
             name = node["name"]
@@ -1044,14 +1050,11 @@ class Config:
         if value is None:
             return None
         if isinstance(value, str):
-            if "$home_dir" in value:
-                value = value.replace("$home_dir", self.home_dir)
-            if f"${self.network}_dir" in value:
-                value = value.replace(f"${self.network}_dir", self.network_dir)
+            network_dir = os.environ["NETWORK_DIR"]
             if "$data_dir" in value:
-                value = value.replace("$data_dir", self.network_dir + "/data")
+                value = value.replace("$data_dir", network_dir + "/data")
             if "$logs_dir" in value:
-                value = value.replace("$logs_dir", self.logs_dir)
+                value = value.replace("$logs_dir", network_dir + "/logs")
         return value
 
     @property
@@ -1059,20 +1062,42 @@ class Config:
         return os.path.join(self.network_dir, "logs")
 
     @property
+    def host_logs_dir(self) -> str:
+        return os.path.join(self.host_network_dir, "logs")
+
+    @property
+    def data_dir(self) -> str:
+        return os.path.join(self.network_dir, "data")
+
+    @property
+    def host_data_dir(self) -> str:
+        return os.path.join(self.host_network_dir, "data")
+
+    @property
     def logfile(self) -> str:
         filename = f"{self.network}.log"
         return os.path.join(self.logs_dir, filename)
+
+    @property
+    def host_logfile(self) -> str:
+        filename = f"{self.network}.log"
+        return os.path.join(self.host_logs_dir, filename)
 
     @property
     def dumpfile(self) -> str:
         filename = f"config.sh"
         return os.path.join(self.logs_dir, filename)
 
+    @property
+    def host_dumpfile(self) -> str:
+        filename = f"config.sh"
+        return os.path.join(self.host_logs_dir, filename)
+
     def dump(self) -> None:
         """Dump xud-docker configurations as bash key-value file in logs_dir"""
         prefix = "XUD_DOCKER"
 
-        with open("/mnt/hostfs" + self.dumpfile, "w") as f:
+        with open(self.dumpfile, "w") as f:
             def dump_attr(attr: str) -> None:
                 key = f"{prefix}_{attr.upper()}"
                 value = getattr(self, attr)
@@ -1086,7 +1111,6 @@ class Config:
             dump_attr("disable_update")
             dump_attr("external_ip")
             dump_attr("network")
-            dump_attr("home_dir")
             dump_attr("network_dir")
             dump_attr("backup_dir")
             dump_attr("restore_dir")
@@ -1159,3 +1183,7 @@ class Config:
                     # dump_node_attr(node, "cex_api_key")
                     # dump_node_attr(node, "cex_api_secret")
                     dump_node_attr(node, "margin")
+
+    @property
+    def dev_mode(self) -> bool:
+        return hasattr(self.args, "dev") and self.args.dev

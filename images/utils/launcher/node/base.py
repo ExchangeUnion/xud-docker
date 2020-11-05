@@ -1,17 +1,28 @@
+from __future__ import annotations
+
 import datetime
 import itertools
 import logging
 import os
-import sys
-from typing import List, Dict, Any
+from threading import Event
+from typing import List, Dict, Any, Optional, Tuple
+from typing import TYPE_CHECKING
+
 import docker
 from docker import DockerClient
 from docker.errors import NotFound
 from docker.models.containers import Container
 
+from launcher.config import PortPublish
 from .image import Image
-from ..config import PortPublish
-from ..types import XudNetwork
+from .pty import exec_command
+
+if TYPE_CHECKING:
+    from launcher.config import Config
+    from .image import ImageManager
+    from . import NodeManager
+
+logger = logging.getLogger(__name__)
 
 
 class InvalidNetwork(Exception):
@@ -20,8 +31,13 @@ class InvalidNetwork(Exception):
         self.network = network
 
 
+class ContainerNotFound(Exception):
+    pass
+
+
 class ContainerSpec:
-    def __init__(self, name: str, image: Image, hostname: str, environment: List[str], command: List[str], volumes: Dict, ports: Dict):
+    def __init__(self, name: str, image: Image, hostname: str, environment: List[str], command: List[str],
+                 volumes: Dict, ports: Dict):
         self.name = name
         self.image = image
         self.hostname = hostname
@@ -30,31 +46,43 @@ class ContainerSpec:
         self.volumes = volumes
         self.ports = ports
 
-    def __repr__(self):
-        return f"<ContainerSpec {self.name=} {self.image=} {self.hostname=} {self.environment=} {self.command=} {self.volumes=} {self.ports=}>"
+
+class OutputStream:
+    def __init__(self, fd):
+        self.fd = fd
+
+    def isatty(self) -> bool:
+        return True
+
+    def fileno(self) -> int:
+        return self.fd
 
 
-class CompareEntity:
-    def __init__(self, obj: Any, diff: Any = None):
-        self.obj = obj
-        self.diff = diff
-
-    def __repr__(self):
-        return f"<CompareEntity obj={self.obj} diff={self.diff}>"
-
-
-class CompareResult:
-    def __init__(self, same: bool, message: str, old: CompareEntity, new: CompareEntity):
-        self.same = same
-        self.message = message
-        self.old = old
-        self.new = new
-
-    def __repr__(self):
-        return f"<CompareDetails same={self.same} message={self.message} old={self.old} new={self.new}>"
+def diff_details(s1, s2):
+    d1 = s1 - s2
+    d2 = s2 - s1
+    lines = []
+    for item in d1:
+        lines.append("D %s" % item)
+    for item in d2:
+        lines.append("A %s" % item)
+    return "\n".join(lines)
 
 
 class Node:
+    client: DockerClient
+    config: Config
+    image_manager: ImageManager
+    node_manager: NodeManager
+    name: str
+    container_spec: ContainerSpec
+
+    _container: Optional[Container]
+    _image_status: Optional[str]
+    _container_status: Optional[str]
+    _logger: logging.Logger
+    _cli: Any
+
     def __init__(self, name: str, ctx):
         self.client = docker.from_env(timeout=999999999)
         self.config = ctx.config
@@ -78,9 +106,12 @@ class Node:
         self._image_status = None
         self._container_status = None
 
-        self._logger = logging.getLogger("launcher.node." + self.name)
+        self._logger = logger
 
         self._cli = None
+
+    def __repr__(self):
+        return "<Service %s>" % self.name
 
     def generate_environment(self):
         environment = [f"NETWORK={self.network}"]
@@ -111,7 +142,7 @@ class Node:
         return ports
 
     @property
-    def network(self) -> XudNetwork:
+    def network(self) -> str:
         return self.config.network
 
     @property
@@ -141,6 +172,13 @@ class Node:
             result = self.node_config["disabled"]
         return result
 
+    @property
+    def data_dir(self) -> str:
+        return os.path.join(self.config.data_dir, self.name)
+
+    def get_service(self, name) -> Node:
+        return self.node_manager.get_service(name)
+
     def _get_ports(self, spec_ports: Dict):
         ports = []
         for key, value in spec_ports.items():
@@ -157,11 +195,16 @@ class Node:
             volumes.append(value["bind"])
         return volumes
 
-    def create_container(self):
+    def create(self):
         spec = self.container_spec
         api = self.client.api
+
+        image = spec.image.use_image
+
+        logger.debug("Creating container %s with image %s", self.container_name, image)
+
         resp = api.create_container(
-            image=spec.image.use_image,
+            image=image,
             command=spec.command,
             hostname=spec.hostname,
             detach=True,
@@ -184,93 +227,66 @@ class Node:
         container = self.client.containers.get(id)
         return container
 
-    def get_container(self, create=False):
+    @property
+    def container(self) -> Container:
         try:
             return self.client.containers.get(self.container_name)
-        except NotFound:
-            if create:
-                return self.create_container()
-            else:
-                return None
+        except docker.errors.NotFound as e:
+            raise ContainerNotFound(self.name) from e
 
-    def start(self):
+    def start(self) -> None:
         if self.mode != "native":
             return
-        if self._container is None:
-            self._container = self.get_container(create=True)
-        assert self._container is not None
-        self._container.start()
+        self.container.start()
 
-    def stop(self):
+    def stop(self, timeout=180) -> None:
         if self.mode != "native":
             return
-        if self._container is not None:
-            self._container.stop(timeout=180)
+        self.container.stop(timeout=timeout)
 
-    def remove(self):
+    def remove(self, force=False) -> None:
         if self.mode != "native":
             return
-        if self._container is not None:
-            self._container.remove()
+        self.container.remove(force=force)
 
-    def status(self):
-        self._container = self.get_container()
-        if self._container is None:
-            return "Container missing"
-        return self._container.status
+    @property
+    def is_running(self) -> bool:
+        return self.container.status == "running"
 
-    def exec(self, cmd):
-        if self._container is not None:
-            return self._container.exec_run(cmd)
-
-    def cli(self, cmd, shell):
-        if self.mode != "native":
-            return
-        full_cmd = "%s %s" % (self._cli, cmd)
-        self._logger.debug("[Execute] %s", full_cmd)
-        _, socket = self._container.exec_run(full_cmd, stdin=True, tty=True, socket=True)
-
-        shell.redirect_stdin(socket._sock)
+    def status(self) -> str:
         try:
-            output = ""
-            pre_data = None
-            while True:
-                data = socket.read(1024)
+            return "Container " + self.container.status
+        except ContainerNotFound:
+            return "Container missing"
 
-                if pre_data is not None:
-                    data = pre_data + data
+    def exec(self, command: str) -> Tuple[int, str]:
+        exit_code, output = self.container.exec_run(command)
+        return exit_code, output.decode()
 
-                if len(data) == 0:
-                    break
+    def cli(self, command: str, exception=False, parse_output=None) -> None:
+        if self.mode != "native":
+            return
 
-                try:
-                    text = data.decode()
-                    pre_data = None
-                except:
-                    pre_data = data
-                    continue
-
-                text = self.cli_filter(cmd, text)
-                output += text
-
-                # Write text in chunks in case trigger BlockingIOError: could not complete without blocking
-                # because text is too large to fit the output buffer
-                # https://stackoverflow.com/questions/54185874/logging-chokes-on-blockingioerror-write-could-not-complete-without-blocking
-                i = 0
-                while i < len(text):
-                    os.write(sys.stdout.fileno(), text[i: i + 1024].encode())
-                    i = i + 1024
-                sys.stdout.flush()
-        finally:
-            shell.stop_redirect_stdin()
-
-        # TODO get exit code here
-        exception = self.extract_exception(cmd, output)
-        if exception:
-            raise exception
+        try:
+            full_cmd = "%s %s" % (self._cli, command)
+            logger.debug("[Execute] %s (interactive)", full_cmd)
+            # FIXME use blocking docker client here
+            output = exec_command(self.client.api, self.container_name, full_cmd)
+            try:
+                self.extract_exception(command, output)
+            except KeyboardInterrupt:
+                raise
+            except:
+                if exception:
+                    raise
+            if parse_output:
+                parse_output(output)
+        except docker.errors.NotFound:
+            # FIXME use self.container
+            raise ContainerNotFound(self.name)
 
     def extract_exception(self, cmd, text):
-        return None
+        pass
 
     def cli_filter(self, cmd, text):
         return text
@@ -281,59 +297,60 @@ class Node:
         t = datetime.datetime.strptime(parts[0], "%Y-%m-%dT%H:%M:%S")
         return t
 
-    def logs(self, tail="all"):
-        if self._container is None:
-            return None
-        t = self._get_container_created_timestamp()
-        result = self._container.logs(since=t, tail=tail)
-        return itertools.chain(result.decode().splitlines())
+    def logs(self, tail: str = None, since: str = None, until: str = None, follow: bool = False, timestamps: bool = False):
+        assert since is None, "String since is not supported yet"
+        assert until is None, "String until is not supported yet"
+        try:
+            tail = int(tail)
+        except:
+            pass
 
-    def compare_image(self, container: Container) -> CompareResult:
+        kwargs = {
+            "tail": tail,
+            "follow": follow,
+            "timestamps": timestamps,
+        }
+
+        if follow:
+            kwargs["stream"] = True
+
+        result = self.container.logs(**kwargs)
+        if isinstance(result, bytes):
+            for line in result.decode().splitlines():
+                yield line
+        else:
+            for line in result:
+                yield line.decode().rstrip()
+
+    def _compare_image(self, container: Container) -> bool:
         attrs = container.attrs
 
         old_name = attrs["Config"]["Image"]
         new_name = self.image.use_image
 
-        old = CompareEntity(old_name)
-        new = CompareEntity(new_name)
-
         if old_name != new_name:
-            return CompareResult(False, "Image names are different", old, new)
+            logger.info("(%s) Image %s -> %s", self.container_name, old_name, new_name)
+            return False
 
         if self.image.pull_image:
-            # the names are same but a new image needs to be pulled
-            if self.image.status == "LOCAL_MISSING":
-                msg = "Local image is missing"
-            elif self.image.status == "LOCAL_OUTDATED":
-                msg = "Local image is outdated"
-            else:
-                raise RuntimeError("The pull_image should be None with status {}".format(self.image.status))
-            return CompareResult(False, msg, old, new)
+            # the names are the same but new image available on registry
+            logger.info("(%s) Image pulling required", self.container_name)
+            return False
 
         old_digest = attrs["Image"]
         new_digest = self.image.digest
 
         if old_digest != new_digest:
-            # the names are same and no image needs to be pulled but image
+            # the names are the same and no image needs to be pulled but image
             # digests are different
-            old.diff = old_digest
-            new.diff = new_digest
-            return CompareResult(False, "Image digests are different", old, new)
-        return CompareResult(True, "Images are same", old, new)
+            logger.info("(%s) Image (digest) %s -> %s", self.container_name, old_digest, new_digest)
+            return False
 
-    def compare_hostname(self, container: Container) -> CompareResult:
-        attrs = container.attrs
-        old_hostname = attrs["Config"]["Hostname"]
-        new_hostname = self.container_spec.hostname
-        old = CompareEntity(old_hostname)
-        new = CompareEntity(new_hostname)
-        if old_hostname != new_hostname:
-            return CompareResult(False, "Hostnames are different", old, new)
-        return CompareResult(True, "", old, new)
+        return True
 
-    def compare_environment(self, container: Container) -> CompareResult:
+    def _compare_env(self, container: Container) -> bool:
 
-        old_environment = []
+        old_env = []
 
         ignore = [
             "NODE_VERSION",
@@ -354,24 +371,20 @@ class Node:
             for item in env:
                 if ignored(item):
                     continue
-                old_environment.append(item)
+                old_env.append(item)
 
-        new_environment = self.container_spec.environment
+        new_env = self.container_spec.environment
 
-        old_set = set(old_environment)
-        new_set = set(new_environment)
-
-        old = CompareEntity(old_set)
-        new = CompareEntity(new_set)
+        old_set = set(old_env)
+        new_set = set(new_env)
 
         if old_set != new_set:
-            old.diff = old_set - new_set
-            new.diff = new_set - old_set
-            return CompareResult(False, "Environments are different", old, new)
+            logger.info("(%s) Environment\n%s", self.container_name, diff_details(old_set, new_set))
+            return False
 
-        return CompareResult(True, "", old, new)
+        return True
 
-    def compare_command(self, container: Container) -> CompareResult:
+    def _compare_command(self, container: Container) -> bool:
         attrs = container.attrs
         old_command = attrs["Config"]["Cmd"]
         new_command = self.container_spec.command
@@ -379,35 +392,33 @@ class Node:
         if not old_command:
             old_command = []
 
-        old = CompareEntity(old_command)
-        new = CompareEntity(new_command)
-
         old_set = set(old_command)
         new_set = set(new_command)
 
         if old_set != new_set:
-            old.diff = old_set - new_set
-            new.diff = new_set - old_set
-            return CompareResult(False, "Commands are different", old, new)
+            logger.info("(%s) Command\n%s", self.container_name, diff_details(old_set, new_set))
+            return False
 
-        return CompareResult(True, "", old, new)
+        return True
 
-    def compare_volumes(self, container: Container) -> CompareResult:
+    def _compare_volumes(self, container: Container) -> bool:
         attrs = container.attrs
         old_volumes = ["{}:{}:{}".format(m["Source"], m["Destination"], m["Mode"]) for m in attrs["Mounts"]]
-        new_volumes = ["{}:{}:{}".format(key, value["bind"], value["mode"]) for key, value in self.container_spec.volumes.items()]
+
+        # macOS workaround
+        old_volumes = [v.replace("/host_mnt", "") for v in old_volumes]
+
+        new_volumes = ["{}:{}:{}".format(key, value["bind"], value["mode"]) for key, value in
+                       self.container_spec.volumes.items()]
 
         old_set = set(old_volumes)
         new_set = set(new_volumes)
 
-        old = CompareEntity(old_set)
-        new = CompareEntity(new_set)
-
         if old_set != new_set:
-            old.diff = old_set - new_set
-            new.diff = new_set - old_set
-            return CompareResult(False, "Volumes are different", old, new)
-        return CompareResult(True, "", old, new)
+            logger.info("(%s) Volumes\n%s", self.container_name, diff_details(old_set, new_set))
+            return False
+
+        return True
 
     def _normalize_docker_port_bindings(self, port_bindings):
         result = []
@@ -423,7 +434,7 @@ class Node:
                 result.append(key + "-" + ",".join(mapping))
         return result
 
-    def compare_ports(self, container: Container) -> CompareResult:
+    def _compare_ports(self, container: Container) -> bool:
         attrs = container.attrs
         port_bindings = attrs["HostConfig"]["PortBindings"]
         old_ports = self._normalize_docker_port_bindings(port_bindings)
@@ -443,112 +454,48 @@ class Node:
         old_set = set(old_ports)
         new_set = set(new_ports)
 
-        old = CompareEntity(old_set)
-        new = CompareEntity(new_set)
-
         if old_set != new_set:
-            old.diff = old_set - new_set
-            new.diff = new_set - old_set
-            return CompareResult(False, "Ports are different", old, new)
-        return CompareResult(True, "", old, new)
+            logger.info("%s: Ports\n%s", self.container_name, diff_details(old_set, new_set))
+            return False
 
-    @staticmethod
-    def _beautify_details(details):
-        def expand(c):
-            result = ""
-            result += "  old: %s\n" % c.old.obj
-            result += "  diff: %s\n" % c.old.diff
-            result += "  new: %s\n" % c.new.obj
-            result += "  diff: %s\n" % c.new.diff
-            return result
+        return True
 
-        result = ""
-        result += "- Image:\n"
-        result += expand(details["image"])
-        result += "- Hostname:\n"
-        result += expand(details["hostname"])
-        result += "- Environment:\n"
-        result += expand(details["environment"])
-        result += "- Command:\n"
-        result += expand(details["command"])
-        result += "- Volumes:\n"
-        result += expand(details["volumes"])
-        result += "- Ports:\n"
-        result += expand(details["ports"])
-        return result
+    def _same(self, container: Container) -> bool:
+        return self._compare_image(container) \
+               and self._compare_env(container) \
+               and self._compare_command(container) \
+               and self._compare_volumes(container) \
+               and self._compare_ports(container)
 
-    def compare(self, container):
-
-        details = {
-            "image": self.compare_image(container),
-            "hostname": self.compare_hostname(container),
-            "environment": self.compare_environment(container),
-            "command": self.compare_command(container),
-            "volumes": self.compare_volumes(container),
-            "ports": self.compare_ports(container),
-        }
-
-        same = True
-        for d in details.values():
-            if not d.same:
-                same = False
-                break
-
-        self._logger.info("(%s) Comparing result\n%s", self.container_name, self._beautify_details(details))
-
-        return same, details
-
-    def check_for_updates(self):
-        config = self.config.nodes[self.name]
-        assert config is not None
+    def _update_action(self) -> str:
         try:
             container = self.client.containers.get(self.container_name)
 
             if self.mode != "native":
-                return "external_with_container", None
+                return "REMOVE"  # external
 
             if self.disabled:
-                return "disabled_with_container", None
+                return "REMOVE"  # disabled
 
-            same, details = self.compare(container)
-
-            if same:
-                return "up-to-date", details
+            if self._same(container):
+                return "NONE"
             else:
-                return "outdated", details
+                return "RECREATE"
 
         except NotFound:
-            if config["mode"] != "native":
-                return "external", None
+            if self.mode != "native":
+                return "NONE"
             if self.disabled:
-                return "disabled", None
-            return "missing", None
+                return "NONE"
+            return "CREATE"
 
-    def update(self, check_result):
-        status, details = check_result
-        if status == "missing":
-            print("Creating %s..." % self.container_name)
-            self._container = self.create_container()
-        elif status == "outdated":
-            print("Recreating %s..." % self.container_name)
-            container = self.get_container()
-            assert container is not None
-            container.stop()
-            container.remove()
-            self._container = self.create_container()
-        elif status == "external_with_container" or status == "disabled_with_container":
-            print("Removing %s..." % self.container_name)
-            container = self.get_container()
-            assert container is not None
-            container.stop()
-            container.remove()
-            self._container = None
+    def get_update_action(self) -> str:
+        action = self._update_action()
+        logger.info("Container %s: action=%s", self.container_name, action)
+        return action
 
-    def __repr__(self):
-        name = self.name
-        mode = self.mode
-        container = self.container_name
-        return f"<Node {name=} {mode=} {container=}>"
+    def ensure_ready(self, stop: Event) -> None:
+        pass
 
 
 class CliError(Exception):
@@ -559,31 +506,40 @@ class CliError(Exception):
 
 
 class CliBackend:
-    def __init__(self, client: DockerClient, container_name, logger, cli):
-        self.client = docker.from_env()
+    def __init__(self, name, container_name, cli):
+        self.name = name
         self.container_name = container_name
-        self.logger = logger
         self.cli = cli
 
-    def get_container(self):
-        return self.client.containers.get(self.container_name)
+        self.client = docker.from_env()
+        self.blocking_client = docker.from_env(timeout=9999999)
 
-    def __getitem__(self, item):  # Not implementing __getaddr__ because `eth.sycning` cannot be invoked as a function name
-        def f(*args):
-            if len(args) > 0:
-                cmd = "%s %s" % (item, " ".join(args))
+    def get_container(self, blocking=False):
+        try:
+            if blocking:
+                return self.blocking_client.containers.get(self.container_name)
             else:
-                cmd = item
-            full_cmd = "%s %s" % (self.cli, cmd)
-            if "create" in cmd or "restore" in cmd:
-                self.client = docker.from_env(timeout=999999999)
-            else:
-                self.client = docker.from_env(timeout=20)
+                return self.client.containers.get(self.container_name)
+        except docker.errors.NotFound as e:
+            raise ContainerNotFound() from e
+
+    def invoke(self, method, *args):
+        if len(args) > 0:
+            cmd = "%s %s" % (method, " ".join(args))
+        else:
+            cmd = method
+        full_cmd = "%s %s" % (self.cli, cmd)
+        if cmd.startswith("create") or cmd.startswith("restore"):
+            exit_code, output = self.get_container(blocking=True).exec_run(full_cmd)
+        else:
             exit_code, output = self.get_container().exec_run(full_cmd)
-            text: str = output.decode()
-            self.logger.debug("[Execute] %s: exit_code=%s\n%s", full_cmd, exit_code, text)
-            if exit_code != 0:
-                raise CliError(exit_code, text)
-            return text
 
-        return f
+        text = output.decode().rstrip()
+
+        if exit_code == 0:
+            logger.debug("[Execute] %s", full_cmd)
+        else:
+            logger.debug("[Execute] %s (exit_code=%s)\n%s", full_cmd, exit_code, text)
+            raise CliError(exit_code, text)
+
+        return text

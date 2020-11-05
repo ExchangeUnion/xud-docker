@@ -3,11 +3,12 @@ from docker.models.containers import Container
 from typing import List
 from subprocess import check_output
 
+from launcher.utils import yes_or_no
+
 
 class Action:
-    def __init__(self, network, shell):
+    def __init__(self, network):
         self.network = network
-        self.shell = shell
         self.client = docker.from_env()
 
     def get_utils_containers(self):
@@ -45,7 +46,7 @@ class Action:
         if n == 0:
             return
 
-        reply = self.shell.yes_or_no("Found {} existing xud ctl sessions. Do you want to close these?".format(n))
+        reply = yes_or_no("Found {} existing xud ctl sessions. Do you want to close these?".format(n))
         if reply == "yes":
             for c in result:
                 if c.status == "running":

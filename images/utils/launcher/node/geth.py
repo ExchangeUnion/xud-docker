@@ -12,11 +12,11 @@ class GethApi:
         self._backend = backend
 
     def eth_syncing(self):
-        js_obj = self._backend["--exec eth.syncing attach"]()
+        js_obj = self._backend.invoke("--exec eth.syncing attach")
         return demjson.decode(js_obj)
 
     def eth_blockNumber(self):
-        js_obj = self._backend["--exec eth.blockNumber attach"]()
+        js_obj = self._backend.invoke("--exec eth.blockNumber attach")
         return demjson.decode(js_obj)
 
 
@@ -57,7 +57,7 @@ class Geth(Node):
         elif self.network == "mainnet":
             self._cli = "geth"
 
-        self.api = GethApi(CliBackend(self.client, self.container_name, self._logger, self._cli))
+        self.api = GethApi(CliBackend(self.name, self.container_name, self._cli))
 
     def get_environment(self):
         result = []
@@ -160,29 +160,25 @@ class Geth(Node):
             return self.get_light_status()
 
         status = super().status()
-        if status == "exited":
-            # TODO analyze exit reason
-            return "Container exited"
-        elif status == "running":
-            try:
-                syncing = self.api.eth_syncing()
-                if syncing:
-                    current: int = syncing["currentBlock"]
-                    total: int = syncing["highestBlock"]
-                    p = current / total * 100
-                    if p > 0.005:
-                        p = p - 0.005
-                    else:
-                        p = 0
-                    return "Syncing %.2f%% (%d/%d)" % (p, current, total)
-                else:
-                    block_number = self.api.eth_blockNumber()
-                    if block_number == 0:
-                        return "Waiting for sync"
-                    else:
-                        return "Ready"
-            except:
-                self._logger.exception("Failed to get advanced running status")
-                return "Waiting for geth to come up..."
-        else:
+        if status != "Container running":
             return status
+        try:
+            syncing = self.api.eth_syncing()
+            if syncing:
+                current: int = syncing["currentBlock"]
+                total: int = syncing["highestBlock"]
+                p = current / total * 100
+                if p > 0.005:
+                    p = p - 0.005
+                else:
+                    p = 0
+                return "Syncing %.2f%% (%d/%d)" % (p, current, total)
+            else:
+                block_number = self.api.eth_blockNumber()
+                if block_number == 0:
+                    return "Waiting for sync"
+                else:
+                    return "Ready"
+        except:
+            self._logger.exception("Failed to get advanced running status")
+            return "Waiting for geth to come up..."

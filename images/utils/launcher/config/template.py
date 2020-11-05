@@ -1,5 +1,5 @@
 import re
-from ..errors import FatalError
+from launcher.errors import FatalError
 
 
 class PortPublish:
@@ -643,7 +643,7 @@ nodes_config = {
         },
         "xud": {
             "name": "xud",
-            "image": "exchangeunion/xud:1.2.0",
+            "image": "exchangeunion/xud:latest",
             "volumes": [
                 {
                     "host": "$data_dir/xud",

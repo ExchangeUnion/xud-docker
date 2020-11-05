@@ -66,16 +66,6 @@ CONNEXT_IP=$(getent hosts connext || echo '' | awk '{ print $1 }')
 echo "$CONNEXT_IP connext" >> /etc/hosts
 
 
-while [[ $LNDBTC_MODE == "native" && ! -e /root/.lndbtc/tls.cert ]]; do
-    echo "[entrypoint] Waiting for /root/.lndbtc/tls.cert to be created..."
-    sleep 1
-done
-
-while [[ $LNDLTC_MODE == "native" && ! -e /root/.lndltc/tls.cert ]]; do
-    echo "[entrypoint] Waiting for /root/.lndltc/tls.cert to be created..."
-    sleep 1
-done
-
 if [[ -z ${LNDBTC_RPC_HOST:-} ]]; then
     LNDBTC_RPC_HOST="lndbtc"
 fi
@@ -105,6 +95,7 @@ fi
 [[ -e $XUD_CONF && $PRESERVE_CONFIG == "true" ]] || {
     cp /app/sample-xud.conf $XUD_CONF
 
+    sed -i "s/loglevel.*/loglevel = \"trace\"/" $XUD_CONF
     sed -i "s/network.*/network = \"$NETWORK\"/" $XUD_CONF
     sed -i 's/noencrypt.*/noencrypt = false/' $XUD_CONF
     sed -i '/\[http/,/^$/s/host.*/host = "0.0.0.0"/' $XUD_CONF
@@ -170,5 +161,11 @@ update_lnds "${ARR[@]}"
 
 /xud-backup.sh &
 
-# use exec to properly respond to SIGINT
-exec xud $@
+
+if [[ -n ${DEBUG_PORT:-} ]]; then
+    export NODE_ENV=development
+    exec node --inspect-brk="0.0.0.0:$DEBUG_PORT" bin/xud
+else
+    # use exec to properly respond to SIGINT
+    exec xud "$@"
+fi
