@@ -98,7 +98,8 @@ done
     sed -i "/\[rpc/,/^$/s/port.*/port = $RPC_PORT/" $XUD_CONF
     sed -i '/\[connext/,/^$/s/disable.*/disable = false/' $XUD_CONF
     sed -i '/\[connext/,/^$/s/host.*/host = "connext"/' $XUD_CONF
-    sed -i '/\[connext/,/^$/s/port.*/port = 5040/' $XUD_CONF
+    sed -i '/\[connext/,/^$/s/port.*/port = 8000/' $XUD_CONF
+    sed -i '/\[connext/,/^$/s/nodeIdentifier.*/nodeIdentifier = "indra6BfdezY2VrEvsYZJvKbfUKJQ3yfbVF3atu4CgvspP8RmoXquAQ"/' $XUD_CONF
     sed -i '/\[connext/,/^$/s/webhookhost.*/webhookhost = "xud"/' $XUD_CONF
     sed -i "/\[connext/,/^$/s/webhookport.*/webhookport = $HTTP_PORT/" $XUD_CONF
 }
