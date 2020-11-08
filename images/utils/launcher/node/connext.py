@@ -11,7 +11,7 @@ class ConnextApi:
 
     def is_healthy(self):
         try:
-            result = self._backend["http://localhost:5040/health"]()
+            result = self._backend["http://localhost:8000/ping"]()
             return result == ""
         except CliError as e:
             raise ConnextApiError("Starting...")
@@ -21,8 +21,31 @@ class Connext(Node):
     def __init__(self, name, ctx):
         super().__init__(name, ctx)
 
-        environment = []
+        environment = [
+            """VECTOR_CONFIG={
+                "adminToken": "ddrWR8TK8UMTyR",
+                "chainAddresses": {
+                    "1337": {
+                    "channelFactoryAddress": "0x2eC39861B9Be41c20675a1b727983E3F3151C576",
+                    "channelMastercopyAddress": "0x7AcAcA3BC812Bcc0185Fa63faF7fE06504D7Fa70",
+                    "transferRegistryAddress": "0xB2b8A1d98bdD5e7A94B3798A13A94dEFFB1Fe709",
+                    "TestToken": ""
+                    }
+                },
+                "chainProviders": {
+                    "1337": "http://35.234.110.95:8545"
+                },
+                "domainName": "",
+                "logLevel": "debug",
+                "messagingUrl": "https://messaging.connext.network",
+                "production": true,
+                "mnemonic": "crazy angry east hood fiber awake leg knife entire excite output scheme"
+            }""",
+            "VECTOR_SQLITE_FILE=/database/store.db",
+            "VECTOR_PROD=true",
+        ]
 
+        """
         if self.network == "simnet":
             environment = [
                 "LEGACY_MODE=true",
@@ -68,6 +91,7 @@ class Connext(Node):
                 environment.extend([
                     f'CONNEXT_ETH_PROVIDER_URL=http://geth:8545'
                 ])
+        """
 
         self.container_spec.environment.extend(environment)
 
