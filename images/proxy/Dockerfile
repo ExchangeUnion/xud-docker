@@ -8,5 +8,7 @@ RUN go build ./cmd/proxy
 
 FROM alpine:3.12
 COPY --from=builder /go/github.com/ExchangeUnion/xud-docker-api-poc/proxy /usr/local/bin/proxy
+COPY --from=builder /go/github.com/ExchangeUnion/xud-docker-api-poc/cmd/proxy/cert.sh .
+RUN apk add --update openssl
 ADD entrypoint.sh /
 ENTRYPOINT ["/entrypoint.sh"]
