@@ -174,6 +174,10 @@ nodes_config = {
                     "host": "$data_dir/lndltc",
                     "container": "/root/.lndltc",
                 },
+                {
+                    "host": "$network_dir",
+                    "container": "/root/network",
+                },
             ],
             "ports": [PortPublish("127.0.0.1:28889:8080")],
             "mode": "native",
@@ -392,7 +396,10 @@ nodes_config = {
                     "host": "$data_dir/lndltc",
                     "container": "/root/.lndltc",
                 },
-
+                {
+                    "host": "$network_dir",
+                    "container": "/root/network",
+                },
             ],
             "ports": [PortPublish("127.0.0.1:18889:8080")],
             "mode": "native",
@@ -609,6 +616,10 @@ nodes_config = {
                 {
                     "host": "$data_dir/lndltc",
                     "container": "/root/.lndltc",
+                },
+                {
+                    "host": "$network_dir",
+                    "container": "/root/network",
                 },
             ],
             "ports": [PortPublish("127.0.0.1:8889:8080")],
