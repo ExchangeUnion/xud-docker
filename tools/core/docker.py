@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Dict, Optional, List, Literal, Union
+from typing import TYPE_CHECKING, Dict, Optional, List, Union
 
 import json
 from urllib.request import urlopen, Request
@@ -17,7 +17,7 @@ if TYPE_CHECKING:
     from http.client import HTTPResponse
 
 
-SupportedPlatform = Literal["linux/arm64", "linux/amd64", "linux/386", "linux/ppc64le", "linux/s390s", "linux/arm/v7", "linux/arm/v6"]
+# SupportedPlatform = Literal["linux/arm64", "linux/amd64", "linux/386", "linux/ppc64le", "linux/s390s", "linux/arm/v7", "linux/arm/v6"]
 
 
 class Platform:

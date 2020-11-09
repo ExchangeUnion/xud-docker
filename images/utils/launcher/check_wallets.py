@@ -397,7 +397,7 @@ class Action:
                 print(f"Failed. ", end="")
                 self.logger.debug(f"Failed to check backup dir {backup_dir}: {reason}")
                 sys.stdout.flush()
-                r = self.shell.no_or_yes("Retry?")
+                r = self.shell.yes_or_no("Retry?")
                 if r == "no":
                     self.node_manager.down()
                     raise FatalError("Backup directory not available")
@@ -459,7 +459,7 @@ class Action:
                 print(f"Path not available. ", end="")
                 self.logger.info(f"Failed to check restore dir {restore_dir}: {reason}")
                 sys.stdout.flush()
-                r = self.shell.yes_or_no("Do you wish to continue WITHOUT restoring channel balance, keys and historical data?")
+                r = self.shell.no_or_yes("Do you wish to continue WITHOUT restoring channel balance, keys and historical data?")
                 if r == "yes":
                     restore_dir = "/tmp/fake-backup"
                     break

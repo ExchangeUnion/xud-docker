@@ -5,12 +5,12 @@ set -euo pipefail
 BRANCH=master
 DEV=false
 DOCKER_REGISTRY="https://registry-1.docker.io"
-UTILS_TAG="20.10.16"
+UTILS_TAG="20.11.02"
 
 
 function print_help() {
     cat <<EOF
-xud.sh 20.10.16
+xud.sh 20.11.02
 The launcher script for Exchange Union environment
 
 USAGE:
@@ -74,7 +74,7 @@ Xud options:
     --xud.preserve-config                       Preserve xud xud.conf file during updates
 
 Arby options:
-    --arby.live-cex [true|false]                Production/Demo mode (default: false)
+    --arby.test-mode [true|false]               Production/Demo mode (default: true for simnet and testnet; false for mainnet)
     --arby.base-asset <string>                  Base asset symbol
     --arby.quote-asset <string>                 Quote asset symbol
     --arby.cex-base-asset <string>              Centralized exchange base asset symbol

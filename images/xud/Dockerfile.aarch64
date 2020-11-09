@@ -1,9 +1,9 @@
-FROM node:12-alpine3.11 AS builder
+FROM node:12-alpine3.12 AS builder
 # Use pure JS implemented secp256k1 bindings
 RUN apk add --no-cache git rsync bash musl-dev go python3 make g++
 # Pre-built binaries not found for sqlite3@4.1.0 and node@12.16.1 (node-v72 ABI, musl) (falling back to source compile with node-gyp)
 # python: not found
-RUN apk add --no-cache python
+RUN apk add --no-cache python2
 WORKDIR /xud
 ADD .src .
 ARG GIT_REVISION
@@ -19,7 +19,7 @@ RUN npm prune --production
 RUN rm -rf seedutil/go
 RUN strip seedutil/seedutil
 
-FROM node:12-alpine3.11
+FROM node:12-alpine3.12
 RUN apk add --no-cache bash tor
 COPY --from=builder /xud /app
 COPY entrypoint.sh update-backup-dir.sh xud-backup.sh /
