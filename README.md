@@ -32,13 +32,18 @@ Make your desired changes to the images located at: `$PROJECT_DIR/images`.
 Build your modified images.
 
 ```bash
-tools/build
+tools/build your-image:latest
+```
+
+You may also need to build the utils image.
+```bash
+tools/build utils:latest
 ```
 
 Test it locally.
 
 ```bash
-bash setup.sh -b your-feature-branch
+bash setup.sh -b your-feature-branch --dev --use-local-images your-image
 ```
 
 To let others test without building the images by themselves push your feature branch to remote repository. Travis will build & push images for you.
@@ -89,7 +94,7 @@ bash setup.sh -b local --dev --use-local-images xud,lndbtc,lndltc,connext
 
 #### Example: Enable optional service arby
 
-Enabling boltz and webui works in a same way. 
+Enabling boltz and webui works in a same way.
 
 1. Build arby image `tools/build arby`
 2. Append `arby` to `--use-local-images`
