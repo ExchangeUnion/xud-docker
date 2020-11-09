@@ -164,6 +164,8 @@ class Action:
             lndltc = self.lnd_cfheaders["litecoin"]
             services["lndltc"] = "Syncing " + self._get_percentage(lndltc.current, lndltc.total)
 
+        self.logger.info("[LightSync] %s", " | ".join(["%s: %s" % (key, value) for key, value in services.items()]))
+
         table = ServiceTable(services)
         table_str = str(table)
         if erase_last_line:
@@ -305,6 +307,7 @@ class Action:
             print()
 
     def xucli_create_wrapper(self, xud):
+        self.logger.info("Create wallets")
         counter = 0
         ok = False
         while counter < 3:
@@ -323,6 +326,8 @@ class Action:
             raise Exception("Failed to create wallets")
 
     def xucli_restore_wrapper(self, xud):
+        self.logger.info("Restore wallets")
+
         counter = 0
         ok = False
         while counter < 3:
@@ -376,6 +381,8 @@ class Action:
     def setup_backup_dir(self):
         if self.config.backup_dir:
             return
+
+        self.logger.info("Setup backup location")
 
         backup_dir = None
 
@@ -468,8 +475,12 @@ class Action:
 
     def execute(self):
         xud = self.node_manager.get_node("xud")
+
+        self.logger.info("Waiting for XUD dependencies to be ready")
         self.ensure_layer2_ready()
+
         if self.node_manager.newly_installed:
+            self.logger.info("Setup wallets")
             while True:
                 print("Do you want to create a new xud environment or restore an existing one?")
                 print("1) Create New")
