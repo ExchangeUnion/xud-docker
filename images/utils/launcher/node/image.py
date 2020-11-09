@@ -113,9 +113,20 @@ class Image:
     def get_image_metadata(self, name):
         image = self.client.images.get(name)
         digest = image.id
-        created = datetime.strptime(image.labels["com.exchangeunion.image.created"], "%Y-%m-%dT%H:%M:%SZ")
-        branch = image.labels["com.exchangeunion.image.branch"]
-        revision = image.labels["com.exchangeunion.image.revision"]
+        if "com.exchangeunion.image.created" in image.labels:
+            created = datetime.strptime(image.labels["com.exchangeunion.image.created"], "%Y-%m-%dT%H:%M:%SZ")
+        else:
+            created = None
+        if "com.exchangeunion.image.branch" in image.labels:
+            branch = image.labels["com.exchangeunion.image.branch"]
+        else:
+            branch = None
+
+        if "com.exchangeunion.image.revision" in image.labels:
+            revision = image.labels["com.exchangeunion.image.revision"]
+        else:
+            revision = None
+
         return ImageMetadata(digest, created, branch, revision, name)
 
     def fetch_local_metadata(self):
