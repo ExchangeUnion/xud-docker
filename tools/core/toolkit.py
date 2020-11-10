@@ -112,9 +112,22 @@ class Toolkit:
             current_platform=self.current_platform,
         )
 
+    def _get_current_branch(self) -> str:
+        cmd = "git branch --show-current"
+        print("\033[34m$ %s\033[0m" % cmd, flush=True)
+        output = check_output(cmd, shell=True)
+        output = output.decode()
+        print("%s" % output.rstrip(), flush=True)
+        output = output.strip()
+        return output
+
     def _get_modified_images(self) -> List[str]:
-        cmd = "git diff --name-only $(git merge-base --fork-point origin/master)..HEAD images"
-        print("\033[34m$ %s" % cmd, flush=True)
+        branch = self._get_current_branch()
+        if branch == "master":
+            cmd = "git diff --name-only HEAD^..HEAD images"
+        else:
+            cmd = "git diff --name-only $(git merge-base --fork-point origin/master)..HEAD images"
+        print("\033[34m$ %s\033[0m" % cmd, flush=True)
         output = check_output(cmd, shell=True)
         output = output.decode()
         print("%s" % output.rstrip(), flush=True)
