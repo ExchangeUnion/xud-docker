@@ -14,7 +14,7 @@ class SourceManager(src.SourceManager):
         if version == "latest":
             # change "master" or "main" to a another xud branch for testing
             self.checkout_repo(self.frontend_dir, "main")
-            self.checkout_repo(self.backend_dir, "setup-status")
+            self.checkout_repo(self.backend_dir, "master")
         else:
             self.checkout_repo(self.frontend_dir, "v" + version)
             self.checkout_repo(self.backend_dir, "v" + version)
