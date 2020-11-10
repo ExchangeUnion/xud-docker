@@ -1,4 +1,7 @@
+import logging
 from .node import XudApiError
+
+logger = logging.getLogger(__name__)
 
 
 class Action:
@@ -33,4 +36,5 @@ class Action:
         xud = self.node_manager.get_node("xud")
         if not self.xud_is_locked(xud):
             return
+        logger.info("Unlock wallets")
         self.xucli_unlock_wrapper(xud)

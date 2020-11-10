@@ -940,6 +940,8 @@ class Config:
         if isinstance(value, str):
             if "$home_dir" in value:
                 value = value.replace("$home_dir", self.home_dir)
+            if "$network_dir" in value:
+                value = value.replace("$network_dir", self.network_dir)
             if f"${self.network}_dir" in value:
                 value = value.replace(f"${self.network}_dir", self.network_dir)
             if "$data_dir" in value:
