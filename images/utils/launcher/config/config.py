@@ -265,6 +265,33 @@ class Config:
             action="store_true",
             help="Preserve lndbtc lnd.conf file during updates"
         )
+        group.add_argument(
+            "--lndbtc.mode",
+            metavar="<mode>",
+            choices=["native", "external"],
+            help="Lndbtc service mode"
+        )
+        group.add_argument(
+            "--lndbtc.rpc-host",
+            metavar="<hostname>",
+            help="External lndbtc RPC hostname"
+        )
+        group.add_argument(
+            "--lndbtc.rpc-port",
+            type=int,
+            metavar="<port>",
+            help="External lndbtc RPC port"
+        )
+        group.add_argument(
+            "--lndbtc.certpath",
+            metavar="<hostname>",
+            help="External lndbtc TLS certificate file"
+        )
+        group.add_argument(
+            "--lndbtc.macaroonpath",
+            metavar="<hostname>",
+            help="External lndbtc admin.macaroon path"
+        )
 
         group = parser.add_argument_group("lndltc")
         group.add_argument(
@@ -276,6 +303,33 @@ class Config:
             "--lndltc.preserve-config",
             action="store_true",
             help="Preserve lndltc lnd.conf file during updates"
+        )
+        group.add_argument(
+            "--lndltc.mode",
+            metavar="<mode>",
+            choices=["native", "external"],
+            help="Lndltc service mode"
+        )
+        group.add_argument(
+            "--lndltc.rpc-host",
+            metavar="<hostname>",
+            help="External lndltc RPC hostname"
+        )
+        group.add_argument(
+            "--lndltc.rpc-port",
+            type=int,
+            metavar="<port>",
+            help="External lndltc RPC port"
+        )
+        group.add_argument(
+            "--lndltc.certpath",
+            metavar="<hostname>",
+            help="External lndltc TLS certificate file"
+        )
+        group.add_argument(
+            "--lndltc.macaroonpath",
+            metavar="<hostname>",
+            help="External lndltc admin.macaroon path"
         )
 
         group = parser.add_argument_group("connext")
@@ -665,6 +719,44 @@ class Config:
             value = getattr(self.args, opt)
             node["cache"] = value
 
+    def _get_value(self, key, node, parsed, validator=None, converter=None, default=None):
+        result = None
+
+        node_name = node["name"]
+
+        def process(value, hint):
+            if converter:
+                try:
+                    value = converter(value)
+                except Exception as e:
+                    raise ValueError("({}) Invalid value: {}".format(hint, value)) from e
+
+            if validator and not validator(value):
+                raise ValueError(value)
+
+            return value
+
+        if key in parsed:
+            value = parsed[key]
+            value = process(value, "{}.conf > {} > {}".format(self.network, node_name, key))
+            result = value
+
+        opt = "{}.{}".format(node_name, key.replace("-", "_"))
+
+        if hasattr(self.args, opt):
+            value = getattr(self.args, opt)
+            value = process(value, "--{}".format(opt.replace("_", "-")))
+            result = value
+
+        if not result:
+            if default:
+                return default
+            msg = "configuration \"{}.{}\" missing (please specify command-line option \"--{}\" or add \"{}\" in your {}.conf \"{}\" section)".format(
+                node_name, key, opt.replace("_", "-"), key, self.network, node_name)
+            raise ValueError(msg)
+
+        return result
+
     def update_lndbtc(self, parsed):
         """Update lndbtc related configurations from parsed TOML lndbtc section
         :param parsed: Parsed lndbtc TOML section
@@ -672,12 +764,26 @@ class Config:
         node = self.nodes["lndbtc"]
         self.update_ports(node, parsed)
 
+        node["mode"] = self._get_value("mode", node, parsed, validator=lambda v: v in ["native", "external"], default="native")
+        if node["mode"] == "external":
+            node["rpc_host"] = self._get_value("rpc_host", node, parsed)
+            node["rpc_port"] = self._get_value("rpc_port", node, parsed, converter=lambda v: int(v))
+            node["certpath"] = self._get_value("certpath", node, parsed)
+            node["macaroonpath"] = self._get_value("macaroonpath", node, parsed)
+
     def update_lndltc(self, parsed):
         """Update lndltc related configurations from parsed TOML lndltc section
         :param parsed: Parsed lndltc TOML section
         """
         node = self.nodes["lndltc"]
         self.update_ports(node, parsed)
+
+        node["mode"] = self._get_value("mode", node, parsed, validator=lambda v: v in ["native", "external"], default="native")
+        if node["mode"] == "external":
+            node["rpc_host"] = self._get_value("rpc_host", node, parsed)
+            node["rpc_port"] = self._get_value("rpc_port", node, parsed, converter=lambda v: int(v))
+            node["certpath"] = self._get_value("certpath", node, parsed)
+            node["macaroonpath"] = self._get_value("macaroonpath", node, parsed)
 
     def update_connext(self, parsed):
         """Update Connext related configurations from parsed TOML connext section
@@ -975,6 +1081,7 @@ class Config:
                 if isinstance(value, bool):
                     value = str(value).lower()
                 print("{}=\"{}\"".format(key, value), file=f)
+
             dump_attr("branch")
             dump_attr("disable_update")
             dump_attr("external_ip")
@@ -1024,16 +1131,21 @@ class Config:
                 if node in ["bitcoind", "litecoind"]:
                     dump_node_attr(node, "external_rpc_host")
                     dump_node_attr(node, "external_rpc_port")
-                    #dump_node_attr(node, "external_rpc_user")
-                    #dump_node_attr(node, "external_rpc_password")
+                    # dump_node_attr(node, "external_rpc_user")
+                    # dump_node_attr(node, "external_rpc_password")
                     dump_node_attr(node, "external_zmqpubrawblock")
                     dump_node_attr(node, "external_zmqpubrawtx")
                 elif node == "geth":
                     dump_node_attr(node, "external_rpc_host")
                     dump_node_attr(node, "external_rpc_port")
-                    #dump_node_attr(node, "infura_project_id")
-                    #dump_node_attr(node, "infura_project_secret")
+                    # dump_node_attr(node, "infura_project_id")
+                    # dump_node_attr(node, "infura_project_secret")
                     dump_node_attr(node, "cache")
+                elif node in ["lndbtc", "lndltc"]:
+                    dump_node_attr(node, "rpc_host")
+                    dump_node_attr(node, "rpc_port")
+                    dump_node_attr(node, "certpath")
+                    dump_node_attr(node, "macaroonpath")
                 elif node == "arby":
                     dump_node_attr(node, "test_centralized_baseasset_balance")
                     dump_node_attr(node, "test_centralized_quoteasset_balance")
@@ -1044,6 +1156,6 @@ class Config:
                     dump_node_attr(node, "live_cex")
                     dump_node_attr(node, "test_mode")
                     dump_node_attr(node, "cex")
-                    #dump_node_attr(node, "cex_api_key")
-                    #dump_node_attr(node, "cex_api_secret")
+                    # dump_node_attr(node, "cex_api_key")
+                    # dump_node_attr(node, "cex_api_secret")
                     dump_node_attr(node, "margin")
