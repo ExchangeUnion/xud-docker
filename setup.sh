@@ -372,10 +372,10 @@ echo "🚀 Launching $NETWORK environment"
 
 docker run --rm -it \
 --name "$(get_utils_name)" \
--v /var/run/docker.sock:/var/run/docker.sock \
--v /:/mnt/hostfs \
--e HOST_PWD="$PWD" \
--e HOST_HOME="$HOME" \
+-v "${DOCKER_SOCK:-/var/run/docker.sock}:/var/run/docker.sock" \
+-v "${HOSTFS:-/}:/mnt/hostfs" \
+-e HOST_PWD="${HOSTPWD:-$PWD}" \
+-e HOST_HOME="${HOSTHOME:-$HOME}" \
 -e NETWORK="$NETWORK" \
 -e LOG_TIMESTAMP="$LOG_TIMESTAMP" \
 --entrypoint python \
