@@ -9,7 +9,7 @@ from subprocess import CalledProcessError
 from typing import TYPE_CHECKING, List, Dict
 
 from .image import Image
-from .utils import execute
+from .utils import execute, get_current_branch
 
 if TYPE_CHECKING:
     from .toolkit import Context
@@ -60,7 +60,7 @@ class GitTemplate:
 
         b = os.popen("git rev-parse --abbrev-ref HEAD").read().strip()
         if b == "HEAD":
-            b = os.environ["TRAVIS_BRANCH"]
+            b = get_current_branch()
         if b == "local":
             print("ERROR: Git branch name (local) is reserved", file=sys.stderr)
             exit(1)
