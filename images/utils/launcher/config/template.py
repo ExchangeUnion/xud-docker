@@ -175,6 +175,10 @@ nodes_config = {
                     "container": "/root/.lndltc",
                 },
                 {
+                    "host": "$data_dir/proxy",
+                    "container": "/root/.proxy",
+                },
+                {
                     "host": "$network_dir",
                     "container": "/root/network",
                 },
@@ -183,7 +187,7 @@ nodes_config = {
             "mode": "native",
             "preserve_config": False,
             "use_local_image": False,
-            "disabled": True,
+            "disabled": False,
         },
         "xud": {
             "name": "xud",
@@ -397,6 +401,10 @@ nodes_config = {
                     "container": "/root/.lndltc",
                 },
                 {
+                    "host": "$data_dir/proxy",
+                    "container": "/root/.proxy",
+                },
+                {
                     "host": "$network_dir",
                     "container": "/root/network",
                 },
@@ -405,7 +413,7 @@ nodes_config = {
             "mode": "native",
             "preserve_config": False,
             "use_local_image": False,
-            "disabled": True,
+            "disabled": False,
         },
         "xud": {
             "name": "xud",
@@ -618,6 +626,10 @@ nodes_config = {
                     "container": "/root/.lndltc",
                 },
                 {
+                    "host": "$data_dir/proxy",
+                    "container": "/root/.proxy",
+                },
+                {
                     "host": "$network_dir",
                     "container": "/root/network",
                 },
@@ -626,7 +638,7 @@ nodes_config = {
             "mode": "native",
             "preserve_config": False,
             "use_local_image": False,
-            "disabled": True,
+            "disabled": False,
         },
         "xud": {
             "name": "xud",
