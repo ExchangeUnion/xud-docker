@@ -314,7 +314,7 @@ class Action:
             try:
                 xud.cli("create", self.shell)
                 while True:
-                    confirmed = self.shell.confirm("YOU WILL NOT BE ABLE TO DISPLAY YOUR XUD SEED AGAIN. Press ENTER to continue...")
+                    confirmed = self.shell.confirm("Press ENTER to continue...")
                     if confirmed:
                         break
                 ok = True
