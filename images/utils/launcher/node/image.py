@@ -206,9 +206,18 @@ class Image:
             config = json.loads(payload["history"][0]["v1Compatibility"])["config"]
             digest = config["Image"]
             labels = config["Labels"]
-            created = datetime.strptime(labels["com.exchangeunion.image.created"], "%Y-%m-%dT%H:%M:%SZ")
-            branch = labels["com.exchangeunion.image.branch"]
-            revision = labels["com.exchangeunion.image.revision"]
+            if labels:
+                created = datetime.strptime(labels["com.exchangeunion.image.created"], "%Y-%m-%dT%H:%M:%SZ")
+            else:
+                created = None
+            if labels:
+                branch = labels["com.exchangeunion.image.branch"]
+            else:
+                branch = None
+            if labels:
+                revision = labels["com.exchangeunion.image.revision"]
+            else:
+                revision = None
             return ImageMetadata(digest, created, branch, revision, name)
         return None
 
