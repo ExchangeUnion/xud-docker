@@ -190,7 +190,7 @@ def create_wallet(child, retry=0):
         create_wallet(child, retry=retry + 1)
         return
 
-    child.expect("YOU WILL NOT BE ABLE TO DISPLAY YOUR XUD SEED AGAIN. Press ENTER to continue...")
+    child.expect("Press ENTER to continue...")
     print(child.before, end="")
     print(child.match.group(0), end="")
     child.sendline("\r")

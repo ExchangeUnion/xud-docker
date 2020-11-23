@@ -67,7 +67,7 @@ forget your password or lose your device. Off-chain funds in channels can NOT
 be recovered with it and must be backed up and recovered separately. Keep it
 somewhere safe, it is your ONLY backup in case of data loss.
 
-YOU WILL NOT BE ABLE TO DISPLAY YOUR XUD SEED AGAIN. Press ENTER to continue...
+Press ENTER to continue...
 
 Please enter a path to a destination where to store a backup of your environment. It includes everything, but NOT your wallet balance which is secured by your XUD SEED. The path should be an external drive, like a USB or network drive, which is permanently available on your device since backups are written constantly.
 
