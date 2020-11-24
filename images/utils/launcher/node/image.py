@@ -1,386 +1,234 @@
 from __future__ import annotations
-import logging
-from typing import Dict, TYPE_CHECKING
-import platform
+
+from concurrent.futures import ThreadPoolExecutor, wait, Future
+from dataclasses import dataclass
 from datetime import datetime
-from urllib.request import urlopen, Request
-from urllib.error import HTTPError
-import json
-import http.client
-import re
-import time
-from typing import List
-import sys
+from typing import Dict, TYPE_CHECKING, Optional
+from typing import List, Tuple
+import logging
 
-from docker import DockerClient
-from docker.errors import ImageNotFound
-
-from launcher.utils import parallel_execute, ParallelExecutionError
+from launcher.docker import Image as _Image
+from launcher.docker import Layer
 from launcher.errors import FatalError
 
 if TYPE_CHECKING:
     from .base import Node
+    from launcher.config import Config
+    from launcher.shell import Shell
+    from launcher.docker import DockerUtility
 
 
-def get_line(record):
-    if "progress" in record:
-        return "{}: {} {}".format(record["id"], record["status"], record["progress"])
-    else:
-        return "{}: {}".format(record["id"], record["status"])
-
-
-def print_status(output):
-    layers = []
-    progress = []
-
-    n = 0
-
-    for record in output:
-        status = record["status"]
-        if status.startswith("Pulling from") or status.startswith("Digest:") or status.startswith("Status:"):
-            continue
-        if "id" in record:
-            id = record["id"]
-            if id in layers:
-                progress[layers.index(id)] = get_line(record)
-            else:
-                layers.append(id)
-                progress.append(get_line(record))
-
-        if n > 0:
-            print(f"\033[%dA" % n, end="")
-            sys.stdout.flush()
-
-        n = len(progress)
-
-        for line in progress:
-            print("\033[K" + line)
-
-
+@dataclass
 class ImageMetadata:
-    def __init__(self, digest: str, created: datetime, branch: str, revision: str, name: str):
-        self.digest = digest
-        self.created = created
-        self.branch = branch
-        self.revision = revision
-        self.name = name
-
-    def __repr__(self):
-        digest = self.digest
-        created = self.created
-        branch = self.branch
-        revision = self.revision
-        name = self.name
-        return f"<ImageMetadata {name=} {digest=} {created=} {branch=} {revision=}>"
+    name: str
+    digest: str
+    revision: Optional[str]
+    created_at: datetime
 
 
+class ImageNotFound(Exception):
+    pass
+
+
+@dataclass
 class Image:
-    def __init__(self, repo: str, tag: str, branch: str, client: DockerClient, node: Node):
-        self.logger = logging.getLogger("launcher.node.Image")
-        self.id = None
-        self.repo = repo
-        self.tag = tag
-        self.branch = branch
-        self.client = client
-        self.node = node
-
-        self.local_metadata = self.fetch_local_metadata()
-        self.cloud_metadata = None
-        self.status = None
-        self.pull_image = None
-        if self.local_metadata:
-            self.use_image = self.local_metadata.name
-        else:
-            self.use_image = self.name
+    repo: str
+    tag: Optional[str]
+    digest: Optional[str]
+    pull: Optional[str]
+    use: Optional[str]
+    nodes: List[Node]
+    layers: List[Layer]
 
     @property
-    def name(self):
-        return "{}:{}".format(self.repo, self.tag)
+    def in_use(self) -> bool:
+        for node in self.nodes:
+            if node.mode == "native" and not node.disabled:
+                return True
+        return False
 
     @property
-    def branch_name(self):
-        if self.branch == "master":
-            return self.name
-        else:
-            return self.name + "__" + self.branch.replace("/", "-")
+    def use_local(self) -> bool:
+        for node in self.nodes:
+            if node.node_config["use_local_image"]:
+                return True
+        return False
 
     @property
-    def digest(self):
-        if not self.local_metadata:
-            return None
-        return self.local_metadata.digest
-
-    def get_image_metadata(self, name):
-        image = self.client.images.get(name)
-        digest = image.id
-        if "com.exchangeunion.image.created" in image.labels:
-            created = datetime.strptime(image.labels["com.exchangeunion.image.created"], "%Y-%m-%dT%H:%M:%SZ")
-        else:
-            created = None
-        if "com.exchangeunion.image.branch" in image.labels:
-            branch = image.labels["com.exchangeunion.image.branch"]
-        else:
-            branch = None
-
-        if "com.exchangeunion.image.revision" in image.labels:
-            revision = image.labels["com.exchangeunion.image.revision"]
-        else:
-            revision = None
-
-        return ImageMetadata(digest, created, branch, revision, name)
-
-    def fetch_local_metadata(self):
-        if self.branch == "master":
-            try:
-                return self.get_image_metadata(self.name)
-            except ImageNotFound:
-                pass
-        else:
-            try:
-                return self.get_image_metadata(self.branch_name)
-            except ImageNotFound:
-                pass
-            try:
-                return self.get_image_metadata(self.name)
-            except ImageNotFound:
-                pass
-
-    def get_token(self, repo):
-        r = urlopen(f"https://auth.docker.io/token?service=registry.docker.io&scope=repository:{repo}:pull")
-        return json.load(r)["token"]
-
-    def safe_urlopen(self, request):
-        while True:
-            try:
-                r = urlopen(request)
-                return json.load(r)
-            except http.client.IncompleteRead:
-                time.sleep(1)
-
-    def get_submanifest(self, token, repo, digest):
-        request = Request(f"https://registry-1.docker.io/v2/{repo}/manifests/{digest}")
-        request.add_header("Authorization", f"Bearer {token}")
-        request.add_header("Accept", "application/vnd.docker.distribution.manifest.v2+json")
-        request.add_header("Accept", "application/vnd.docker.distribution.manifest.list.v2+json")
-        request.add_header("Accept", "application/vnd.docker.distribution.manifest.v1+json")
-        return self.safe_urlopen(request)
-
-    def get_image_blob(self, token, repo, digest):
-        request = Request(f"https://registry-1.docker.io/v2/{repo}/blobs/{digest}")
-        request.add_header("Authorization", f"Bearer {token}")
-        return self.safe_urlopen(request)
-
-    def get_cloud_metadata(self, name: str):
-        repo, tag = name.split(":")
-
-        token = self.get_token(repo)
-        request = Request(f"https://registry-1.docker.io/v2/{repo}/manifests/{tag}")
-        request.add_header("Authorization", f"Bearer {token}")
-        request.add_header("Accept", "application/vnd.docker.distribution.manifest.list.v2+json")
-
-        try:
-            payload = self.safe_urlopen(request)
-        except HTTPError as e:
-            if e.code == 404:
-                return None
-            else:
-                raise e
-
-        if payload["schemaVersion"] == 2:
-            arch = platform.machine()
-            if arch == "x86_64":
-                arch = "amd64"
-            elif arch == "aarch64":
-                arch = "arm64"
-            for m in payload["manifests"]:
-                if arch == m["platform"]["architecture"]:
-                    payload = self.get_submanifest(token, repo, m["digest"])
-                    digest = payload["config"]["digest"]
-                    payload = self.get_image_blob(token, repo, digest)
-                    labels = payload["config"]["Labels"]
-                    created = datetime.strptime(labels["com.exchangeunion.image.created"], "%Y-%m-%dT%H:%M:%SZ")
-                    branch = labels["com.exchangeunion.image.branch"]
-                    revision = labels["com.exchangeunion.image.revision"]
-                    return ImageMetadata(digest, created, branch, revision, name)
-        elif payload["schemaVersion"] == 1:
-            config = json.loads(payload["history"][0]["v1Compatibility"])["config"]
-            digest = config["Image"]
-            labels = config["Labels"]
-            if labels:
-                created = datetime.strptime(labels["com.exchangeunion.image.created"], "%Y-%m-%dT%H:%M:%SZ")
-            else:
-                created = None
-            if labels:
-                branch = labels["com.exchangeunion.image.branch"]
-            else:
-                branch = None
-            if labels:
-                revision = labels["com.exchangeunion.image.revision"]
-            else:
-                revision = None
-            return ImageMetadata(digest, created, branch, revision, name)
-        return None
-
-    def fetch_cloud_metadata(self):
-        try:
-            if self.branch == "master":
-                return self.get_cloud_metadata(self.name)
-            else:
-                result = self.get_cloud_metadata(self.branch_name)
-                if not result:
-                    result = self.get_cloud_metadata(self.name)
-                return result
-        except:
-            self.logger.exception("Failed to fetch cloud image metadata")
-
-    def get_status(self) -> str:
-        """Get image update status
-
-        :return: image status
-        - UP_TO_DATE: The local image is the same as the cloud.
-        - LOCAL_OUTDATED: The local image hash is different from the cloud.
-        - LOCAL_NEWER: The local image is created after the cloud.
-        - LOCAL_MISSING: The cloud image exists but no local image.
-        - LOCAL_ONLY: The image only exists locally.
-        - UNAVAILABLE: The image is not found locally or remotely.
-        """
-        if self.node.node_config["use_local_image"]:
-            self.cloud_metadata = None
-            return "LOCAL_NEWER"
-
-        local = self.local_metadata
-
-        self.cloud_metadata = self.fetch_cloud_metadata()
-        cloud = self.cloud_metadata
-
-        if not local and not cloud:
-            return "UNAVAILABLE"
-
-        if local and not cloud:
-            return "LOCAL_ONLY"
-
-        if not local and cloud:
-            return "LOCAL_MISSING"
-
-        if local.digest == cloud.digest:
-            return "UP_TO_DATE"
-        else:
-            return "LOCAL_OUTDATED"
-
-    @property
-    def status_message(self):
-        if self.status == "UNAVAILABLE":
-            return "unavailable"
-        elif self.status == "LOCAL_ONLY":
-            return "using local version"
-        elif self.status == "LOCAL_MISSING":
-            return "pull"
-        elif self.status == "LOCAL_NEWER":
-            return "using local version"
-        elif self.status == "LOCAL_OUTDATED":
-            return "pull"
-        elif self.status == "UP_TO_DATE":
-            return "up-to-date"
-
-    def check_for_updates(self):
-        self.status = self.get_status()
-        if self.status in ["LOCAL_MISSING", "LOCAL_OUTDATED"]:
-            self.pull_image = self.cloud_metadata.name
-            self.use_image = self.pull_image
-
-    def __repr__(self):
-        name = self.name
-        use = self.use_image
-        pull = self.pull_image
-        return f"<Image {name=} {use=} {pull=}>"
+    def name(self) -> str:
+        return f"{self.repo}:{self.tag}"
 
 
 class ImageManager:
-    def __init__(self, config, shell, client):
-        self.logger = logging.getLogger("launcher.node.ImageManager")
+    config: Config
+    shell: Shell
+    dockerutil: DockerUtility
 
-        self.branch = config.branch
-        self.client = client
+    _image: Dict[str, Image]
+
+    def __init__(self, config: Config, shell: Shell, dockerutil: DockerUtility):
+        self.config = config
         self.shell = shell
-        self.nodes = config.nodes
+        self.dockerutil = dockerutil
 
-        self.images: Dict[str, Image] = {}
-
-    def normalize_name(self, name):
-        if "/" in name:
-            if ":" in name:
-                return name
-            else:
-                return name + ":latest"
-        else:
-            if ":" in name:
-                return "library/" + name
-            else:
-                return "library/" + name + ":latest"
+        self._images: Dict[str, Image] = {}
+        self._logger = logging.getLogger(__name__ + ".ImageManager")
 
     def get_image(self, name: str, node: Node) -> Image:
-        """Get Image object by name. The name cloud be like "alpine",
-        "alpine:3.12" or "exchangeunion/bitcoind:0.20.0". The same normalized
-        name will always get the same Image object.
-
-        The name normalization examples:
-        - alpine -> library/apline:latest
-        - exchangeunion/bitcoind -> exchangeunion/bitcoind:latest
-
-        :param name: The image name
-        :return: A Image object
-        """
-
-        name = self.normalize_name(name)
-        p = re.compile("^(.+/.+):(.+)$")
-        m = p.match(name)
-        if m:
-            repo = m.group(1)
-            tag = m.group(2)
-            if name not in self.images:
-                self.images[name] = Image(repo, tag, self.branch, self.client, node)
-            return self.images[name]
+        canonical_name = self.dockerutil.parse_image_name(name)
+        if name not in self._images:
+            image = Image(
+                repo=canonical_name.repo,
+                tag=canonical_name.tag,
+                digest=canonical_name.digest,
+                pull=None,
+                use=name,
+                nodes=[node],
+                layers=[]
+            )
+            self._images[name] = image
         else:
-            raise FatalError("Invalid image name: " + name)
+            image = self._images[name]
+            if node not in image.nodes:
+                image.nodes.append(node)
+        return image
+
+    @property
+    def branch(self) -> str:
+        return self.config.branch
+
+    def _get_local_image(self, image: Image) -> Optional[_Image]:
+        name = image.name
+
+        if self.branch == "master":
+            image = self.dockerutil.get_image(name, local=True)
+        else:
+            name_branch = name + "__" + self.branch.replace("/", "-")
+            image = self.dockerutil.get_image(name_branch, local=True)
+            if not image:
+                image = self.dockerutil.get_image(name, local=True)
+
+        return image
+
+    def _get_cloud_image(self, image: Image) -> Optional[_Image]:
+        name = image.name
+
+        if self.branch == "master":
+            image = self.dockerutil.get_image(name)
+        else:
+            name_branch = name + "__" + self.branch.replace("/", "-")
+            image = self.dockerutil.get_image(name_branch)
+            if not image:
+                image = self.dockerutil.get_image(name)
+
+        return image
+
+    def _check_image(self, image: Image) -> Tuple[str, Optional[str]]:
+        local = self._get_local_image(image)
+
+        if image.use_local:
+            if not local:
+                raise ImageNotFound(image.name)
+            self._logger.debug("[Update] Image %s: Use local version, no pull", image.name)
+            image.digest = local.digest
+            return local.name, None
+
+        cloud = self._get_cloud_image(image)
+
+        if not local and not cloud:
+            raise ImageNotFound(image.name)
+
+        if local and not cloud:
+            self._logger.debug("[Update] Image %s: Local only, no pull", image.name)
+            image.digest = local.digest
+            return local.name, None
+
+        if cloud:
+            image.layers.extend(cloud.layers)
+
+        if not local and cloud:
+            self._logger.debug("[Update] Image %s: Local missing, pull (%s)", image.name, cloud.name)
+            image.digest = cloud.digest
+            return cloud.name, cloud.name
+
+        if local.digest == cloud.digest:
+            self._logger.debug("[Update] Image %s: Up-to-date, no pull", image.name)
+            image.digest = local.digest
+            return local.name, None
+        else:
+            self._logger.debug("[Update] Image %s: Local outdated, pull (%s)", cloud.name)
+            image.digest = cloud.digest
+            return cloud.name, cloud.name
 
     def check_for_updates(self) -> List[Image]:
-        images = list(self.images.values())
+        images = list(self._images.values())
 
-        images = [image for image in images if image.node.mode == "native" and not image.node.disabled]
+        # images in use
+        images = [image for image in images if image.in_use]
 
-        def print_failed(failed):
-            pass
+        result = []
 
-        def try_again():
-            return False
+        with ThreadPoolExecutor(max_workers=len(images), thread_name_prefix="pool") as executor:
+            futs: Dict[Future, Image] = {executor.submit(self._check_image, image): image for image in images}
+            while True:
+                done, not_done = wait(futs, 30)
+                for f in done:
+                    image = futs[f]
+                    try:
+                        use, pull = f.result()
+                        image.use = use
+                        if pull:
+                            image.pull = pull
+                            result.append(image)
+                    except ImageNotFound:
+                        raise FatalError("Image %s not found on DockerHub" % image.name)
+                if len(not_done) == 0:
+                    break
+                reply = self.shell.yes_or_no("Keep waiting?")
+                if reply == "no":
+                    raise FatalError("Cancelled image checking")
 
-        def wrapper(i):
-            self.logger.info("(%s) Checking for updates", i.name)
-            try:
-                i.check_for_updates()
-            except Exception as e:
-                logging.exception("(%s) Checking for updates: ERRORED", i.name)
-                raise e
-            self.logger.info("(%s) Checking for updates: %s", i.name, i.status)
+        return result
 
-        try:
-            parallel_execute(images, lambda i: wrapper(i), 30, print_failed, try_again)
-        except ParallelExecutionError as e:
-            for image, error in e.failed:
-                error_msg = str(error)
-                if error_msg == "":
-                    error_msg = type(error)
-                print("- Image %s: %s" % (image.name, error_msg))
-            raise FatalError("Failed to check for image updates")
+    def pull_images(self, images: List[Image]) -> None:
+        for image in images:
+            if not image.pull:
+                continue
 
-        return images
+            prefix = "Pulling %s... " % image.pull
+            print(prefix + "preparing", flush=True)
 
-    def update_images(self) -> None:
-        for image in self.images.values():
-            status = image.status
-            pull_image = image.pull_image
-            if status in ["LOCAL_MISSING", "LOCAL_OUTDATED"]:
-                print("Pulling %s..." % pull_image)
-                repo, tag = pull_image.split(":")
-                output = self.client.api.pull(repo, tag=tag, stream=True, decode=True)
-                print_status(output)
+            layers = {layer.digest[7: 19]: LayerState(downloading=0, extracting=0) for layer in image.layers}
+
+            n = len(image.layers)
+
+            c1 = "\033[1A\033[K"
+
+            def update(status, layer, percentage):
+                if not layer:
+                    line = prefix + status
+                    print(c1 + line, flush=True)
+                    return
+
+                if status == "downloading":
+                    layers[layer].downloading = percentage
+                elif status == "extracting":
+                    layers[layer].extracting = percentage
+
+                downloading = 0
+                extracting = 0
+                for layer, state in layers.items():
+                    downloading += 1.0 / n * state.downloading
+                    extracting += 1.0 / n * state.extracting
+                s1 = "%.2f%%" % (downloading * 100)
+                s2 = "%.2f%%" % (extracting * 100)
+                line = prefix + "downloading %-7s | extracting %-7s" % (s1, s2)
+                print(c1 + line, flush=True)
+
+            self.dockerutil.pull_image(image.pull, update)
+
+
+@dataclass
+class LayerState:
+    downloading: float
+    extracting: float

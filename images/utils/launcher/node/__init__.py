@@ -23,10 +23,10 @@ from .webui import Webui
 from .xud import Xud, XudApiError
 from .proxy import Proxy
 from .DockerTemplate import DockerTemplate
-from ..config import Config
-from ..errors import FatalError
-from ..shell import Shell
-from ..utils import parallel_execute, get_useful_error_message, get_hostfs_file, ArgumentParser
+from launcher.config import Config
+from launcher.shell import Shell
+from launcher.utils import parallel_execute, get_useful_error_message, get_hostfs_file, ArgumentParser
+from launcher.docker import DockerUtility
 
 
 class LogsCommand:
@@ -112,7 +112,8 @@ class NodeManager:
         self.config = config
         self.shell = shell
         self.client = docker.from_env()
-        self.image_manager = ImageManager(self.config, self.shell, self.client)
+        self.dockerutil = DockerUtility()
+        self.image_manager = ImageManager(self.config, self.shell, self.dockerutil)
 
         self.branch = self.config.branch
         self.network = self.config.network
@@ -231,15 +232,11 @@ class NodeManager:
         image_outdated = False
         images = self.image_manager.check_for_updates()
 
-        for image in images:
-            status = image.status
-            if status in ["LOCAL_MISSING", "LOCAL_OUTDATED"]:
-                print("- Image %s: %s" % (image.name, image.status_message))
-                outdated = True
-                image_outdated = True
-            elif status == "UNAVAILABLE":
-                all_unavailable_images = [x.name for x in images if x.status == "UNAVAILABLE"]
-                raise FatalError("Image(s) not found: %s" % ", ".join(all_unavailable_images))
+        if len(images) > 0:
+            outdated = True
+            image_outdated = True
+            for image in images:
+                print("- Image %s: pull" % image.name)
 
         # Checking for container updates
         self.logger.info("Checking for container updates")
@@ -296,7 +293,7 @@ class NodeManager:
 
         if answer == "yes":
             # Step 1. update images
-            self.image_manager.update_images()
+            self.image_manager.pull_images(images)
 
             # Step 2. update containers
             # 2.1) stop all running containers

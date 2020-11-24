@@ -22,7 +22,7 @@ class Arby(Node):
         if "live-cex" in self.node_config:
             live_cex = self.node_config["live-cex"]
             # we map the legacy live_cex value to the new (opposite) test_mode value
-            if live_cex is "false":
+            if not live_cex:
                 test_mode = "true"
             else:
                 test_mode = "false"
