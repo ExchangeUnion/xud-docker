@@ -27,6 +27,8 @@ def get_current_branch() -> str:
         b = os.environ["GITHUB_REF"]
         if b.startswith("refs/heads"):
             b = b.replace("refs/heads", "")
+        elif b.startswith("refs/tags"):
+            b = "master"
         else:
             raise Exception("unexpected GITHUB_REF: " + b)
     else:
