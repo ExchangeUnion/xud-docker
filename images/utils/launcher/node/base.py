@@ -3,15 +3,15 @@ import itertools
 import logging
 import os
 import sys
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 import docker
 from docker import DockerClient
 from docker.errors import NotFound
 from docker.models.containers import Container
+from dataclasses import dataclass
 
 from .image import Image
-from ..config import PortPublish
-from ..types import XudNetwork
+from launcher.config import PortPublish
 
 
 class InvalidNetwork(Exception):
@@ -20,38 +20,29 @@ class InvalidNetwork(Exception):
         self.network = network
 
 
+@dataclass
 class ContainerSpec:
-    def __init__(self, name: str, image: Image, hostname: str, environment: List[str], command: List[str], volumes: Dict, ports: Dict):
-        self.name = name
-        self.image = image
-        self.hostname = hostname
-        self.environment = environment
-        self.command = command
-        self.volumes = volumes
-        self.ports = ports
-
-    def __repr__(self):
-        return f"<ContainerSpec {self.name=} {self.image=} {self.hostname=} {self.environment=} {self.command=} {self.volumes=} {self.ports=}>"
+    name: str
+    image: Image
+    hostname: str
+    environment: List[str]
+    command: List[str]
+    volumes: Dict
+    ports: Dict
 
 
+@dataclass
 class CompareEntity:
-    def __init__(self, obj: Any, diff: Any = None):
-        self.obj = obj
-        self.diff = diff
-
-    def __repr__(self):
-        return f"<CompareEntity obj={self.obj} diff={self.diff}>"
+    obj: Any
+    diff: Optional[Any] = None
 
 
+@dataclass
 class CompareResult:
-    def __init__(self, same: bool, message: str, old: CompareEntity, new: CompareEntity):
-        self.same = same
-        self.message = message
-        self.old = old
-        self.new = new
-
-    def __repr__(self):
-        return f"<CompareDetails same={self.same} message={self.message} old={self.old} new={self.new}>"
+    same: bool
+    message: str
+    old: CompareEntity
+    new: CompareEntity
 
 
 class Node:
@@ -111,7 +102,7 @@ class Node:
         return ports
 
     @property
-    def network(self) -> XudNetwork:
+    def network(self) -> str:
         return self.config.network
 
     @property
@@ -161,7 +152,7 @@ class Node:
         spec = self.container_spec
         api = self.client.api
         resp = api.create_container(
-            image=spec.image.use_image,
+            image=spec.image.use,
             command=spec.command,
             hostname=spec.hostname,
             detach=True,
@@ -292,7 +283,7 @@ class Node:
         attrs = container.attrs
 
         old_name = attrs["Config"]["Image"]
-        new_name = self.image.use_image
+        new_name = self.image.use
 
         old = CompareEntity(old_name)
         new = CompareEntity(new_name)
@@ -300,15 +291,8 @@ class Node:
         if old_name != new_name:
             return CompareResult(False, "Image names are different", old, new)
 
-        if self.image.pull_image:
-            # the names are same but a new image needs to be pulled
-            if self.image.status == "LOCAL_MISSING":
-                msg = "Local image is missing"
-            elif self.image.status == "LOCAL_OUTDATED":
-                msg = "Local image is outdated"
-            else:
-                raise RuntimeError("The pull_image should be None with status {}".format(self.image.status))
-            return CompareResult(False, msg, old, new)
+        if self.image.pull:
+            return CompareResult(False, "image pulling required", old, new)
 
         old_digest = attrs["Image"]
         new_digest = self.image.digest
