@@ -13,9 +13,8 @@ RUN yarn install
 RUN yarn build
 
 FROM alpine:3.12
-RUN apk add --update openssl
+RUN apk add --update openssl bash docker-cli
 COPY --from=builder /src/backend/proxy /usr/local/bin/proxy
-COPY --from=builder /src/backend/cmd/proxy/cert.sh .
 COPY --from=ui-builder /src/frontend/build ./ui
 ADD entrypoint.sh /
 ENTRYPOINT ["/entrypoint.sh"]
