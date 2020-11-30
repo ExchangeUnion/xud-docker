@@ -159,22 +159,6 @@ nodes_config = {
                     "container": "/var/run/docker.sock",
                 },
                 {
-                    "host": "$logs_dir/config.sh",
-                    "container": "/root/config.sh",
-                },
-                {
-                    "host": "$data_dir/xud",
-                    "container": "/root/.xud",
-                },
-                {
-                    "host": "$data_dir/lndbtc",
-                    "container": "/root/.lndbtc",
-                },
-                {
-                    "host": "$data_dir/lndltc",
-                    "container": "/root/.lndltc",
-                },
-                {
                     "host": "$data_dir/proxy",
                     "container": "/root/.proxy",
                 },
@@ -385,22 +369,6 @@ nodes_config = {
                     "container": "/var/run/docker.sock",
                 },
                 {
-                    "host": "$logs_dir/config.sh",
-                    "container": "/root/config.sh",
-                },
-                {
-                    "host": "$data_dir/xud",
-                    "container": "/root/.xud",
-                },
-                {
-                    "host": "$data_dir/lndbtc",
-                    "container": "/root/.lndbtc",
-                },
-                {
-                    "host": "$data_dir/lndltc",
-                    "container": "/root/.lndltc",
-                },
-                {
                     "host": "$data_dir/proxy",
                     "container": "/root/.proxy",
                 },
@@ -603,27 +571,11 @@ nodes_config = {
         },
         "proxy": {
             "name": "proxy",
-            "image": "exchangeunion/proxy:1.1.0",
+            "image": "exchangeunion/proxy:latest",
             "volumes": [
                 {
                     "host": "/var/run/docker.sock",
                     "container": "/var/run/docker.sock",
-                },
-                {
-                    "host": "$logs_dir/config.sh",
-                    "container": "/root/config.sh",
-                },
-                {
-                    "host": "$data_dir/xud",
-                    "container": "/root/.xud",
-                },
-                {
-                    "host": "$data_dir/lndbtc",
-                    "container": "/root/.lndbtc",
-                },
-                {
-                    "host": "$data_dir/lndltc",
-                    "container": "/root/.lndltc",
                 },
                 {
                     "host": "$data_dir/proxy",

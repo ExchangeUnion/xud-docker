@@ -1,16 +1,22 @@
 from __future__ import annotations
+
 import argparse
+import json
 import logging
-from logging.handlers import TimedRotatingFileHandler
 import os
-from typing import Optional, List
+from datetime import datetime
+from logging.handlers import TimedRotatingFileHandler
+from typing import Optional, List, TYPE_CHECKING, Dict, Any
 
 import toml
 
-from ..utils import get_hostfs_file, ArgumentParser
-from ..errors import ConfigError, ConfigErrorScope
-from .template import nodes_config, general_config, PortPublish
+from launcher.errors import ConfigError, ConfigErrorScope
+from launcher.utils import get_hostfs_file, ArgumentParser
 from .loader import ConfigLoader
+from .template import nodes_config, general_config, PortPublish
+
+if TYPE_CHECKING:
+    from launcher.node import Node
 
 
 class Config:
@@ -23,6 +29,7 @@ class Config:
     backup_dir: Optional[str]
     restore_dir: Optional[str]
     eth_providers: List[str]
+    nodes: Dict[str, Dict[str, Any]]
 
     def __init__(self, loader: ConfigLoader):
         self.logger = logging.getLogger("launcher.Config")
@@ -955,97 +962,108 @@ class Config:
         return os.path.join(self.network_dir, "logs")
 
     @property
+    def data_dir(self) -> str:
+        return os.path.join(self.network_dir, "data")
+
+    @property
     def logfile(self) -> str:
         filename = f"{self.network}.log"
         return os.path.join(self.logs_dir, filename)
 
     @property
     def dumpfile(self) -> str:
-        filename = f"config.sh"
-        return os.path.join(self.logs_dir, filename)
+        filename = f"config.json"
+        return os.path.join(self.data_dir, filename)
 
     def dump(self) -> None:
-        """Dump xud-docker configurations as bash key-value file in logs_dir"""
-        prefix = "XUD_DOCKER"
+        """Dump xud-docker configurations as a JSON file in data_dir"""
+        services = []
+        config = {
+            "timestamp": "%s" % datetime.now().timestamp(),
+            "branch": self.branch,
+            "network": self.network,
+            "services": services,
+        }
+
+        bitcoind_rpc_ports = {
+            "mainnet": 8332,
+            "testnet": 18332,
+        }
+
+        litecoind_rpc_ports = {
+            "mainnet": 9332,
+            "testnet": 19332,
+        }
+
+        xud_rpc_ports = {
+            "simnet": 28886,
+            "testnet": 18886,
+            "mainnet": 8886
+        }
+
+        data_dir = "/root/network/data"
+
+        for name, node in self.nodes.items():
+            rpc = {}
+            service = {
+                "name": name,
+                "rpc": rpc,
+                "disabled": False,
+            }
+            if name == "bitcoind":
+                rpc["type"] = "JSON-RPC"
+                rpc["host"] = "bitcoind"
+                rpc["port"] = bitcoind_rpc_ports[self.network]
+                rpc["username"] = "xu"
+                rpc["password"] = "xu"
+            elif name == "litecoind":
+                rpc["type"] = "JSON-RPC"
+                rpc["host"] = "litecoind"
+                rpc["port"] = litecoind_rpc_ports[self.network]
+                rpc["username"] = "xu"
+                rpc["password"] = "xu"
+            elif name == "geth":
+                rpc["type"] = "JSON-RPC"
+                rpc["host"] = "geth"
+                rpc["port"] = 8545
+            elif name == "lndbtc":
+                rpc["type"] = "gRPC"
+                rpc["host"] = "lndbtc"
+                rpc["port"] = 10009
+                rpc["tlsCert"] = f"{data_dir}/lndbtc/tls.cert"
+                rpc["macaroon"] = f"{data_dir}/lndbtc/data/chain/bitcoin/{self.network}/readonly.macaroon"
+            elif name == "lndltc":
+                rpc["type"] = "gRPC"
+                rpc["host"] = "lndltc"
+                rpc["port"] = 10009
+                rpc["tlsCert"] = f"{data_dir}/lndltc/tls.cert"
+                rpc["macaroon"] = f"{data_dir}/lndltc/data/chain/litecoin/{self.network}/readonly.macaroon"
+            elif name == "connext":
+                rpc["type"] = "HTTP"
+                rpc["host"] = "connext"
+                rpc["port"] = 5040
+            elif name == "xud":
+                rpc["type"] = "gRPC"
+                rpc["host"] = "xud"
+                rpc["port"] = xud_rpc_ports[self.network]
+                rpc["tlsCert"] = f"{data_dir}/xud/tls.cert"
+            elif name == "arby":
+                pass
+            elif name == "boltz":
+                rpc["type"] = "gRPC"
+                rpc["host"] = "boltz"
+                rpc["btcPort"] = 9002
+                rpc["ltcPort"] = 9003
+            elif name == "webui":
+                pass
+
+            if name in ["arby", "boltz", "webui"]:
+                service["disabled"] = node["disabled"]
+            if name in ["bitcoind", "litecoind", "geth"]:
+                mode = node["mode"]
+                service["mode"] = mode
+                if mode != "native":
+                    service["disabled"] = True
 
         with open("/mnt/hostfs" + self.dumpfile, "w") as f:
-            def dump_attr(attr: str) -> None:
-                key = f"{prefix}_{attr.upper()}"
-                value = getattr(self, attr)
-                if not value:
-                    value = ""
-                if isinstance(value, bool):
-                    value = str(value).lower()
-                print("{}=\"{}\"".format(key, value), file=f)
-            dump_attr("branch")
-            dump_attr("disable_update")
-            dump_attr("external_ip")
-            dump_attr("network")
-            dump_attr("home_dir")
-            dump_attr("network_dir")
-            dump_attr("backup_dir")
-            dump_attr("restore_dir")
-
-            # dump nodes config
-            def dump_node_attr(node: str, attr: str) -> None:
-                node_config = self.nodes[node]
-                node_prefix = f"{prefix}_SERVICE_{node.upper()}"
-                if attr == "volumes":
-                    for volume in node_config["volumes"]:
-                        key = f"{node_prefix}_VOLUME"
-                        value = "{}:{}".format(volume["host"], volume["container"])
-                        print("{}=\"{}\"".format(key, value), file=f)
-                elif attr == "ports":
-                    for port in node_config["ports"]:
-                        key = f"{node_prefix}_PORT"
-                        value = str(port)
-                        print("{}=\"{}\"".format(key, value), file=f)
-                else:
-                    key = f"{node_prefix}_{attr.upper()}"
-                    value = ""
-                    try:
-                        value = node_config[attr]
-                    except KeyError:
-                        if node == "arby":
-                            value = node_config.get(attr.replace("_", "-"), "")
-                    if not value:
-                        value = ""
-                    if isinstance(value, bool):
-                        value = str(value).lower()
-                    print("{}=\"{}\"".format(key, value), file=f)
-
-            for node in self.nodes.keys():
-                dump_node_attr(node, "image")
-                dump_node_attr(node, "volumes")
-                dump_node_attr(node, "ports")
-                dump_node_attr(node, "mode")
-                dump_node_attr(node, "disabled")
-                dump_node_attr(node, "preserve_config")
-                dump_node_attr(node, "use_local_image")
-
-                if node in ["bitcoind", "litecoind"]:
-                    dump_node_attr(node, "external_rpc_host")
-                    dump_node_attr(node, "external_rpc_port")
-                    #dump_node_attr(node, "external_rpc_user")
-                    #dump_node_attr(node, "external_rpc_password")
-                    dump_node_attr(node, "external_zmqpubrawblock")
-                    dump_node_attr(node, "external_zmqpubrawtx")
-                elif node == "geth":
-                    dump_node_attr(node, "external_rpc_host")
-                    dump_node_attr(node, "external_rpc_port")
-                    #dump_node_attr(node, "infura_project_id")
-                    #dump_node_attr(node, "infura_project_secret")
-                    dump_node_attr(node, "cache")
-                elif node == "arby":
-                    dump_node_attr(node, "test_centralized_baseasset_balance")
-                    dump_node_attr(node, "test_centralized_quoteasset_balance")
-                    dump_node_attr(node, "opendex_base_asset")
-                    dump_node_attr(node, "opendex_quote_asset")
-                    dump_node_attr(node, "cex_base_asset")
-                    dump_node_attr(node, "cex_quote_asset")
-                    dump_node_attr(node, "live_cex")
-                    dump_node_attr(node, "test_mode")
-                    dump_node_attr(node, "cex")
-                    #dump_node_attr(node, "cex_api_key")
-                    #dump_node_attr(node, "cex_api_secret")
-                    dump_node_attr(node, "margin")
+            f.write(json.dumps(config))
