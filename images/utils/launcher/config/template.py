@@ -565,7 +565,7 @@ nodes_config = {
         },
         "boltz": {
             "name": "boltz",
-            "image": "exchangeunion/boltz:1.1.1",
+            "image": "exchangeunion/boltz:1.1.2",
             "volumes": [
                 {
                     "host": "$data_dir/boltz",
