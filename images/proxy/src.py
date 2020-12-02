@@ -13,8 +13,8 @@ class SourceManager(src.SourceManager):
         self.ensure_repo("https://github.com/ExchangeUnion/xud-docker-api", self.backend_dir)
         if version == "latest":
             # change "master" or "main" to a another xud branch for testing
-            self.checkout_repo(self.frontend_dir, "proxy-first")
-            self.checkout_repo(self.backend_dir, "master")
+            self.checkout_repo(self.frontend_dir, "main")
+            self.checkout_repo(self.backend_dir, "proxy-first")
         else:
             self.checkout_repo(self.frontend_dir, "v" + version)
             self.checkout_repo(self.backend_dir, "v" + version)

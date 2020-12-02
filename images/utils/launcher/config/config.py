@@ -1065,5 +1065,10 @@ class Config:
                 if mode != "native":
                     service["disabled"] = True
 
-        with open("/mnt/hostfs" + self.dumpfile, "w") as f:
+        f = "/mnt/hostfs" + self.dumpfile
+        data_dir = os.path.dirname(f)
+        if not os.path.exists(data_dir):
+            os.mkdir(data_dir)
+
+        with open(f, "w") as f:
             f.write(json.dumps(config))
