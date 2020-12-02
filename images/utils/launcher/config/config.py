@@ -1004,12 +1004,18 @@ class Config:
         data_dir = "/root/network/data"
 
         for name, node in self.nodes.items():
+            if name == "proxy":
+                continue
+
             rpc = {}
             service = {
                 "name": name,
                 "rpc": rpc,
                 "disabled": False,
             }
+
+            services.append(service)
+
             if name == "bitcoind":
                 rpc["type"] = "JSON-RPC"
                 rpc["host"] = "bitcoind"
