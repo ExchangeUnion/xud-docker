@@ -979,8 +979,7 @@ class Config:
         """Dump xud-docker configurations as a JSON file in data_dir"""
         services = []
         config = {
-            "timestamp": "%s" % datetime.now().timestamp(),
-            "branch": self.branch,
+            "timestamp": "%s" % int(datetime.now().timestamp()),
             "network": self.network,
             "services": services,
         }
@@ -1077,4 +1076,4 @@ class Config:
             os.mkdir(data_dir)
 
         with open(f, "w") as f:
-            f.write(json.dumps(config))
+            f.write(json.dumps(config, indent=4))
