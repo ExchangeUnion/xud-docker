@@ -1,9 +1,10 @@
 FROM golang:1.14-alpine3.12 as builder
 RUN apk add --no-cache bash git make gcc libc-dev patch
 WORKDIR $GOPATH/src/github.com/BoltzExchange/boltz-lnd
+ARG GIT_REVISION
 ADD .src .
 RUN go mod vendor
-RUN make install
+RUN make install COMMIT=$GIT_REVISION
 
 # Final stage
 FROM alpine:3.12
