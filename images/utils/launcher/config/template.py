@@ -104,14 +104,14 @@ nodes_config = {
         },
         "connext": {
             "name": "connext",
-            "image": "exchangeunion/connext:latest",
+            "image": "connextproject/vector_node:0.0.22",
             "volumes": [
                 {
                     "host": "$data_dir/connext",
-                    "container": "/app/connext-store",
+                    "container": "/database",
                 },
             ],
-            "ports": [],
+            "ports": [PortPublish("8000")],
             "mode": "native",
             "preserve_config": False,
             "use_local_image": False,

@@ -64,7 +64,7 @@ Xucli shortcut commands
                                             xud
   walletwithdraw [amount] [currency]        withdraws on-chain funds from xud
   [destination] [fee]
-  
+
 General commands
   status                                    show service status
   report                                    report issue
@@ -86,12 +86,17 @@ CLI commands
   xucli                                     xud cli
   boltzcli                                  boltz cli
 
-Boltzcli shortcut commands  
-  deposit <chain> deposit 
-  --inbound [inbound_balance]               deposit from boltz (btc/ltc)
-  boltzcli <chain> withdraw 
+Shortcut commands
+  deposit <chain> amount
+  --inbound [inbound_balance]               deposit from boltz/connext (btc/ltc/eth/erc20)
+  withdraw <chain>
+  --amount amount
+  --destination address                     withdraw from boltz/connext (btc/ltc/eth/erc20)
+
+Boltzcli shortcut commands
+  boltzcli <chain> withdraw
   <amount> <address>                        withdraw from boltz channel
-  
+
 """
 
 
@@ -185,7 +190,7 @@ your issue.""")
                 elif chain == "ltc":
                     self.node_manager.cli("boltz", "ltc", "deposit", *args)
                 else:
-                    self.node_manager.cli("xud", "walletdeposit", chain, *args)
+                    self.node_manager.cli("xud", "deposit", chain, *args)
             elif arg0 == "withdraw":
                 if len(args) == 0:
                     print("Missing chain")
@@ -196,7 +201,7 @@ your issue.""")
                 elif chain == "ltc":
                     self.node_manager.cli("boltz", "ltc", "withdraw", *args)
                 else:
-                    self.node_manager.cli("xud", "walletwithdraw", chain, *args)
+                    self.node_manager.cli("xud", "closechannel", chain, *args)
             elif arg0 == "help":
                 print(HELP)
             else:

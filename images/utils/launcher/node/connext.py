@@ -1,4 +1,7 @@
 from .base import Node, CliBackend, CliError
+import json
+import secrets
+import string
 
 
 class ConnextApiError(Exception):
@@ -11,18 +14,58 @@ class ConnextApi:
 
     def is_healthy(self):
         try:
-            result = self._backend["http://localhost:5040/health"]()
+            result = self._backend["http://localhost:8000/ping"]()
             return result == ""
         except CliError as e:
             raise ConnextApiError("Starting...")
+
+def generate_admin_token():
+    alphabet = string.ascii_letters + string.digits
+    return ''.join(secrets.choice(alphabet) for i in range(20))
+
+def get_vector_config(chain_id, channel_factory_address, channel_master_copy_address, transfer_registry_address, eth_provider):
+    # This is a placeholder mnemonic that is required for startup, but is not being used since it will be overwritten by xud.
+    placeholder_mnemonic = "crazy angry east hood fiber awake leg knife entire excite output scheme"
+    vector_json = {
+        "adminToken": generate_admin_token(),
+        "chainAddresses": {
+            chain_id: {
+                "channelFactoryAddress": channel_factory_address,
+                "channelMastercopyAddress": channel_master_copy_address,
+                "transferRegistryAddress": transfer_registry_address,
+                "TestToken": ""
+            }
+        },
+        "chainProviders": {
+            chain_id: eth_provider
+        },
+        "domainName": "",
+        "logLevel": "debug",
+        "messagingUrl": "https://messaging.connext.network",
+        "production": True,
+        "mnemonic": placeholder_mnemonic
+    }
+    vector_json_string = json.dumps(vector_json)
+    vector_config = "VECTOR_CONFIG=%s" % vector_json_string
+    return vector_config
 
 
 class Connext(Node):
     def __init__(self, name, ctx):
         super().__init__(name, ctx)
 
-        environment = []
+        chain_id = "1337"
+        simnet_channel_master_copy_address = "0x2C8748Fb82574B67B6017711Bc30105a0b6Db299"
+        simnet_channel_factory_address = "0x622eed60cD9a8c95F7a8800879E78Cc067a7fFc1"
+        simnet_transfer_registry_address = "0xcf7DC1E86c1dFbf0598aEe7216aD9b58CAeF8ec2"
+        simnet_eth_provider = "http://35.234.110.95:8545"
+        environment = [
+            get_vector_config(chain_id, simnet_channel_factory_address, simnet_channel_master_copy_address, simnet_transfer_registry_address, simnet_eth_provider),
+            "VECTOR_SQLITE_FILE=/database/store.db",
+            "VECTOR_PROD=true",
+        ]
 
+        """
         if self.network == "simnet":
             environment = [
                 "LEGACY_MODE=true",
@@ -68,6 +111,7 @@ class Connext(Node):
                 environment.extend([
                     f'CONNEXT_ETH_PROVIDER_URL=http://geth:8545'
                 ])
+        """
 
         self.container_spec.environment.extend(environment)
 
