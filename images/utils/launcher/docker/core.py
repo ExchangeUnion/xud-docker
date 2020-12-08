@@ -151,12 +151,18 @@ class DockerUtility:
             digest = payload["config"]["digest"]
             resp = self.docker_registry_client.get_blob(name.repo, digest)
             blob = json.load(resp)
+
+            try:
+                labels = blob["config"]["Labels"] or {}
+            except KeyError:
+                labels = {}
+
             return Image(
                 repo=name.repo,
                 tag=name.tag,
                 digest=digest,
                 created_at=self._dt_parser.parse(blob["created"]),
-                labels=blob["config"]["Labels"] or {},
+                labels=labels,
                 layers=[Layer(digest=layer["digest"], size=layer["size"]) for layer in payload["layers"]]
             )
 
