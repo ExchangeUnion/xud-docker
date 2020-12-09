@@ -59,9 +59,9 @@ bash xud.sh -b your-feature-branch
 ```
 
 
-## Use local built images
+## Use locally built images
 
-You can run xud-docker with your locally built images only:
+You can build all images locally and run xud-docker completely with your locally built images without using docker hub:
 
 ```bash
 git clone https://github.com/ExchangeUnion/xud-docker.git
