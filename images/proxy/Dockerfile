@@ -1,9 +1,10 @@
 FROM golang:1.15-alpine3.12 as builder
+RUN apk --no-cache add make
 WORKDIR /src
 ADD .src .
 WORKDIR /src/backend
 RUN go mod download
-RUN go build ./cmd/proxy
+RUN make
 
 FROM node:14-alpine3.12 AS ui-builder
 WORKDIR /src

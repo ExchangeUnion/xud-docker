@@ -571,7 +571,7 @@ nodes_config = {
         },
         "proxy": {
             "name": "proxy",
-            "image": "exchangeunion/proxy:1.1.0",
+            "image": "exchangeunion/proxy:1.2.0",
             "volumes": [
                 {
                     "host": "/var/run/docker.sock",
