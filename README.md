@@ -85,10 +85,10 @@ bash setup.sh -b local --dev --use-local-images xud,lndbtc,lndltc,connext
 
 #### Example: Use mainnet (light mode)
 
-See `images/utils/config/template.py` to get the right version of mainnet images
+See `images/utils/launcher/config/template.py` to get the right version of mainnet images
 
 ```bash
-tools/build utils xud:1.0.0-rc.2 lndbtc:0.11.0-beta lndltc:0.11.0-beta.rc1 connext:1.3.1
+tools/build utils xud:1.2.4 lndbtc:0.11.1-beta lndltc:0.11.0-beta.rc1 connext:1.3.6
 bash setup.sh -b local --dev --use-local-images xud,lndbtc,lndltc,connext
 ```
 
