@@ -104,7 +104,7 @@ nodes_config = {
         },
         "connext": {
             "name": "connext",
-            "image": "connextproject/vector_node:0.0.22",
+            "image": "connextproject/vector_node:0.0.33",
             "volumes": [
                 {
                     "host": "$data_dir/connext",
