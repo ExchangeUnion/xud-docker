@@ -3,14 +3,16 @@
 CHAIN=$1
 
 # Use "${<variable>,,}" to convert the CHAIN variable to lower case
-# Reference: https://stackoverflow.com/a/2264537 
+# Reference: https://stackoverflow.com/a/2264537
 case "${CHAIN,,}" in
     "btc")
         PORT="9002"
+        DATADIR="/root/.boltz/bitcoin"
         ;;
 
     "ltc")
-        PORT="9003"
+        PORT="9102"
+        DATADIR="/root/.boltz/litecoin"
         ;;
 
     # Print the help command
@@ -28,4 +30,7 @@ case "${CHAIN,,}" in
         ;;
 esac
 
-exec boltzcli --port $PORT ${@:2}
+TLSCERT="$DATADIR/tls.cert"
+MACAROON="$DATADIR/admin.macaroon"
+
+exec boltzcli --port $PORT --tlscert $TLSCERT --macaroon $MACAROON ${@:2}

@@ -17,4 +17,4 @@ COPY wrapper.sh /usr/bin/wrapper
 
 ENTRYPOINT ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]
 
-EXPOSE 9002 9003
+EXPOSE 9002 9003 9102 9103
