@@ -41,7 +41,7 @@ CERTPATH="/root/.$LNDDIR/tls.cert"
 MACAROONPATH="/root/.$LNDDIR/data/chain/$CHAIN/$NETWORK/admin.macaroon"
 
 write_config() {
-    echo "Creating new config for $CHAIN daemon"
+    echo "Creating config for $CHAIN daemon"
     mkdir -p $DATADIR
     cp /sample-config.toml $CONFIGFILE
 
@@ -60,6 +60,14 @@ write_config() {
     sed -i '/\[RPC/,/^$/s/restHost.*/restHost = "0.0.0.0"/' $CONFIGFILE
     sed -i "/\[RPC/,/^$/s/restPort.*/restPort = $RESTPORT/" $CONFIGFILE
 }
+
+# Config file migration
+# If the config file does *not* contain anything related to the REST proxy of boltz-lnd,
+# it is safe to assume that it is oudated and needs to be recreated
+if [[ -e $CONFIGFILE ]] && ! grep -q "rest" "$CONFIGFILE"; then
+    echo "Removing outdated config file"
+    rm $CONFIGFILE
+fi
 
 if [[ $REWRITE_CONFIG || ! -e $CONFIGFILE ]]; then
 	write_config
