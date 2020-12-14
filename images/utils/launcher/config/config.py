@@ -1058,7 +1058,7 @@ class Config:
                 rpc["type"] = "gRPC"
                 rpc["host"] = "boltz"
                 rpc["btcPort"] = 9002
-                rpc["ltcPort"] = 9003
+                rpc["ltcPort"] = 9102
             elif name == "webui":
                 pass
 

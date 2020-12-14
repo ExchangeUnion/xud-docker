@@ -6,6 +6,9 @@ DATADIR="/root/.boltz/$CHAIN"
 LOGFILE="$DATADIR/boltz.log"
 CONFIGFILE="$DATADIR/boltz.conf"
 DATABASEFILE="$DATADIR/boltz.db"
+ADMINMACAROONFILE="$DATADIR/admin.macaroon"
+TLSKEYFILE="$DATADIR/tls.key"
+TLSCERTFILE="$DATADIR/tls.cert"
 
 case "$CHAIN" in
     "bitcoin")
@@ -15,6 +18,7 @@ case "$CHAIN" in
         LNDHOST="lndbtc"
 
         PORT="9002"
+        RESTPORT="9003"
         ;;
 
     "litecoin")
@@ -23,7 +27,8 @@ case "$CHAIN" in
         LNDDIR="lndltc"
         LNDHOST="lndltc"
 
-        PORT="9003"
+        PORT="9102"
+        RESTPORT="9103"
         ;;
 
     *)
@@ -36,7 +41,7 @@ CERTPATH="/root/.$LNDDIR/tls.cert"
 MACAROONPATH="/root/.$LNDDIR/data/chain/$CHAIN/$NETWORK/admin.macaroon"
 
 write_config() {
-    echo "Creating new config for $CHAIN daemon"
+    echo "Creating config for $CHAIN daemon"
     mkdir -p $DATADIR
     cp /sample-config.toml $CONFIGFILE
 
@@ -51,7 +56,18 @@ write_config() {
 
     sed -i '/\[RPC/,/^$/s/host.*/host = "0.0.0.0"/' $CONFIGFILE
     sed -i "/\[RPC/,/^$/s/port.*/port = $PORT/" $CONFIGFILE
+
+    sed -i '/\[RPC/,/^$/s/restHost.*/restHost = "0.0.0.0"/' $CONFIGFILE
+    sed -i "/\[RPC/,/^$/s/restPort.*/restPort = $RESTPORT/" $CONFIGFILE
 }
+
+# Config file migration
+# If the config file does *not* contain anything related to the REST proxy of boltz-lnd,
+# it is safe to assume that it is oudated and needs to be recreated
+if [[ -e $CONFIGFILE ]] && ! grep -q "rest" "$CONFIGFILE"; then
+    echo "Removing outdated config file"
+    rm $CONFIGFILE
+fi
 
 if [[ $REWRITE_CONFIG || ! -e $CONFIGFILE ]]; then
 	write_config
@@ -70,4 +86,4 @@ echo 'Detecting localnet IP for lndltc...'
 LNDLTC_IP=$(getent hosts lndltc | awk '{ print $1 }')
 echo "$LNDLTC_IP lndltc" >> /etc/hosts
 
-exec boltzd --configfile $CONFIGFILE --logfile $LOGFILE --database.path $DATABASEFILE
+exec boltzd --configfile $CONFIGFILE --logfile $LOGFILE --database.path $DATABASEFILE --rpc.adminmacaroonpath $ADMINMACAROONFILE --rpc.tlscert $TLSCERTFILE --rpc.tlskey $TLSKEYFILE
