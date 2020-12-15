@@ -55,9 +55,9 @@ class Connext(Node):
         super().__init__(name, ctx)
 
         chain_id = "1337"
-        simnet_channel_master_copy_address = "0x2C8748Fb82574B67B6017711Bc30105a0b6Db299"
-        simnet_channel_factory_address = "0x622eed60cD9a8c95F7a8800879E78Cc067a7fFc1"
-        simnet_transfer_registry_address = "0xcf7DC1E86c1dFbf0598aEe7216aD9b58CAeF8ec2"
+        simnet_channel_master_copy_address = "0x1B9a9A234ec64984939f78BE6AD980B9D9D0463A"
+        simnet_channel_factory_address = "0xEbCd88C066B7f1b3B21A39fc279aCC03297A8411"
+        simnet_transfer_registry_address = "0x18b502E0B3C8Fd1BF679Fc43fA33FdCEd7f4D69c"
         simnet_eth_provider = "http://35.234.110.95:8545"
         environment = [
             get_vector_config(chain_id, simnet_channel_factory_address, simnet_channel_master_copy_address, simnet_transfer_registry_address, simnet_eth_provider),
