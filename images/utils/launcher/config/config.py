@@ -1055,13 +1055,29 @@ class Config:
             elif name == "arby":
                 pass
             elif name == "boltz":
-                rpc["type"] = "gRPC"
-                rpc["host"] = "boltz"
-                rpc["btcPort"] = 9002
-                rpc["ltcPort"] = 9102
+                # RPC parameters before boltz:1.2.0
+                # rpc["type"] = "gRPC"
+                # rpc["host"] = "boltz"
+                # rpc["btcPort"] = 9002
+                # rpc["ltcPort"] = 9003
+
+                # RPC parameters since boltz:1.2.0
+                rpc["bitcoin"] = {
+                    "type": "gRPC",
+                    "host": "boltz",
+                    "port": 9002,
+                    "tlsCert": f"{data_dir}/boltz/bitcoin/tls.cert",
+                    "macaroon": f"{data_dir}/boltz/bitcoin/admin.macaroon",
+                }
+                rpc["litecoin"] = {
+                    "type": "gRPC",
+                    "host": "boltz",
+                    "port": 9102,
+                    "tlsCert": f"{data_dir}/boltz/litecoin/tls.cert",
+                    "macaroon": f"{data_dir}/boltz/litecoin/admin.macaroon",
+                }
             elif name == "webui":
                 pass
-
             if name in ["arby", "boltz", "webui"]:
                 service["disabled"] = node["disabled"]
             if name in ["bitcoind", "litecoind", "geth"]:
