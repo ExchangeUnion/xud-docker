@@ -65,25 +65,13 @@ class Connext(Node):
             "VECTOR_PROD=true",
         ]
 
-        """
-        if self.network == "simnet":
-            environment = [
-                "LEGACY_MODE=true",
-                "CONNEXT_ETH_PROVIDER_URL=http://connext.simnet.exchangeunion.com:8545",
-                "CONNEXT_NODE_URL=https://connext.simnet.exchangeunion.com",
-            ]
-        elif self.network == "testnet":
-            environment = [
-                "LEGACY_MODE=true",
-                "CONNEXT_NODE_URL=https://connext.testnet.odex.dev",
-            ]
-        elif self.network == "mainnet":
+        # legacy connext indra stuff
+        if self.network == "mainnet":
             environment = [
                 "LEGACY_MODE=true",
                 "CONNEXT_NODE_URL=https://connext.boltz.exchange",
             ]
-
-        if self.network in ["testnet", "mainnet"]:
+        if self.network in ["mainnet"]:
             geth = self.config.nodes["geth"]
             if geth["mode"] == "external":
                 rpc_host = geth["external_rpc_host"]
@@ -94,14 +82,9 @@ class Connext(Node):
             elif geth["mode"] == "infura":
                 project_id = geth["infura_project_id"]
                 project_secret = geth["infura_project_secret"]
-                if self.network == "mainnet":
-                    environment.extend([
-                        f'CONNEXT_ETH_PROVIDER_URL=https://mainnet.infura.io/v3/{project_id}'
-                    ])
-                elif self.network == "testnet":
-                    environment.extend([
-                        f'CONNEXT_ETH_PROVIDER_URL=https://rinkeby.infura.io/v3/{project_id}'
-                    ])
+                environment.extend([
+                    f'CONNEXT_ETH_PROVIDER_URL=https://mainnet.infura.io/v3/{project_id}'
+                ])
             elif geth["mode"] == "light":
                 eth_provider = geth["eth_provider"]
                 environment.extend([
@@ -111,7 +94,6 @@ class Connext(Node):
                 environment.extend([
                     f'CONNEXT_ETH_PROVIDER_URL=http://geth:8545'
                 ])
-        """
 
         self.container_spec.environment.extend(environment)
 
