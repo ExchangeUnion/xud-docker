@@ -1,34 +1,27 @@
-import platform
 import socket
-from dataclasses import dataclass, field
 from typing import List
+import platform
 
 from .base import BaseConfig, Service, Context
-from launcher.errors import NoProcess
+from .errors import NoProcess
+from .utils import run
 
 
-@dataclass
 class ProxyConfig(BaseConfig):
-    tls: bool = field(init=False, metadata={
-        "help": "Enabled TLS support"
-    }, default=True)
+    pass
 
 
 class Proxy(Service[ProxyConfig]):
-    tls: bool
-
     DATA_DIR = "/root/network/data"
 
     def __init__(self, context: Context, name: str):
         super().__init__(context, name)
-
         if self.network == "mainnet":
             self.config.image = "exchangeunion/proxy:1.2.0"
         else:
             self.config.image = "exchangeunion/proxy:latest"
 
         self.data_dir = "/root/.proxy"
-        self.tls = False
 
     def apply(self):
         super().apply()
@@ -41,13 +34,8 @@ class Proxy(Service[ProxyConfig]):
         self.volumes.extend([
             "{}:/root/.proxy".format(self.data_dir),
             "{}:/var/run/docker.sock".format(docker_sock),
-            "{}:/root/network".format(self.context.network_dir),
+            "{}:/root/network:ro".format(self.context.network_dir),
         ])
-
-        self.tls = self.config.tls
-
-        if self.config.tls:
-            self.command.append("--tls")
 
         self.ports.append("127.0.0.1:%s:8080" % self.apiport)
 
@@ -59,12 +47,6 @@ class Proxy(Service[ProxyConfig]):
             return 18889
         elif self.network == "mainnet":
             return 8889
-
-    @property
-    def apiurl(self) -> str:
-        if self.tls:
-            return "https://localhost:%s" % self.apiport
-        return "http://localhost:%s" % self.apiport
 
     def _test_apiport(self) -> bool:
         s = socket.socket()
@@ -78,19 +60,16 @@ class Proxy(Service[ProxyConfig]):
 
     def _find_process(self) -> int:
         try:
-            output = self.exec("pgrep proxy")
+            output = run("docker exec %s pgrep proxy" % self.container_name)
             return int(output)
-        except Exception as e:
-            raise NoProcess from e
+        except ValueError:
+            raise NoProcess
 
     def _grep_error_logs(self) -> List[str]:
-        lines = self.logs()
-        result = []
-        for line in lines:
-            line = line.lower()
-            if "error" in line or "panic" in line:
-                result.append(line)
-        return result
+        cmd = "docker logs --since=$(docker inspect --format='{{.State.StartedAt}}' %s) %s " \
+              "| { grep -i 'level=error' || true; }" % (self.container_name, self.container_name)
+        logs = run(cmd)
+        return logs.splitlines()
 
     @property
     def status(self) -> str:

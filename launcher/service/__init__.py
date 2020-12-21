@@ -1,12 +1,10 @@
-from .base import Service, Context
+from .errors import *
+from .manager import ServiceManager
 
-from .bitcoind import Bitcoind, BitcoindConfig
-from .litecoind import Litecoind
-from .geth import Geth, GethConfig
-from .lnd import Lnd, LndConfig
-from .connext import Connext, ConnextConfig
-from .xud import Xud, XudConfig
-from .arby import Arby, ArbyConfig
-from .boltz import Boltz, BoltzConfig
-from .webui import Webui, WebuiConfig
-from .proxy import Proxy, ProxyConfig
+# LOG_FORMAT = str(TIMESTAMP) + " %(asctime)s %(levelname)s %(process)d --- [%(threadName)s] %(name)s: %(message)s"
+# filename = "launcher.log"
+# LOG_FILE = os.path.join(LOGS_DIR, filename)
+#
+# logging.basicConfig(filename=LOG_FILE, level=logging.DEBUG, format=LOG_FORMAT)
+#
+# logging.getLogger("launcher.service.utils").setLevel(logging.INFO)

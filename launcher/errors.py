@@ -1,49 +1,19 @@
-class ExecutionError(Exception):
-    def __init__(self, message: str, exit_code: int, output: str):
-        super().__init__(message)
-        self.exit_code = exit_code
-        self.output = output
-
-
-class ParseError(Exception):
-    pass
-
-
-class InvalidNetwork(Exception):
-    pass
-
-
-class InvalidService(Exception):
-    pass
-
-
-class ForbiddenService(Exception):
-    pass
-
-
-class UnsupportedFieldType(Exception):
-    pass
+from enum import Enum
+from typing import Optional
 
 
 class FatalError(Exception):
     pass
 
 
-class NoProcess(Exception):
-    pass
+class ConfigErrorScope(Enum):
+    COMMAND_LINE_ARGS = 0
+    GENERAL_CONF = 1
+    NETWORK_CONF = 2
 
 
-class NoInfuraSimnet(Exception):
-    pass
-
-
-class ContainerNotFound(Exception):
-    pass
-
-
-class ServiceNotFound(Exception):
-    pass
-
-
-class SetupError(Exception):
-    pass
+class ConfigError(Exception):
+    def __init__(self, scope: ConfigErrorScope, conf_file: Optional[str] = None):
+        super().__init__(scope)
+        self.scope = scope
+        self.conf_file = conf_file

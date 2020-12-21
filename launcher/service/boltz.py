@@ -1,10 +1,11 @@
+from typing import Dict, Any, cast
 import json
 from dataclasses import dataclass
-from typing import Dict, Any, cast
 
 from .base import Service, BaseConfig, Context
-from launcher.errors import ForbiddenService, ExecutionError
+from .errors import ForbiddenService, SubprocessError
 from .proxy import Proxy
+from .utils import run
 
 
 @dataclass
@@ -61,14 +62,14 @@ class Boltz(Service[BoltzConfig]):
         return result
 
     def getinfo(self, chain):
-        self.exec("wrapper %s getinfo" % chain)
+        output = run("docker exec %s wrapper %s getinfo" % (self.container_name, chain))
         return json.loads(output)
 
     def _check_node(self, node):
         try:
             self.getinfo(node)
             return BoltzNodeStatus(status=node + " up", isUp=True)
-        except ExecutionError:
+        except SubprocessError:
             return BoltzNodeStatus(status=node + " down", isUp=False)
 
     @property

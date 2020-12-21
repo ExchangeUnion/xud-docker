@@ -1,13 +1,16 @@
-import argparse
+from launcher.service import ServiceManager
+from .types import Command
 
-from .base import Command
 
+class SetupCommand(Command):
+    manager: ServiceManager
 
-class Setup(Command):
+    def __init__(self, manager: ServiceManager):
+        self.manager = manager
 
-    def configure_parser(self, parser: argparse.ArgumentParser):
-        self.launcher.configure_parser(parser)
+    def configure_parser(self, parser):
+        self.manager.configure_parser(parser)
 
-    def run(self, args: argparse.Namespace):
-        self.launcher.apply(args)
-        self.launcher.setup()
+    def run(self, args):
+        self.manager.apply()
+        self.manager.setup()

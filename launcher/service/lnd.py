@@ -5,9 +5,10 @@ from typing import Dict, Any, cast
 
 from .base import BaseConfig, Service, Context
 from .bitcoind import Bitcoind
+from .errors import SubprocessError
 from .litecoind import Litecoind
 from .proxy import Proxy
-from launcher.errors import ExecutionError
+from .utils import run
 
 
 @dataclass
@@ -33,8 +34,6 @@ class Lnd(Service[LndConfig]):
         re.compile(r"^.*Fully caught up with cfheaders at height (\d+), waiting at tip for new blocks.*$")
     PATTERN_NEUTRINO_SYNCING = \
         re.compile(r"^.*Fetching set of checkpointed cfheaders filters from height=(\d+).*$")
-    PATTERN_NEUTRINO_SYNCING_NEW = \
-        re.compile(r"^.*New block: height=(\d+),.*$")
 
     def __init__(self, context: Context, name: str, chain: str):
         super().__init__(context, name)
@@ -139,13 +138,19 @@ class Lnd(Service[LndConfig]):
         return result
 
     def getinfo(self):
-        output = self.exec("lncli -n %s -c %s getinfo" % (self.network, self.chain))
+        output = run("docker exec %s lncli -n %s -c %s getinfo" % (self.container_name, self.network, self.chain))
         return json.loads(output)
 
+    def _get_logs(self):
+        cmd = "docker logs --since=$(docker inspect --format='{{.State.StartedAt}}' %s) %s" % (
+        self.container_name, self.container_name)
+        logs = run(cmd)
+        return logs.splitlines()
+
     def get_current_height(self):
-        lines = self.logs()
-        p = self.PATTERN_NEUTRINO_SYNCING_NEW
-        # p = re.compile(r".*Catching up block hashes to height (\d+),.*")
+        lines = self._get_logs()
+        # p = re.compile(r".*New block: height=(\d+),.*")
+        p = re.compile(r".*Catching up block hashes to height (\d+),.*")
         for line in reversed(lines):
             m = p.match(line)
             if m:
@@ -156,9 +161,8 @@ class Lnd(Service[LndConfig]):
         p_end = self.PATTERN_NEUTRINO_SYNCING_END
         p_begin = self.PATTERN_NEUTRINO_SYNCING_BEGIN
         p = self.PATTERN_NEUTRINO_SYNCING
-        p_new = self.PATTERN_NEUTRINO_SYNCING_NEW
 
-        lines = self.logs()
+        lines = self._get_logs()
         total = None
         current = None
         for line in reversed(lines):
@@ -174,11 +178,6 @@ class Lnd(Service[LndConfig]):
                 if m:
                     self.logger.debug("[Neutrino] SYNCING: %s", line)
                     current = int(m.group(1))
-                else:
-                    m = p_new.match(line)
-                    if m:
-                        self.logger.debug("[Neutrino] SYNCING NEW: %s", line)
-                        current = int(m.group(1))
 
             if not total:
                 m = p_begin.match(line)
@@ -235,11 +234,11 @@ class Lnd(Service[LndConfig]):
                 else:
                     msg = "Syncing ? (?/%d)" % total
             return msg
-        except ExecutionError as e:
+        except SubprocessError as e:
             # [lncli] Wallet is encrypted. Please unlock using 'lncli unlock', or set password using 'lncli create' if this is the first time starting lnd.
-            if "Wallet is encrypted" in e.output:
+            if "Wallet is encrypted" in str(e):
                 return "Wallet locked. Unlock with xucli unlock."
-            if "admin.macaroon: no such file" in e.output:
+            if "admin.macaroon: no such file" in str(e):
                 msg = self.get_neutrino_status()
                 return msg
 

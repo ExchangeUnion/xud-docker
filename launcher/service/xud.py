@@ -1,11 +1,12 @@
-import json
-import os
 from dataclasses import dataclass, field
 from typing import Dict, Any, cast
+import json
+import os
 
-from launcher.errors import ExecutionError
 from .base import BaseConfig, Service, Context
 from .proxy import Proxy
+from .utils import run
+from .errors import SubprocessError
 
 
 @dataclass
@@ -16,7 +17,7 @@ class XudConfig(BaseConfig):
 
 
 class Xud(Service[XudConfig]):
-    def __init__(self, context: Context, name: str):
+    def __init__(self, context:Context, name: str):
         super().__init__(context, name)
         if self.network == "mainnet":
             self.config.image = "exchangeunion/xud:1.2.4"
@@ -70,7 +71,7 @@ class Xud(Service[XudConfig]):
         return result
 
     def getinfo(self):
-        output = self.exec("xucli getinfo -j")
+        output = run("docker exec %s xucli getinfo -j" % self.container_name)
         return json.loads(output)
 
     @property
@@ -104,17 +105,17 @@ class Xud(Service[XudConfig]):
                     not_ready.append("connext")
                 return "Waiting for " + ", ".join(not_ready)
 
-        except ExecutionError as e:
-            if "xud is locked" in e.output:
+        except SubprocessError as e:
+            if "xud is locked" in str(e):
                 nodekey = os.path.join(self.data_dir, "nodekey.dat")
                 if not os.path.exists(nodekey):
                     return "Wallet missing. Create with xucli create/restore."
                 return "Wallet locked. Unlock with xucli unlock."
-            elif "tls cert could not be found at /root/.xud/tls.cert" in e.output:
+            elif "tls cert could not be found at /root/.xud/tls.cert" in str(e):
                 return "Starting..."
-            elif "xud is starting" in e.output:
+            elif "xud is starting" in str(e):
                 return "Starting..."
-            elif f"could not connect to xud at localhost:{self.rpcport}, is xud running?" == e.output:
+            elif f"could not connect to xud at localhost:{self.rpcport}, is xud running?" == str(e):
                 return "Starting..."
             else:
                 raise

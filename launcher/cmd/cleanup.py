@@ -1,10 +1,15 @@
-import argparse
-from .base import Command
+from launcher.service import ServiceManager
+from .types import Command
 
 
-class Cleanup(Command):
-    def configure_parser(self, parser: argparse.ArgumentParser):
-        parser.add_argument("-y", "--yes", action="store_true")
+class CleanupCommand(Command):
+    manager: ServiceManager
 
-    def run(self, args: argparse.Namespace):
-        self.launcher.cleanup(no_question=args.yes)
+    def __init__(self, manager: ServiceManager):
+        self.manager = manager
+
+    def configure_parser(self, parser):
+        pass
+
+    def run(self, args):
+        self.manager.cleanup()

@@ -1,5 +1,5 @@
 from .base import BaseConfig, Service, Context
-from launcher.errors import ForbiddenService
+from .errors import ForbiddenService
 from dataclasses import dataclass, field
 from typing import Dict, Any
 

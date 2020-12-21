@@ -6,8 +6,9 @@ from typing import Dict, Any, cast
 from urllib.request import urlopen, Request
 
 from .base import BaseConfig, Service, Context
-from launcher.errors import NoInfuraSimnet, ExecutionError
+from .errors import NoInfuraSimnet, SubprocessError
 from .geth import Geth
+from .utils import run
 
 logger = logging.getLogger(__name__)
 
@@ -159,10 +160,10 @@ class Connext(Service[ConnextConfig]):
     @property
     def healthy(self) -> bool:
         try:
-            output = self.exec("curl -s http://localhost:5040/health")
+            output = run("docker exec %s curl -s http://localhost:5040/health" % self.container_name)
             return output == ""
-        except ExecutionError as e:
-            if e.exit_code == 7:  # (curl) failed to connect to host
+        except SubprocessError as e:
+            if e.exit_code == 7:
                 return False
             raise
 
