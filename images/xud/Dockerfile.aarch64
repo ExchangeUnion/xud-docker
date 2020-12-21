@@ -22,10 +22,10 @@ RUN strip seedutil/seedutil
 FROM node:lts-alpine3.12
 RUN apk add --no-cache bash tor
 COPY --from=builder /xud /app
-COPY entrypoint.sh update-backup-dir.sh xud-backup.sh /
+COPY entrypoint.sh xud-backup.sh /
 WORKDIR /app
 RUN ln -s /app/bin/xud /usr/local/bin/xud
 RUN ln -s /app/bin/xucli /usr/local/bin/xucli
 ENTRYPOINT ["/entrypoint.sh"]
-VOLUME [ "/root/.xud" ]
+VOLUME [ "/root/.xud", "/root/backup" ]
 EXPOSE 8887 18887 28887

@@ -190,7 +190,6 @@ class Image:
     def build(self, platform: Platform, no_cache: bool) -> None:
         self._logger.info("Building %s:%s (%s)", self.name, self.tag, platform.tag_suffix)
 
-        print()
         print("=" * 80)
         print("Building %s:%s (%s)" % (self.name, self.tag, platform.tag_suffix))
         print("=" * 80)

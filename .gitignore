@@ -14,9 +14,6 @@ venv/
 # tools logs
 tools/logs
 
-# pytest
-.pytest_cache/
-
 # dotenv
 .env
 
