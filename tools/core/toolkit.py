@@ -144,6 +144,8 @@ class Toolkit:
         print("Modified images: " + ", ".join(images))
         print()
 
+        images.remove("utils")
+
         return list(images)
 
     def build(self,

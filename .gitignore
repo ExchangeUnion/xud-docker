@@ -22,3 +22,9 @@ tools/logs
 
 # project source code
 images/*/.src
+
+# python build files
+build/
+dist/
+launcher.egg-info/
+

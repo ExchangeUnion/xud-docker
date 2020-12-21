@@ -1,5 +1,6 @@
 FROM node:lts-alpine3.12 AS builder
 RUN apk add --no-cache git rsync bash musl-dev go python3 make g++
+RUN ln -s /usr/bin/python3 /usr/bin/python
 WORKDIR /xud
 ADD .src .
 ARG GIT_REVISION
@@ -15,10 +16,10 @@ RUN strip seedutil/seedutil
 FROM node:lts-alpine3.12
 RUN apk add --no-cache bash tor
 COPY --from=builder /xud /app
-COPY entrypoint.sh update-backup-dir.sh xud-backup.sh /
+COPY entrypoint.sh xud-backup.sh /
 WORKDIR /app
 RUN ln -s /app/bin/xud /usr/local/bin/xud
 RUN ln -s /app/bin/xucli /usr/local/bin/xucli
 ENTRYPOINT ["/entrypoint.sh"]
-VOLUME [ "/root/.xud" ]
+VOLUME [ "/root/.xud", "/root/backup" ]
 EXPOSE 8887 18887 28887
