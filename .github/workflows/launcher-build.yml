@@ -1,0 +1,40 @@
+name: Launcher Build
+
+on: push
+
+jobs:
+  build:
+    name: Build artifacts
+    strategy:
+      matrix:
+        platform: [ ubuntu-latest ]
+        go-version: [ 1.15.x ]
+        os: [ linux, darwin, windows ]
+        architecture: [ amd64 ]
+
+    runs-on: ${{ matrix.platform }}
+
+    steps:
+      - name: Install Go
+        uses: actions/setup-go@v1
+        with:
+          go-version: ${{ matrix.go-version }}
+
+      - name: Check out code into the Go module directory
+        uses: actions/checkout@v2
+
+      - name: Fetch dependencies
+        working-directory: ./launcher
+        run: go mod vendor
+
+      - name: Build
+        working-directory: ./launcher
+        run: GOOS=${{ matrix.os }} GOARCH=${{ matrix.architecture }} make build
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: ${{ matrix.os }}-${{ matrix.architecture }}
+          path: |
+            launcher/launcher
+            launcher/launcher.exe

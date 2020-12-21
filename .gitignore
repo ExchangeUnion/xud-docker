@@ -14,11 +14,12 @@ venv/
 # tools logs
 tools/logs
 
-# pytest
-.pytest_cache/
-
 # dotenv
 .env
 
 # project source code
 images/*/.src
+
+# launcher binaries
+launcher/launcher
+launcher/launcher.exe
