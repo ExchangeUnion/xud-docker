@@ -1,9 +1,0 @@
-#pexpect
-#docker
-#pytest
-#pytest-html
-#pytest-integration
-#pytest-timeout
-#pytest-dotenv
-#toml
-#demjson

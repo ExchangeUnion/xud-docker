@@ -1,6 +1,10 @@
 name: Auto Build
 
-on: push
+on:
+  push:
+    branches:
+      # Build launcher binary on any branch
+      - '*'
 
 jobs:
   build-amd64:

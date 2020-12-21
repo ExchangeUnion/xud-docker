@@ -15,5 +15,7 @@ class SourceManager(src.SourceManager):
         if version == "latest":
             # change "master" to a another xud branch for testing
             return "master"
+        if version == "1.2.4-1":
+            return "v1.2.4"
         else:
             return "v" + version

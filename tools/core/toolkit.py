@@ -144,6 +144,11 @@ class Toolkit:
         print("Modified images: " + ", ".join(images))
         print()
 
+        try:
+            images.remove("utils")
+        except KeyError:
+            pass
+
         return list(images)
 
     def build(self,

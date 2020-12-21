@@ -11,98 +11,53 @@ The following instructions are geared towards developers, intending to contribut
 
 ### Prerequisites
 
-Python 3.7 (or higher)
+Golang 1.15 (or higher)
 
 ### Initial setup
 
-```bash
-git clone https://github.com/ExchangeUnion/xud-docker.git $PROJECT_DIR
+```sh
+git clone https://github.com/ExchangeUnion/xud-docker.git
 ```
 
 ### Developing a feature
 
 Create a feature branch.
 
-```
-git checkout -b your-feature-branch
+```sh
+git checkout -b your-feature
 ```
 
-Make your desired changes to the images located at: `$PROJECT_DIR/images`.
+Make your desired changes to the images or launcher. 
 
 Build your modified images.
 
-```bash
-tools/build your-image:latest
+```sh
+tools/build <image>:<tag>
 ```
 
-You may also need to build the utils image.
-```bash
-tools/build utils:latest
+Build the launcher
+
+```sh
+cd launcher
+make
 ```
 
-Test it locally.
+Run your branch with modified images locally
 
-```bash
-bash setup.sh -b your-feature-branch --dev --use-local-images your-image
+```sh
+./launcher setup
 ```
 
 To let others test without building the images by themselves push your feature branch to remote repository. Travis will build & push images for you.
 
-```bash
-git push origin your-feature-branch
+```sh
+git push origin your-feature
 ```
 
-After the corresponding Travis build succeeded, other people can easily run your feature branch on their machine like this.
+After the corresponding GitHub actions build succeeded, other people can easily run your feature branch on their machine like this.
 
-```bash
-bash xud.sh -b your-feature-branch
+```sh
+BRANCH=your-feature xud-launcher setup
 ```
 
-
-## Use locally built images
-
-You can build all images locally and run xud-docker completely with your locally built images without using docker hub:
-
-```bash
-git clone https://github.com/ExchangeUnion/xud-docker.git
-cd xud-docker
-git checkout -b local
-```
-
-#### Example: Use simnet (light mode)
-
-```bash
-tools/build utils xud lndbtc-simnet lndltc-simnet connext
-bash setup.sh -b local --dev --use-local-images xud,lndbtc,lndltc,connext
-```
-
-#### Example: Use testnet (light mode)
-
-```bash
-tools/build utils xud lndbtc lndltc connext
-bash setup.sh -b local --dev --use-local-images xud,lndbtc,lndltc,connext
-```
-
-#### Example: Use mainnet (light mode)
-
-See `images/utils/launcher/config/template.py` to get the right version of mainnet images
-
-```bash
-tools/build utils xud:1.2.4 lndbtc:0.11.1-beta lndltc:0.11.0-beta.rc1 connext:1.3.6
-bash setup.sh -b local --dev --use-local-images xud,lndbtc,lndltc,connext
-```
-
-#### Example: Enable optional service arby
-
-Enabling boltz and webui works in a same way.
-
-1. Build arby image `tools/build arby`
-2. Append `arby` to `--use-local-images`
-3. Append `--arby.disabled=false` or persist below in your network conf file
-
-```toml
-[arby]
-disabled = false
-```
-
-For more details about building and running local images please refer to [the wiki](https://github.com/ExchangeUnion/xud-docker/wiki/Build-and-run-local-images).
+The xud-launcher binary is from [here](https://github.com/ExchangeUnion/xud-launcher/releases).
