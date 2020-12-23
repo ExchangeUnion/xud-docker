@@ -10,7 +10,6 @@ RUN make install COMMIT=$GIT_REVISION
 FROM alpine:3.12
 RUN apk add --no-cache bash expect supervisor tor
 COPY --from=builder /go/bin/boltzd /go/bin/boltzcli /usr/local/bin/
-COPY --from=builder /go/src/github.com/BoltzExchange/boltz-lnd/example/config.toml /sample-config.toml
 COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 COPY entrypoint.sh /
 COPY wrapper.sh /usr/bin/wrapper
