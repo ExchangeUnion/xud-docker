@@ -7,60 +7,53 @@ SCRIPT_PATH=$(dirname "$0")
 cd "$SCRIPT_PATH" || exit 1
 
 LND_DIR="/root/.lnd"
+LND_CONF="$LND_DIR/lnd.conf"
 mkdir -p $LND_DIR
 
-if [[ ! -e $LND_DIR/lnd.conf ]]; then
-  cp /root/lnd.conf $LND_DIR/lnd.conf
+if [[ ! -e "$LND_CONF" ]]; then
+    cp /root/lnd.conf "$LND_CONF"
 fi
 
-NEUTRINO=${NEUTRINO:-}
+echo "[entrypoint] Enabling $MODE mode"
+if [[ $MODE == "light" || $MODE == "neutrino" ]]; then
+    sed -i "s/litecoin.node.*/litecoin.node=neutrino/g" "$LND_CONF"
+    sed -i '/routing/,$d' "$LND_CONF"
+    if [[ $NETWORK == "testnet" ]]; then
+        cat <<EOF >> "$LND_CONF"
+[routing]
+routing.assumechanvalid=1
 
-if [ ! -z ${NEUTRINO} ]; then
-  PEERS="[neutrino]\n"
+[neutrino]
+neutrino.connect=ltcd.michael1011.at:19335
+neutrino.connect=ltc.kilrau.com:19335
+EOF
+    elif [[ $NETWORK == "mainnet" ]]; then
+        cat << EOF >> "$LND_CONF"
+[routing]
+routing.assumechanvalid=1
 
-  case $CHAIN in
-    bitcoin)
-      case $NETWORK in
-        testnet)
-          PEERS="${PEERS}neutrino.addpeer=bitcoin.michael1011.at:18333\nneutrino.addpeer=btc.kilrau.com:18333"
-          ;;
-        mainnet)
-          PEERS="${PEERS}neutrino.addpeer=bitcoin.michael1011.at:8333\nneutrino.addpeer=btc.kilrau.com:8333"
-          ;;
-        esac
-      ;;
-    litecoin)
-          case $NETWORK in
-        testnet)
-          PEERS="${PEERS}neutrino.connect=ltcd.michael1011.at:19335\nneutrino.connect=ltc.kilrau.com:19335"
-          ;;
-        mainnet)
-          PEERS="${PEERS}neutrino.connect=ltcd.michael1011.at:9333\nneutrino.connect=ltc.kilrau.com:9333"
-          ;;
-        esac
-      ;;
-  esac
-
-  echo "[DEBUG] Enabling neutrino"
-  case $CHAIN in
-    bitcoin)
-      sed -i "s/bitcoin.node=bitcoind/bitcoin.node=neutrino\n\n${PEERS}\n\n[routing]\nrouting.assumechanvalid=1/g" $LND_DIR/lnd.conf
-      ;;
-    litecoin)
-      sed -i "s/litecoin.node=litecoind/litecoin.node=neutrino\n\n${PEERS}\n\n[routing]\nrouting.assumechanvalid=1/g" $LND_DIR/lnd.conf
-      ;;
-  esac
+[neutrino]
+neutrino.connect=ltcd.michael1011.at:9333
+neutrino.connect=ltc.kilrau.com:9333
+EOF
+    fi
+elif [[ $MODE == "native" ]]; then
+    sed -i '/routing/,$d' "$LND_CONF"
+    sed -i "s/litecoin.node=.*/litecoin.node=litecoind/g" "$LND_CONF"
+    sed -i "s/rpchost.*/rpchost=litecoind/g" "$LND_CONF"
+    sed -i "s/rpcuser.*/rpcuser=xu/g" "$LND_CONF"
+    sed -i "s/rpcpass.*/rpcpass=xu/g" "$LND_CONF"
+    sed -i "s|zmqpubrawblock.*|zmqpubrawblock=tcp://litecoind:28332|g" "$LND_CONF"
+    sed -i "s|zmqpubrawtx.*|zmqpubrawtx=tcp://litecoind:28333|g" "$LND_CONF"
+elif [[ $MODE == "external" ]]; then
+    sed -i '/routing/,$d' "$LND_CONF"
+    sed -i "s/litecoin.node=.*/litecoin.node=litecoind/g" "$LND_CONF"
+    sed -i "s/rpchost.*/rpchost=$RPCHOST/g" "$LND_CONF"
+    sed -i "s/rpcuser.*/rpcuser=$RPCUSER/g" "$LND_CONF"
+    sed -i "s/rpcpass.*/rpcpass=$RPCPASS/g" "$LND_CONF"
+    sed -i "s|zmqpubrawblock.*|zmqpubrawblock=$ZMQPUBRAWBLOCK|g" "$LND_CONF"
+    sed -i "s|zmqpubrawtx.*|zmqpubrawtx=$ZMQPUBRAWTX|g" "$LND_CONF"
 fi
-
-set +e
-
-[[ -n ${RPCHOST:-} ]] && sed -i "s/rpchost.*/rpchost=$RPCHOST/g" $LND_DIR/lnd.conf
-[[ -n ${RPCUSER:-} ]] && sed -i "s/rpcuser.*/rpcuser=$RPCUSER/g" $LND_DIR/lnd.conf
-[[ -n ${RPCPASS:-} ]] && sed -i "s/rpcpass.*/rpcpass=$RPCPASS/g" $LND_DIR/lnd.conf
-[[ -n ${ZMQPUBRAWBLOCK:-} ]] && sed -i "s|zmqpubrawblock.*|zmqpubrawblock=$ZMQPUBRAWBLOCK|g" $LND_DIR/lnd.conf
-[[ -n ${ZMQPUBRAWTX:-} ]] && sed -i "s|zmqpubrawtx.*|zmqpubrawtx=$ZMQPUBRAWTX|g" $LND_DIR/lnd.conf
-
-set -e
 
 LND_HOSTNAME="$HOME/.lnd/tor/hostname"
 echo "Waiting for lnd-$CHAIN onion address..."
