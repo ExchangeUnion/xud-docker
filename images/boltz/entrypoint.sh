@@ -3,12 +3,7 @@
 CHAIN=$1
 DATADIR="/root/.boltz/$CHAIN"
 
-LOGFILE="$DATADIR/boltz.log"
-CONFIGFILE="$DATADIR/boltz.conf"
-DATABASEFILE="$DATADIR/boltz.db"
-ADMINMACAROONFILE="$DATADIR/admin.macaroon"
-TLSKEYFILE="$DATADIR/tls.key"
-TLSCERTFILE="$DATADIR/tls.cert"
+CONFIGFILE="$DATADIR/boltz.toml"
 
 case "$CHAIN" in
     "bitcoin")
@@ -41,32 +36,44 @@ CERTPATH="/root/.$LNDDIR/tls.cert"
 MACAROONPATH="/root/.$LNDDIR/data/chain/$CHAIN/$NETWORK/admin.macaroon"
 
 write_config() {
-    echo "Creating config for $CHAIN daemon"
+    echo "Creating config file for $CHAIN daemon"
     mkdir -p $DATADIR
-    cp /sample-config.toml $CONFIGFILE
 
     LNDPORT="10009"
 
-    sed -i "1s/^/logprefix=\"[$LOGPREFIX] \"\n\n/" $CONFIGFILE
+    echo "logprefix = \"[$LOGPREFIX] \"" >> $CONFIGFILE
+    echo "" >> $CONFIGFILE
 
-    sed -i "/\[LND/,/^$/s/host.*/host = \"$LNDHOST\"/" $CONFIGFILE
-    sed -i "/\[LND/,/^$/s/port.*/port = $LNDPORT/" $CONFIGFILE
-    sed -i "/\[LND/,/^$/s|macaroon.*|macaroon = \"$MACAROONPATH\"|" $CONFIGFILE
-    sed -i "/\[LND/,/^$/s|certificate.*|certificate = \"$CERTPATH\"|" $CONFIGFILE
+    echo "[LND]" >> $CONFIGFILE
+    echo "host = \"$LNDHOST\"" >> $CONFIGFILE
+    echo "port = $LNDPORT" >> $CONFIGFILE
+    echo "macaroon = \"$MACAROONPATH\"" >> $CONFIGFILE
+    echo "certificate = \"$CERTPATH\"" >> $CONFIGFILE
+    echo "" >> $CONFIGFILE
 
-    sed -i '/\[RPC/,/^$/s/host.*/host = "0.0.0.0"/' $CONFIGFILE
-    sed -i "/\[RPC/,/^$/s/port.*/port = $PORT/" $CONFIGFILE
-
-    sed -i '/\[RPC/,/^$/s/restHost.*/restHost = "0.0.0.0"/' $CONFIGFILE
-    sed -i "/\[RPC/,/^$/s/restPort.*/restPort = $RESTPORT/" $CONFIGFILE
+    echo "[RPC]" >> $CONFIGFILE
+    echo "host = \"0.0.0.0\"" >> $CONFIGFILE
+    echo "port = $PORT" >> $CONFIGFILE
+    echo "restHost = \"0.0.0.0\"" >> $CONFIGFILE
+    echo "restPort = $RESTPORT" >> $CONFIGFILE
 }
 
 # Config file migration
 # If the config file does *not* contain anything related to the REST proxy of boltz-lnd,
-# it is safe to assume that it is oudated and needs to be recreated
+# it is safe to assume that it is oudated and needs to be recreated.
 if [[ -e $CONFIGFILE ]] && ! grep -q "rest" "$CONFIGFILE"; then
     echo "Removing outdated config file"
     rm $CONFIGFILE
+fi
+
+# *Another* config file migration
+# In the change moving to the "--datadir" argument the config file path is not set explicitely anymore,
+# which means the daemon will search for the config file in the default location which is "$DATADIR/boltz.toml".
+# Therefore, old config files need to be moved.
+OLD_CONFIGFILE="$DATADIR/boltz.conf"
+if [[ -e $OLD_CONFIGFILE ]]; then
+    echo "Moving old config file ($OLD_CONFIGFILE) to new location: $CONFIGFILE"
+    mv $OLD_CONFIGFILE $CONFIGFILE
 fi
 
 if [[ $REWRITE_CONFIG || ! -e $CONFIGFILE ]]; then
@@ -86,4 +93,4 @@ echo 'Detecting localnet IP for lndltc...'
 LNDLTC_IP=$(getent hosts lndltc | awk '{ print $1 }')
 echo "$LNDLTC_IP lndltc" >> /etc/hosts
 
-exec boltzd --configfile $CONFIGFILE --logfile $LOGFILE --database.path $DATABASEFILE --rpc.adminmacaroonpath $ADMINMACAROONFILE --rpc.tlscert $TLSCERTFILE --rpc.tlskey $TLSKEYFILE
+exec boltzd --datadir $DATADIR

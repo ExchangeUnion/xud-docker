@@ -30,7 +30,4 @@ case "${CHAIN,,}" in
         ;;
 esac
 
-TLSCERT="$DATADIR/tls.cert"
-MACAROON="$DATADIR/admin.macaroon"
-
-exec boltzcli --port $PORT --tlscert $TLSCERT --macaroon $MACAROON ${@:2}
+exec boltzcli --port $PORT --datadir $DATADIR ${@:2}
