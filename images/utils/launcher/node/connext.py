@@ -23,7 +23,7 @@ def generate_admin_token():
     alphabet = string.ascii_letters + string.digits
     return ''.join(secrets.choice(alphabet) for i in range(20))
 
-def get_vector_config(chain_id, channel_factory_address, channel_master_copy_address, transfer_registry_address, eth_provider):
+def get_vector_config(chain_id, channel_factory_address, transfer_registry_address, eth_provider):
     # This is a placeholder mnemonic that is required for startup, but is not being used since it will be overwritten by xud.
     placeholder_mnemonic = "crazy angry east hood fiber awake leg knife entire excite output scheme"
     vector_json = {
@@ -31,9 +31,7 @@ def get_vector_config(chain_id, channel_factory_address, channel_master_copy_add
         "chainAddresses": {
             chain_id: {
                 "channelFactoryAddress": channel_factory_address,
-                "channelMastercopyAddress": channel_master_copy_address,
                 "transferRegistryAddress": transfer_registry_address,
-                "TestToken": ""
             }
         },
         "chainProviders": {
@@ -55,12 +53,11 @@ class Connext(Node):
         super().__init__(name, ctx)
 
         chain_id = "1337"
-        simnet_channel_master_copy_address = "0x7fC0B35D5D841E3920de3990ee2bCA00e358a841"
-        simnet_channel_factory_address = "0x57A22B54D417Cc2b8b9C8e5d0a00AD947C42c5a4"
-        simnet_transfer_registry_address = "0x7a385570E7090A37Ae6B8dDbD713734B7094237C"
+        simnet_channel_factory_address = "0x09f37Ee0662E13e7d07e84CE77705E981Be79406"
+        simnet_transfer_registry_address = "0xE70F6686f0AF6a858256B073ABB74fC5C79cE343"
         simnet_eth_provider = "http://35.234.110.95:8545"
         environment = [
-            get_vector_config(chain_id, simnet_channel_factory_address, simnet_channel_master_copy_address, simnet_transfer_registry_address, simnet_eth_provider),
+            get_vector_config(chain_id, simnet_channel_factory_address, simnet_transfer_registry_address, simnet_eth_provider),
             "VECTOR_SQLITE_FILE=/database/store.db",
             "VECTOR_PROD=true",
         ]
