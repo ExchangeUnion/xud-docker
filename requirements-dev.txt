@@ -1,6 +1,0 @@
-pytest
-pytest-asyncio
-#pytest-html
-#pytest-integration
-#pytest-timeout
-#pytest-dotenv

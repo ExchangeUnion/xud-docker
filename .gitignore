@@ -14,17 +14,12 @@ venv/
 # tools logs
 tools/logs
 
-# pytest
-.pytest_cache/
-
 # dotenv
 .env
 
 # project source code
 images/*/.src
 
-# python build files
-build/
-dist/
-launcher.egg-info/
-
+# launcher binaries
+launcher/launcher
+launcher/launcher.exe

@@ -144,7 +144,10 @@ class Toolkit:
         print("Modified images: " + ", ".join(images))
         print()
 
-        images.remove("utils")
+        try:
+            images.remove("utils")
+        except KeyError:
+            pass
 
         return list(images)
 
