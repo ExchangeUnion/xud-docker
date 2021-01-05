@@ -9,13 +9,11 @@ ADD .src .
 ARG GIT_REVISION
 RUN echo "" > parseGitCommit.js
 RUN echo "export default '-$GIT_REVISION';" > lib/Version.ts
-RUN cp package.json /tmp/package.json
-RUN sed -i '/"grpc-tools"/d' package.json
-RUN npm install
-RUN cp /tmp/package.json package.json
+RUN npm install --production
+RUN npm install typescript --no-shrinkwrap
 RUN npm run compile
 RUN npm run compile:seedutil
-RUN npm prune --production
+RUN npm prune production
 RUN rm -rf seedutil/go
 RUN strip seedutil/seedutil
 

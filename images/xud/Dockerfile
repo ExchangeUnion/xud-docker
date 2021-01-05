@@ -5,10 +5,11 @@ ADD .src .
 ARG GIT_REVISION
 RUN echo "" > parseGitCommit.js
 RUN echo "export default '-$GIT_REVISION';" > lib/Version.ts
-RUN npm install
+RUN npm install --production
+RUN npm install typescript --no-shrinkwrap
 RUN npm run compile
 RUN npm run compile:seedutil
-RUN npm prune --production
+RUN npm prune production
 RUN rm -rf seedutil/go
 RUN strip seedutil/seedutil
 
