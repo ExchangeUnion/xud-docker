@@ -285,6 +285,10 @@ func (t *Launcher) upXud(ctx context.Context) error {
 			if err := t.createWallets(ctx, DefaultWalletPassword); err != nil {
 				return fmt.Errorf("create: %w", err)
 			}
+			_, err := os.Create(t.DefaultPasswordMarkFile)
+			if err != nil {
+				return fmt.Errorf("create .default-password: %w", err)
+			}
 			break
 		}
 		if strings.HasPrefix(status, "Wallet locked") {
@@ -381,14 +385,19 @@ type Info struct {
 }
 
 func (t *Launcher) GetInfo() Info {
+	defaultPassword := true
+	if _, err := os.Stat(t.DefaultPasswordMarkFile); os.IsNotExist(err) {
+		defaultPassword = false
+	}
+
 	return Info{
 		Wallets: WalletsInfo{
-			DefaultPassword: true,
-			MnemonicShown:   false,
+			DefaultPassword: defaultPassword,
+			MnemonicShown:   !defaultPassword,
 		},
 		Backup: BackupInfo{
 			Location:        t.BackupDir,
-			DefaultLocation: true,
+			DefaultLocation: t.BackupDir == t.DefaultBackupDir,
 		},
 	}
 }

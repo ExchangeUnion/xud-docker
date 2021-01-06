@@ -1,6 +1,7 @@
 package core
 
 import (
+	"bufio"
 	"context"
 	"crypto/tls"
 	"errors"
@@ -28,6 +29,7 @@ import (
 	"path/filepath"
 	"reflect"
 	"runtime"
+	"strings"
 )
 
 type Launcher struct {
@@ -40,10 +42,11 @@ type Launcher struct {
 
 	Network types.Network
 
-	NetworkDir string
-	DataDir    string
-	LogsDir    string
-	BackupDir  string
+	NetworkDir       string
+	DataDir          string
+	LogsDir          string
+	BackupDir        string
+	DefaultBackupDir string
 
 	DockerComposeFile string
 	ConfigFile        string
@@ -89,10 +92,49 @@ func getNetworkDir(homeDir string, network types.Network) string {
 }
 
 func getBackupDir(networkDir string, dockerComposeFile string) string {
+	dir := getDefaultBackupDir(networkDir)
+	f, err := os.Open(dockerComposeFile)
+	if err != nil {
+		return dir
+	}
+	defer f.Close()
+	scanner := bufio.NewScanner(f)
+	for scanner.Scan() {
+		line := scanner.Text()
+		if strings.Contains(line, "/root/backup") {
+			line = strings.TrimSpace(line)
+			line = strings.TrimPrefix(line, "- ")
+			line = strings.TrimSuffix(line, "/root/backup")
+			return line
+		}
+	}
+	return dir
+}
+
+func getDefaultBackupDir(networkDir string) string {
 	return filepath.Join(networkDir, "backup")
 }
 
-func getExternalIp() string {
+func getExternalIp(networkDir string) string {
+	// Backward compatible with lnd.env
+	lndEnv := filepath.Join(networkDir, "lnd.env")
+	f, err := os.Open(lndEnv)
+	if err != nil {
+		return ""
+	}
+	defer f.Close()
+	scanner := bufio.NewScanner(f)
+	for scanner.Scan() {
+		line := scanner.Text()
+		parts := strings.Split(line, "=")
+		if len(parts) == 2 {
+			key := strings.TrimSpace(parts[0])
+			value := strings.TrimSpace(parts[1])
+			if key == "EXTERNAL_IP" {
+				return value
+			}
+		}
+	}
 	return ""
 }
 
@@ -137,8 +179,9 @@ func NewLauncher() (*Launcher, error) {
 	configFile := filepath.Join(networkDir, "config.json")
 	defaultPasswordMarkFile := filepath.Join(networkDir, ".default-password")
 	backupDir := getBackupDir(networkDir, dockerComposeFile)
+	defaultBackupDir := getDefaultBackupDir(networkDir)
 
-	externalIp := getExternalIp()
+	externalIp := getExternalIp(networkDir)
 
 	rootCmd := &cobra.Command{
 		Use:           "launcher",
@@ -162,6 +205,7 @@ func NewLauncher() (*Launcher, error) {
 		DataDir:                 dataDir,
 		LogsDir:                 logsDir,
 		BackupDir:               backupDir,
+		DefaultBackupDir:        defaultBackupDir,
 		DockerComposeFile:       dockerComposeFile,
 		ConfigFile:              configFile,
 		DefaultPasswordMarkFile: defaultPasswordMarkFile,
