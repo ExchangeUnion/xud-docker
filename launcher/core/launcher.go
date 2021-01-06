@@ -355,7 +355,7 @@ func (t *Launcher) addFlags(serviceName string, configType reflect.Type, default
 
 		usage := field.Tag.Get("usage")
 
-		t.Logger.Debugf("[flag] --%s (%#v)", key, value)
+		// t.Logger.Debugf("[flag] --%s (%#v)", key, value)
 
 		switch fieldType.Kind() {
 		case reflect.String:

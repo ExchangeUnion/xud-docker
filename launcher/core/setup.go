@@ -23,6 +23,10 @@ const (
 	DefaultWalletPassword = "OpenDEX!Rocks"
 )
 
+var (
+	errInterrupted = errors.New("interrupted")
+)
+
 func (t *Launcher) Setup(ctx context.Context) error {
 	t.Logger.Debugf("Setup %s (%s)", t.Network, t.NetworkDir)
 
@@ -80,26 +84,26 @@ func (t *Launcher) Setup(ctx context.Context) error {
 func (t *Launcher) upProxy(ctx context.Context) error {
 	s, err := t.GetService("proxy")
 	if err != nil {
-		return fmt.Errorf("failed to start proxy: %s", err)
+		return fmt.Errorf("get service: %w", err)
 	}
 	if err := s.Up(ctx); err != nil {
-		return err
+		return fmt.Errorf("up: %w", err)
 	}
 	for {
 		status, err := s.GetStatus(ctx)
 		if err != nil {
-			return err
+			return fmt.Errorf("get status: %w", err)
 		}
-		fmt.Printf("%s: %s\n", s.GetName(), status)
+		t.Logger.Debugf("%s: %s\n", s.GetName(), status)
 		if status == "Ready" {
 			break
 		}
 		if status == "Container missing" || status == "Container exited" {
-			return fmt.Errorf("start proxy: %s", status)
+			return fmt.Errorf("proxy: %s", status)
 		}
 		select {
 		case <-ctx.Done(): // context cancelled
-			return errors.New("interrupted")
+			return errInterrupted
 		case <-time.After(3 * time.Second): // retry
 		}
 	}
@@ -109,10 +113,10 @@ func (t *Launcher) upProxy(ctx context.Context) error {
 func (t *Launcher) upLnd(ctx context.Context, name string) error {
 	s, err := t.GetService(name)
 	if err != nil {
-		return err
+		return fmt.Errorf("get service: %w", err)
 	}
 	if err := s.Up(ctx); err != nil {
-		return err
+		return fmt.Errorf("up: %w", err)
 	}
 	for {
 		status, err := s.GetStatus(ctx)
@@ -133,11 +137,11 @@ func (t *Launcher) upLnd(ctx context.Context, name string) error {
 			break
 		}
 		if status == "Container missing" || status == "Container exited" {
-			return fmt.Errorf("start %s: %s", name, status)
+			return fmt.Errorf("%s: %s", name, status)
 		}
 		select {
 		case <-ctx.Done(): // context cancelled
-			return errors.New("interrupted")
+			return errInterrupted
 		case <-time.After(3 * time.Second): // retry
 		}
 	}
@@ -147,26 +151,26 @@ func (t *Launcher) upLnd(ctx context.Context, name string) error {
 func (t *Launcher) upConnext(ctx context.Context) error {
 	s, err := t.GetService("connext")
 	if err != nil {
-		return err
+		return fmt.Errorf("get service: %w", err)
 	}
 	if err := s.Up(ctx); err != nil {
-		return err
+		return fmt.Errorf("up: %w", err)
 	}
 	for {
 		status, err := s.GetStatus(ctx)
 		if err != nil {
-			return err
+			return fmt.Errorf("get status: %w", err)
 		}
 		fmt.Printf("%s: %s\n", s.GetName(), status)
 		if status == "Ready" {
 			break
 		}
 		if status == "Container missing" || status == "Container exited" {
-			return fmt.Errorf("start %s: %s", "connext", status)
+			return fmt.Errorf("connext: %s", status)
 		}
 		select {
 		case <-ctx.Done(): // context cancelled
-			return errors.New("interrupted")
+			return errInterrupted
 		case <-time.After(3 * time.Second): // retry
 		}
 	}
