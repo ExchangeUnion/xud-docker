@@ -93,6 +93,8 @@ func getNetworkDir(homeDir string, network types.Network) string {
 
 func getBackupDir(networkDir string, dockerComposeFile string) string {
 	dir := getDefaultBackupDir(networkDir)
+
+	// TODO parse backup location from 1) xud container 2) docker-compose file 3) config.json
 	f, err := os.Open(dockerComposeFile)
 	if err != nil {
 		return dir
@@ -103,6 +105,8 @@ func getBackupDir(networkDir string, dockerComposeFile string) string {
 		line := scanner.Text()
 		if strings.Contains(line, "/root/backup") {
 			line = strings.TrimSpace(line)
+			// fix broken colon (before) in backup location (
+			line = strings.ReplaceAll(line, "::", ":")
 			line = strings.TrimPrefix(line, "- ")
 			line = strings.TrimSuffix(line, ":/root/backup")
 			return line
