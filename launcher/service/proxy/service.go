@@ -102,6 +102,10 @@ type RpcParams struct {
 	Port   uint16 `json:"port"`
 }
 
+func (t RpcParams) ToUri() string {
+	return fmt.Sprintf("%s://127.0.0.1:%d", t.Scheme, t.Port)
+}
+
 func (t *Service) GetRpcParams() (interface{}, error) {
 	return t.RpcParams, nil
 }

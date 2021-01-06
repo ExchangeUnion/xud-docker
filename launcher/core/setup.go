@@ -1,13 +1,16 @@
 package core
 
 import (
+	"bytes"
 	"context"
 	"crypto/tls"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/ExchangeUnion/xud-docker/launcher/service/proxy"
 	"github.com/gorilla/websocket"
 	"golang.org/x/sync/errgroup"
+	"net/http"
 	"net/url"
 	"os"
 	"os/signal"
@@ -168,10 +171,76 @@ func (t *Launcher) upConnext(ctx context.Context) error {
 }
 
 func (t *Launcher) createWallets(ctx context.Context, password string) error {
+	s, err := t.GetService("proxy")
+	if err != nil {
+		return err
+	}
+	rpc, err := s.GetRpcParams()
+	if err != nil {
+		return err
+	}
+	createUrl := fmt.Sprintf("%s/api/v1/xud/create", rpc.(proxy.RpcParams).ToUri())
+	payload := map[string]interface{}{
+		"password": password,
+	}
+	body, err := json.Marshal(payload)
+	if err != nil {
+		return err
+	}
+	req, err := http.NewRequestWithContext(ctx, "POST", createUrl, bytes.NewBuffer(body))
+	req.Header.Set("Content-Type", "application/json")
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		var body map[string]interface{}
+		err := json.NewDecoder(resp.Body).Decode(&body)
+		if err != nil {
+			return err
+		}
+		return errors.New(body["message"].(string))
+	}
+
 	return nil
 }
 
 func (t *Launcher) unlockWallets(ctx context.Context, password string) error {
+	s, err := t.GetService("proxy")
+	if err != nil {
+		return err
+	}
+	rpc, err := s.GetRpcParams()
+	if err != nil {
+		return err
+	}
+	createUrl := fmt.Sprintf("%s/api/v1/xud/unlock", rpc.(proxy.RpcParams).ToUri())
+	payload := map[string]interface{}{
+		"password": password,
+	}
+	body, err := json.Marshal(payload)
+	if err != nil {
+		return err
+	}
+	req, err := http.NewRequestWithContext(ctx, "POST", createUrl, bytes.NewBuffer(body))
+	req.Header.Set("Content-Type", "application/json")
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		var body map[string]interface{}
+		err := json.NewDecoder(resp.Body).Decode(&body)
+		if err != nil {
+			return err
+		}
+		return errors.New(body["message"].(string))
+	}
+
 	return nil
 }
 
@@ -298,10 +367,10 @@ func (t *Launcher) GetInfo() Info {
 	return Info{
 		Wallets: WalletsInfo{
 			DefaultPassword: true,
-			MnemonicShown: false,
+			MnemonicShown:   false,
 		},
 		Backup: BackupInfo{
-			Location: t.BackupDir,
+			Location:        t.BackupDir,
 			DefaultLocation: true,
 		},
 	}
