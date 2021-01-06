@@ -3,10 +3,14 @@ package main
 import (
 	"fmt"
 	"github.com/ExchangeUnion/xud-docker/launcher/core"
+	"math/rand"
 	"os"
+	"time"
 )
 
 func main() {
+	rand.Seed(time.Now().UnixNano())
+
 	launcher, err := core.NewLauncher()
 	if err != nil {
 		fmt.Printf("Failed to create launcher: %s\n", err)

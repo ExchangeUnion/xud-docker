@@ -2,14 +2,29 @@ package connext
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"github.com/ExchangeUnion/xud-docker/launcher/service/base"
 	"github.com/ExchangeUnion/xud-docker/launcher/service/geth"
 	"github.com/ExchangeUnion/xud-docker/launcher/types"
+	"math/rand"
 	"strings"
 )
 
 type Base = base.Service
+
+const (
+	ChainId                       = "1337"
+	SimnetChannelFactoryAddress   = "0x09f37Ee0662E13e7d07e84CE77705E981Be79406"
+	SimnetTransferRegistryAddress = "0xE70F6686f0AF6a858256B073ABB74fC5C79cE343"
+	SimnetEthProvider             = "http://35.234.110.95:8545"
+)
+
+var (
+	passwordRunes = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
+	// This is a placeholder mnemonic that is required for startup, but is not being used since it will be overwritten by xud.
+	placeholderMnemonic = "crazy angry east hood fiber awake leg knife entire excite output scheme"
+)
 
 type Service struct {
 	*Base
@@ -61,28 +76,12 @@ func (t *Service) Apply(cfg interface{}) error {
 	network := t.Context.GetNetwork()
 
 	if strings.Contains(c.Image, "vector_node") {
-		t.Environment["VECTOR_CONFIG"] = `{
-	"adminToken": "ddrWR8TK8UMTyR",
-	"chainAddresses": {
-		"1337": {
-		"channelFactoryAddress": "0x2eC39861B9Be41c20675a1b727983E3F3151C576",
-		"channelMastercopyAddress": "0x7AcAcA3BC812Bcc0185Fa63faF7fE06504D7Fa70",
-		"transferRegistryAddress": "0xB2b8A1d98bdD5e7A94B3798A13A94dEFFB1Fe709",
-		"TestToken": ""
-		}
-	},
-	"chainProviders": {
-		"1337": "http://35.234.110.95:8545"
-	},
-	"domainName": "",
-	"logLevel": "debug",
-	"messagingUrl": "https://messaging.connext.network",
-	"production": true,
-	"mnemonic": "crazy angry east hood fiber awake leg knife entire excite output scheme"
-}`
+		t.Environment["VECTOR_CONFIG"] = t.getVectorConfig(ChainId, SimnetChannelFactoryAddress, SimnetTransferRegistryAddress, SimnetEthProvider)
 		t.Environment["VECTOR_SQLITE_FILE"] = "/database/store.db"
 		t.Environment["VECTOR_PROD"] = "true"
 	} else {
+		// legacy connext indra stuff
+
 		t.Environment["LEGACY_MODE"] = "true"
 		switch network {
 		case types.Simnet:
@@ -118,4 +117,38 @@ func (t *Service) GetRpcParams() (interface{}, error) {
 	params["host"] = "connext"
 	params["port"] = 5040
 	return params, nil
+}
+
+func (t *Service) generateAdminToken(length int) string {
+	b := make([]rune, length)
+	n := len(passwordRunes)
+	for i := range b {
+		b[i] = passwordRunes[rand.Intn(n)]
+	}
+	return string(b)
+}
+
+func (t *Service) getVectorConfig(chainId, channelFactoryAddress, transferRegistryAddress, ethProvider string) string {
+	config := map[string]interface{}{
+		"adminToken": t.generateAdminToken(20),
+		"chainAddresses": map[string]interface{}{
+			chainId: map[string]interface{}{
+				"channelFactoryAddress":   channelFactoryAddress,
+				"transferRegistryAddress": transferRegistryAddress,
+			},
+		},
+		"chainProviders": map[string]interface{}{
+			chainId: ethProvider,
+		},
+		"domainName":   "",
+		"logLevel":     "debug",
+		"messagingUrl": "https://messaging.connext.network",
+		"production":   true,
+		"mnemonic":     placeholderMnemonic,
+	}
+	j, err := json.MarshalIndent(config, "", "    ")
+	if err != nil {
+		panic(err)
+	}
+	return string(j)
 }
