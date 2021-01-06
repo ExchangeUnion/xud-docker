@@ -28,21 +28,21 @@ func (t *Launcher) Setup(ctx context.Context) error {
 
 	wd, err := os.Getwd()
 	if err != nil {
-		return err
+		return fmt.Errorf("get working directory: %w", err)
 	}
 	defer os.Chdir(wd)
 
 	if err := os.Chdir(t.NetworkDir); err != nil {
-		return err
+		return fmt.Errorf("change directory: %w", err)
 	}
 
 	if err := t.Gen(ctx); err != nil {
-		return err
+		return fmt.Errorf("generate files: %w", err)
 	}
 
 	t.Logger.Debugf("Start proxy")
 	if err := t.upProxy(ctx); err != nil {
-		return err
+		return fmt.Errorf("up proxy: %w", err)
 	}
 
 	var wg sync.WaitGroup
@@ -58,17 +58,17 @@ func (t *Launcher) Setup(ctx context.Context) error {
 
 	t.Logger.Debugf("Start lndbtc, lndltc and connext")
 	if err := t.upLayer2(ctx); err != nil {
-		return err
+		return fmt.Errorf("up layer2: %w", err)
 	}
 
 	t.Logger.Debugf("Start xud")
 	if err := t.upXud(ctx); err != nil {
-		return err
+		return fmt.Errorf("up xud: %w", err)
 	}
 
 	t.Logger.Debugf("Start boltz")
 	if err := t.upBoltz(ctx); err != nil {
-		return err
+		return fmt.Errorf("up boltz: %w", err)
 	}
 
 	fmt.Println("Attached to proxy. Press Ctrl-C to detach from it.")
@@ -173,75 +173,89 @@ func (t *Launcher) upConnext(ctx context.Context) error {
 	return nil
 }
 
-func (t *Launcher) createWallets(ctx context.Context, password string) error {
+func (t *Launcher) getProxyApiUrl() (string, error) {
 	s, err := t.GetService("proxy")
 	if err != nil {
-		return err
+		return "", fmt.Errorf("get service: %w", err)
 	}
 	rpc, err := s.GetRpcParams()
 	if err != nil {
-		return err
+		return "", fmt.Errorf("get rpc params: %w", err)
 	}
-	createUrl := fmt.Sprintf("%s/api/v1/xud/create", rpc.(proxy.RpcParams).ToUri())
+	return rpc.(proxy.RpcParams).ToUri(), nil
+}
+
+type ApiError struct {
+	Message string `json:"message"`
+}
+
+func (t *Launcher) createWallets(ctx context.Context, password string) error {
+	apiUrl, err := t.getProxyApiUrl()
+	if err != nil {
+		return fmt.Errorf("get proxy api url: %w", err)
+	}
+	createUrl := fmt.Sprintf("%s/api/v1/xud/create", apiUrl)
 	payload := map[string]interface{}{
 		"password": password,
 	}
 	body, err := json.Marshal(payload)
 	if err != nil {
-		return err
+		return fmt.Errorf("encode payload: %w", err)
 	}
 	req, err := http.NewRequestWithContext(ctx, "POST", createUrl, bytes.NewBuffer(body))
-	req.Header.Set("Content-Type", "application/json")
-	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		return err
+		return fmt.Errorf("create request: %w", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+	resp, err := t.client.Do(req)
+	if err != nil {
+		return fmt.Errorf("do reqeust: %w", err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		var body map[string]interface{}
+		var body ApiError
 		err := json.NewDecoder(resp.Body).Decode(&body)
 		if err != nil {
-			return err
+			return fmt.Errorf("[http %d] decode error: %w", resp.StatusCode, err)
 		}
-		return errors.New(body["message"].(string))
+		return fmt.Errorf("[http %d] %s", resp.StatusCode, body.Message)
 	}
 
 	return nil
 }
 
 func (t *Launcher) unlockWallets(ctx context.Context, password string) error {
-	s, err := t.GetService("proxy")
+	apiUrl, err := t.getProxyApiUrl()
 	if err != nil {
-		return err
+		return fmt.Errorf("get proxy api url: %w", err)
 	}
-	rpc, err := s.GetRpcParams()
-	if err != nil {
-		return err
-	}
-	createUrl := fmt.Sprintf("%s/api/v1/xud/unlock", rpc.(proxy.RpcParams).ToUri())
+	createUrl := fmt.Sprintf("%s/api/v1/xud/unlock", apiUrl)
 	payload := map[string]interface{}{
 		"password": password,
 	}
 	body, err := json.Marshal(payload)
 	if err != nil {
-		return err
+		return fmt.Errorf("encode payload: %w", err)
 	}
 	req, err := http.NewRequestWithContext(ctx, "POST", createUrl, bytes.NewBuffer(body))
-	req.Header.Set("Content-Type", "application/json")
-	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		return err
+		return fmt.Errorf("create request: %w", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+	resp, err := t.client.Do(req)
+	if err != nil {
+		return fmt.Errorf("do reqeust: %w", err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		var body map[string]interface{}
+		var body ApiError
 		err := json.NewDecoder(resp.Body).Decode(&body)
 		if err != nil {
-			return err
+			return fmt.Errorf("[http %d] decode error: %w", resp.StatusCode, err)
 		}
-		return errors.New(body["message"].(string))
+		return fmt.Errorf("[http %d] %s", resp.StatusCode, body.Message)
 	}
 
 	return nil
@@ -250,15 +264,15 @@ func (t *Launcher) unlockWallets(ctx context.Context, password string) error {
 func (t *Launcher) upXud(ctx context.Context) error {
 	s, err := t.GetService("xud")
 	if err != nil {
-		return err
+		return fmt.Errorf("get service: %w", err)
 	}
 	if err := s.Up(ctx); err != nil {
-		return err
+		return fmt.Errorf("up: %s", err)
 	}
 	for {
 		status, err := s.GetStatus(ctx)
 		if err != nil {
-			return err
+			return fmt.Errorf("get status: %w", err)
 		}
 		fmt.Printf("%s: %s\n", s.GetName(), status)
 		if status == "Ready" {
@@ -269,13 +283,13 @@ func (t *Launcher) upXud(ctx context.Context) error {
 		}
 		if strings.HasPrefix(status, "Wallet missing") {
 			if err := t.createWallets(ctx, DefaultWalletPassword); err != nil {
-				return err
+				return fmt.Errorf("create: %w", err)
 			}
 			break
 		}
 		if strings.HasPrefix(status, "Wallet locked") {
 			if err := t.unlockWallets(ctx, DefaultWalletPassword); err != nil {
-				return err
+				return fmt.Errorf("unlock: %w", err)
 			}
 			break
 		}

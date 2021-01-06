@@ -114,19 +114,19 @@ func (t *Service) GetRpcParams() (interface{}, error) {
 	//	return nil, err
 	//}
 
-	dataDir := "/root/network"
+	dataDir := fmt.Sprintf("/root/network/data/%s", t.Name)
 
 	btc["type"] = "gRPC"
 	btc["host"] = "boltz"
 	btc["port"] = 9002
-	btc["tlsCert"] = fmt.Sprintf("%s/%s/bitcoin/tls.cert", dataDir, t.Name)
-	btc["macaroon"] = fmt.Sprintf("%s/%s/bitcoin/admin.macaroon", dataDir, t.Name)
+	btc["tlsCert"] = fmt.Sprintf("%s/bitcoin/tls.cert", dataDir)
+	btc["macaroon"] = fmt.Sprintf("%s/bitcoin/admin.macaroon", dataDir)
 
 	ltc["type"] = "gRPC"
 	ltc["host"] = "boltz"
 	ltc["port"] = 9102
-	ltc["tlsCert"] = fmt.Sprintf("%s/%s/litecoin/tls.cert", dataDir, t.Name)
-	ltc["macaroon"] = fmt.Sprintf("%s/%s/litecoin/admin.macaroon", dataDir, t.Name)
+	ltc["tlsCert"] = fmt.Sprintf("%s/litecoin/tls.cert", dataDir)
+	ltc["macaroon"] = fmt.Sprintf("%s/litecoin/admin.macaroon", dataDir)
 
 	return params, nil
 }

@@ -27,7 +27,7 @@ func New(ctx types.Context, name string) (*Service, error) {
 	}
 
 	return &Service{
-		Base:    s,
+		Base:      s,
 		RpcParams: RpcParams{},
 	}, nil
 }
@@ -100,13 +100,14 @@ func (t *Service) GetStatus(ctx context.Context) (string, error) {
 				return "Wallet locked. Unlock with xucli unlock.", nil
 			} else if strings.Contains(err.Output, "tls cert could not be found at /root/.xud/tls.cert") {
 				return "Starting...", nil
-			} else if strings.Contains(err.Error(), "xud is starting") {
+			} else if strings.Contains(err.Output, "xud is starting") {
 				return "Starting...", nil
-			} else if strings.Contains(err.Error(), fmt.Sprintf("could not connect to xud at localhost:%d, is xud running?", t.RpcParams.Port)) {
+			} else if strings.Contains(err.Output, "is xud running?") {
+				// could not connect to xud at localhost:18886, is xud running?
 				return "Starting...", nil
 			}
 		}
-		return "", err
+		return "", fmt.Errorf("get info: %w", err)
 	}
 
 	lndbtc := info.Lndbtc.Status
@@ -172,20 +173,21 @@ func (t *Service) Apply(cfg interface{}) error {
 
 	switch network {
 	case types.Simnet:
-		port = 28885
+		port = 28886
 		t.Ports = append(t.Ports, "28885")
 	case types.Testnet:
-		port = 18885
+		port = 18886
 		t.Ports = append(t.Ports, "18885")
 	case types.Mainnet:
-		port = 8885
+		port = 8886
 		t.Ports = append(t.Ports, "8885")
 	}
 
 	t.RpcParams.Type = "gRPC"
 	t.RpcParams.Host = t.Name
 	t.RpcParams.Port = port
-	t.RpcParams.TlsCert = fmt.Sprintf("%s/%s/tls.cert", "/root/network", t.Name)
+	dataDir := fmt.Sprintf("/root/network/data/%s", t.Name)
+	t.RpcParams.TlsCert = fmt.Sprintf("%s/tls.cert", dataDir)
 
 	return nil
 }

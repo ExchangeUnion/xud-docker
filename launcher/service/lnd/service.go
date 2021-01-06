@@ -345,8 +345,8 @@ func (t *Service) GetRpcParams() (interface{}, error) {
 	params["type"] = "gRPC"
 	params["host"] = t.Name
 	params["port"] = 10009
-	dataDir := "/root/network"
-	params["tlsCert"] = fmt.Sprintf("%s/%s/tls.cert", dataDir, t.Name)
-	params["macaroon"] = fmt.Sprintf("%s/%s/data/chain/%s/%s/readonly.macaroon", dataDir, t.Name, t.Chain, t.Context.GetNetwork())
+	dataDir := fmt.Sprintf("/root/network/data/%s", t.Name)
+	params["tlsCert"] = fmt.Sprintf("%s/tls.cert", dataDir)
+	params["macaroon"] = fmt.Sprintf("%s/data/chain/%s/%s/readonly.macaroon", dataDir, t.Chain, t.Context.GetNetwork())
 	return params, nil
 }

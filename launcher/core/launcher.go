@@ -2,6 +2,7 @@ package core
 
 import (
 	"context"
+	"crypto/tls"
 	"errors"
 	"fmt"
 	"github.com/ExchangeUnion/xud-docker/launcher/logging"
@@ -21,6 +22,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"net/http"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -52,6 +54,7 @@ type Launcher struct {
 	UsingDefaultPassword bool
 
 	rootCmd *cobra.Command
+	client  *http.Client
 }
 
 func defaultHomeDir() (string, error) {
@@ -147,6 +150,8 @@ func NewLauncher() (*Launcher, error) {
 	logrus.StandardLogger().SetLevel(logrus.DebugLevel)
 	logrus.StandardLogger().SetFormatter(&logging.Formatter{})
 
+	config := tls.Config{RootCAs: nil, InsecureSkipVerify: true}
+
 	l := Launcher{
 		Logger:   logrus.NewEntry(logrus.StandardLogger()),
 		Services: make(map[string]types.Service),
@@ -163,6 +168,11 @@ func NewLauncher() (*Launcher, error) {
 		ExternalIp:              externalIp,
 		UsingDefaultPassword:    true,
 		rootCmd:                 rootCmd,
+		client: &http.Client{
+			Transport: &http.Transport{
+				TLSClientConfig: &config,
+			},
+		},
 	}
 
 	l.Services, l.ServicesOrder, err = initServices(&l, network)

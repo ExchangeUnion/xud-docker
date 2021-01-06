@@ -213,9 +213,10 @@ func (t *Service) Exec(ctx context.Context, name string, args ...string) (string
 	exitCode := exec_.ExitCode
 
 	if exitCode != 0 {
-		msg := fmt.Sprintf("[docker] command \"%s\" exits with non-zero code %d", strings.Join(append([]string{name}, args...), " "), exitCode)
+		output := buf.String()
+		msg := fmt.Sprintf("[docker] command \"%s\" exits with non-zero code %d: %s", strings.Join(append([]string{name}, args...), " "), exitCode, strings.TrimSpace(output))
 		return "", service.ErrExec{
-			Output:   buf.String(),
+			Output:   output,
 			ExitCode: exitCode,
 			Message:  msg,
 		}
