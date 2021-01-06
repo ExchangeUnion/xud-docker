@@ -94,7 +94,7 @@ func (t *Launcher) upProxy(ctx context.Context) error {
 		if err != nil {
 			return fmt.Errorf("get status: %w", err)
 		}
-		t.Logger.Debugf("%s: %s\n", s.GetName(), status)
+		t.Logger.Debugf("[status] %s: %s", s.GetName(), status)
 		if status == "Ready" {
 			break
 		}
@@ -123,7 +123,7 @@ func (t *Launcher) upLnd(ctx context.Context, name string) error {
 		if err != nil {
 			return err
 		}
-		fmt.Printf("%s: %s\n", name, status)
+		t.Logger.Debugf("[status] %s: %s", name, status)
 		if status == "Ready" {
 			break
 		}
@@ -161,7 +161,7 @@ func (t *Launcher) upConnext(ctx context.Context) error {
 		if err != nil {
 			return fmt.Errorf("get status: %w", err)
 		}
-		fmt.Printf("%s: %s\n", s.GetName(), status)
+		t.Logger.Debugf("[status] %s: %s", s.GetName(), status)
 		if status == "Ready" {
 			break
 		}
@@ -278,7 +278,7 @@ func (t *Launcher) upXud(ctx context.Context) error {
 		if err != nil {
 			return fmt.Errorf("get status: %w", err)
 		}
-		fmt.Printf("%s: %s\n", s.GetName(), status)
+		t.Logger.Debugf("[status] %s: %s", s.GetName(), status)
 		if status == "Ready" {
 			break
 		}

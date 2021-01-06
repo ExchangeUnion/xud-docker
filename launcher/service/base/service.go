@@ -12,7 +12,6 @@ import (
 	"github.com/docker/docker/pkg/stdcopy"
 	"github.com/sirupsen/logrus"
 	"io"
-	"os"
 	"os/exec"
 	"strings"
 )
@@ -94,19 +93,27 @@ func (t *Service) Restart(ctx context.Context) error {
 }
 
 func (t *Service) Create(ctx context.Context) error {
-	t.Logger.Debugf("[Run] docker-compose up -d --no-start %s", t.Name)
 	c := exec.Command("docker-compose", "up", "-d", "--no-start", t.Name)
-	c.Stdout = os.Stdout
-	c.Stderr = os.Stderr
-	return c.Run()
+	output, err := c.Output()
+	text := strings.TrimSpace(string(output))
+	if text == "" {
+		t.Logger.Debugf("[run] docker-compose up -d --no-start %s\n", t.Name)
+	} else {
+		t.Logger.Debugf("[run] docker-compose up -d --no-start %s\n%s", t.Name, text)
+	}
+	return err
 }
 
 func (t *Service) Up(ctx context.Context) error {
-	t.Logger.Debugf("[Run] docker-compose up -d %s", t.Name)
 	c := exec.Command("docker-compose", "up", "-d", t.Name)
-	c.Stdout = os.Stdout
-	c.Stderr = os.Stderr
-	return c.Run()
+	output, err := c.Output()
+	text := strings.TrimSpace(string(output))
+	if text == "" {
+		t.Logger.Debugf("[run] docker-compose up -d %s", t.Name)
+	} else {
+		t.Logger.Debugf("[run] docker-compose up -d %s\n%s", t.Name, text)
+	}
+	return err
 }
 
 func (t *Service) demuxLogsReader(reader io.Reader) io.Reader {
