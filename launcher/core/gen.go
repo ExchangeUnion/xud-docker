@@ -18,7 +18,7 @@ func (t *Launcher) exportDockerComposeYaml() (string, error) {
 			continue
 		}
 
-		t.Logger.Debugf("[docker-compose] Generate service %s", name)
+		//t.Logger.Debugf("[docker-compose] Generate service %s", name)
 
 		b.WriteString(fmt.Sprintf("  %s:\n", name))
 		b.WriteString(fmt.Sprintf("    image: %s\n", s.GetImage()))
@@ -159,7 +159,6 @@ func (t *Launcher) GenConfigJson() error {
 }
 
 func (t *Launcher) Gen(ctx context.Context) error {
-	t.Logger.Debugf("Gen")
 	if err := t.GenDockerComposeYaml(); err != nil {
 		return err
 	}

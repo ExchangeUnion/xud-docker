@@ -200,7 +200,7 @@ func NewLauncher() (*Launcher, error) {
 	config := tls.Config{RootCAs: nil, InsecureSkipVerify: true}
 
 	l := Launcher{
-		Logger:   logrus.NewEntry(logrus.StandardLogger()),
+		Logger:   logrus.NewEntry(logrus.StandardLogger()).WithField("name", "core"),
 		Services: make(map[string]types.Service),
 
 		HomeDir:                 homeDir,
@@ -396,7 +396,7 @@ func (t *Launcher) addServiceFlags(cmd *cobra.Command) error {
 			return errors.New("GetDefaultConfig should return a reference of config struct")
 		}
 		configType := configPtr.Elem() // real config type
-		t.Logger.Debugf("%s: %s.%s", s.GetName(), configType.PkgPath(), configType.Name())
+		//t.Logger.Debugf("%s: %s.%s", s.GetName(), configType.PkgPath(), configType.Name())
 
 		dv := reflect.ValueOf(defaultConfig).Elem()
 
@@ -593,7 +593,7 @@ func (t *Launcher) GetService(name string) (types.Service, error) {
 func (t *Launcher) Apply() error {
 	for _, name := range t.ServicesOrder {
 		s := t.Services[name]
-		t.Logger.Debugf("Apply %s", s.GetName())
+		//t.Logger.Debugf("Apply %s", s.GetName())
 		if err := s.Apply(t.ServicesConfig[name]); err != nil {
 			return err
 		}
