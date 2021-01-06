@@ -104,7 +104,7 @@ func getBackupDir(networkDir string, dockerComposeFile string) string {
 		if strings.Contains(line, "/root/backup") {
 			line = strings.TrimSpace(line)
 			line = strings.TrimPrefix(line, "- ")
-			line = strings.TrimSuffix(line, "/root/backup")
+			line = strings.TrimSuffix(line, ":/root/backup")
 			return line
 		}
 	}
