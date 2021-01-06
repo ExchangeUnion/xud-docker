@@ -151,6 +151,7 @@ func NewLauncher() (*Launcher, error) {
 		Logger:   logrus.NewEntry(logrus.StandardLogger()),
 		Services: make(map[string]types.Service),
 
+		HomeDir:                 homeDir,
 		Network:                 network,
 		NetworkDir:              networkDir,
 		DataDir:                 dataDir,
