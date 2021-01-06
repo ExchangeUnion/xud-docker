@@ -326,9 +326,141 @@ func NewLauncher() (*Launcher, error) {
 		},
 	}
 
+	downCmd := &cobra.Command{
+		Use:   "down",
+		Short: "Shutdown the XUD environment",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			ctx, cancel := context.WithCancel(context.Background())
+			c := make(chan os.Signal, 1)
+			signal.Notify(c, os.Interrupt)
+			defer func() {
+				signal.Stop(c)
+				cancel()
+			}()
+
+			// cancel ctx when SIGINT
+			go func() {
+				select {
+				case <-c:
+					cancel()
+				case <-ctx.Done():
+				}
+			}()
+
+			if err := l.Apply(); err != nil {
+				return err
+			}
+
+			if err := l.Down(ctx); err != nil {
+				return err
+			}
+			return nil
+		},
+	}
+
+	stopCmd := &cobra.Command{
+		Use:   "stop",
+		Short: "Stop services",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			ctx, cancel := context.WithCancel(context.Background())
+			c := make(chan os.Signal, 1)
+			signal.Notify(c, os.Interrupt)
+			defer func() {
+				signal.Stop(c)
+				cancel()
+			}()
+
+			// cancel ctx when SIGINT
+			go func() {
+				select {
+				case <-c:
+					cancel()
+				case <-ctx.Done():
+				}
+			}()
+
+			if err := l.Apply(); err != nil {
+				return err
+			}
+
+			if err := l.Stop(ctx); err != nil {
+				return err
+			}
+			return nil
+		},
+	}
+
+	startCmd := &cobra.Command{
+		Use:   "start",
+		Short: "Start services",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			ctx, cancel := context.WithCancel(context.Background())
+			c := make(chan os.Signal, 1)
+			signal.Notify(c, os.Interrupt)
+			defer func() {
+				signal.Stop(c)
+				cancel()
+			}()
+
+			// cancel ctx when SIGINT
+			go func() {
+				select {
+				case <-c:
+					cancel()
+				case <-ctx.Done():
+				}
+			}()
+
+			if err := l.Apply(); err != nil {
+				return err
+			}
+
+			if err := l.Start(ctx); err != nil {
+				return err
+			}
+			return nil
+		},
+	}
+
+	restartCmd := &cobra.Command{
+		Use:   "restart",
+		Short: "Restart services",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			ctx, cancel := context.WithCancel(context.Background())
+			c := make(chan os.Signal, 1)
+			signal.Notify(c, os.Interrupt)
+			defer func() {
+				signal.Stop(c)
+				cancel()
+			}()
+
+			// cancel ctx when SIGINT
+			go func() {
+				select {
+				case <-c:
+					cancel()
+				case <-ctx.Done():
+				}
+			}()
+
+			if err := l.Apply(); err != nil {
+				return err
+			}
+
+			if err := l.Restart(ctx); err != nil {
+				return err
+			}
+			return nil
+		},
+	}
+
 	rootCmd.AddCommand(setupCmd)
 	rootCmd.AddCommand(cleanupCmd)
 	rootCmd.AddCommand(genCmd)
+	rootCmd.AddCommand(downCmd)
+	rootCmd.AddCommand(stopCmd)
+	rootCmd.AddCommand(startCmd)
+	rootCmd.AddCommand(restartCmd)
 
 	return &l, nil
 }

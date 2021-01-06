@@ -47,7 +47,19 @@ func (t *Launcher) stopService(ctx context.Context, name string) error {
 	return nil
 }
 
-func (t *Launcher) stopAll(ctx context.Context) error {
+func (t *Launcher) Create(ctx context.Context) error {
+	return nil
+}
+
+func (t *Launcher) Start(ctx context.Context) error {
+	return nil
+}
+
+func (t *Launcher) Restart(ctx context.Context) error {
+	return nil
+}
+
+func (t *Launcher) Stop(ctx context.Context) error {
 	if t.Network != types.Simnet {
 		if err := t.stopService(ctx, "boltz"); err != nil {
 			return err
@@ -79,7 +91,7 @@ func (t *Launcher) stopAll(ctx context.Context) error {
 	return nil
 }
 
-func (t *Launcher) down(ctx context.Context) error {
+func (t *Launcher) Down(ctx context.Context) error {
 	wd, err := os.Getwd()
 	if err != nil {
 		return err
@@ -126,12 +138,12 @@ func (t *Launcher) removeFiles(ctx context.Context) error {
 
 func (t *Launcher) Cleanup(ctx context.Context) error {
 	// stop all
-	if err := t.stopAll(ctx); err != nil {
+	if err := t.Stop(ctx); err != nil {
 		return err
 	}
 
 	// down
-	if err := t.down(ctx); err != nil {
+	if err := t.Down(ctx); err != nil {
 		return err
 	}
 

@@ -82,99 +82,39 @@ func (t *Launcher) Setup(ctx context.Context) error {
 }
 
 func (t *Launcher) upProxy(ctx context.Context) error {
-	s, err := t.GetService("proxy")
-	if err != nil {
-		return fmt.Errorf("get service: %w", err)
-	}
-	if err := s.Up(ctx); err != nil {
-		return fmt.Errorf("up: %w", err)
-	}
-	for {
-		status, err := s.GetStatus(ctx)
-		if err != nil {
-			return fmt.Errorf("get status: %w", err)
-		}
-		t.Logger.Debugf("[status] %s: %s", s.GetName(), status)
+	return t.upService(ctx, "proxy", func(status string) (bool, error) {
 		if status == "Ready" {
-			break
+			return true, nil
 		}
-		if status == "Container missing" || status == "Container exited" {
-			return fmt.Errorf("proxy: %s", status)
-		}
-		select {
-		case <-ctx.Done(): // context cancelled
-			return errInterrupted
-		case <-time.After(3 * time.Second): // retry
-		}
-	}
-	return nil
+		return false, nil
+	})
 }
 
 func (t *Launcher) upLnd(ctx context.Context, name string) error {
-	s, err := t.GetService(name)
-	if err != nil {
-		return fmt.Errorf("get service: %w", err)
-	}
-	if err := s.Up(ctx); err != nil {
-		return fmt.Errorf("up: %w", err)
-	}
-	for {
-		status, err := s.GetStatus(ctx)
-		if err != nil {
-			return err
-		}
-		t.Logger.Debugf("[status] %s: %s", name, status)
+	return t.upService(ctx, name, func(status string) (bool, error) {
 		if status == "Ready" {
-			break
+			return true, nil
 		}
 		if strings.HasPrefix(status, "Syncing 100.00%") {
-			break
+			return true, nil
 		}
 		if strings.HasPrefix(status, "Syncing 99.99%") {
-			break
+			return true, nil
 		}
 		if strings.HasPrefix(status, "Wallet locked") {
-			break
+			return true, nil
 		}
-		if status == "Container missing" || status == "Container exited" {
-			return fmt.Errorf("%s: %s", name, status)
-		}
-		select {
-		case <-ctx.Done(): // context cancelled
-			return errInterrupted
-		case <-time.After(3 * time.Second): // retry
-		}
-	}
-	return nil
+		return false, nil
+	})
 }
 
 func (t *Launcher) upConnext(ctx context.Context) error {
-	s, err := t.GetService("connext")
-	if err != nil {
-		return fmt.Errorf("get service: %w", err)
-	}
-	if err := s.Up(ctx); err != nil {
-		return fmt.Errorf("up: %w", err)
-	}
-	for {
-		status, err := s.GetStatus(ctx)
-		if err != nil {
-			return fmt.Errorf("get status: %w", err)
-		}
-		t.Logger.Debugf("[status] %s: %s", s.GetName(), status)
+	return t.upService(ctx, "connext", func(status string) (bool, error) {
 		if status == "Ready" {
-			break
+			return true, nil
 		}
-		if status == "Container missing" || status == "Container exited" {
-			return fmt.Errorf("connext: %s", status)
-		}
-		select {
-		case <-ctx.Done(): // context cancelled
-			return errInterrupted
-		case <-time.After(3 * time.Second): // retry
-		}
-	}
-	return nil
+		return false, nil
+	})
 }
 
 func (t *Launcher) getProxyApiUrl() (string, error) {
@@ -265,75 +205,79 @@ func (t *Launcher) unlockWallets(ctx context.Context, password string) error {
 	return nil
 }
 
-func (t *Launcher) upXud(ctx context.Context) error {
-	s, err := t.GetService("xud")
+func (t *Launcher) upService(ctx context.Context, name string, checkFunc func(string) (bool, error)) error {
+	s, err := t.GetService(name)
 	if err != nil {
 		return fmt.Errorf("get service: %w", err)
 	}
 	if err := s.Up(ctx); err != nil {
 		return fmt.Errorf("up: %s", err)
 	}
+	errCount := 0
 	for {
 		status, err := s.GetStatus(ctx)
 		if err != nil {
-			return fmt.Errorf("get status: %w", err)
-		}
-		t.Logger.Debugf("[status] %s: %s", s.GetName(), status)
-		if status == "Ready" {
-			break
-		}
-		if status == "Waiting for channels" {
-			break
-		}
-		if strings.HasPrefix(status, "Wallet missing") {
-			if err := t.createWallets(ctx, DefaultWalletPassword); err != nil {
-				return fmt.Errorf("create: %w", err)
+			if errCount > 10 {
+				return fmt.Errorf("get status: %w", err)
 			}
-			_, err := os.Create(t.DefaultPasswordMarkFile)
+			errCount++
+			t.Logger.Errorf("Failed to get status: %s (count: %d)", err, errCount)
+		} else {
+			t.Logger.Debugf("[status] %s: %s", name, status)
+
+			if status == "Container missing" || status == "Container exited" {
+				return fmt.Errorf("%s: %s", name, status)
+			}
+
+			ready, err := checkFunc(status)
 			if err != nil {
-				return fmt.Errorf("create .default-password: %w", err)
+				return err
 			}
-			break
-		}
-		if strings.HasPrefix(status, "Wallet locked") {
-			if err := t.unlockWallets(ctx, DefaultWalletPassword); err != nil {
-				return fmt.Errorf("unlock: %w", err)
+			if ready {
+				break
 			}
-			break
 		}
 		select {
 		case <-ctx.Done(): // context cancelled
-			return errors.New("interrupted")
+			return errInterrupted
 		case <-time.After(3 * time.Second): // retry
 		}
 	}
 	return nil
 }
 
+func (t *Launcher) upXud(ctx context.Context) error {
+	return t.upService(ctx, "xud", func(status string) (bool, error) {
+		if status == "Ready" {
+			return true, nil
+		}
+		if status == "Waiting for channels" {
+			return true, nil
+		}
+		if strings.HasPrefix(status, "Wallet missing") {
+			if err := t.createWallets(ctx, DefaultWalletPassword); err != nil {
+				return false, fmt.Errorf("create: %w", err)
+			}
+			_, err := os.Create(t.DefaultPasswordMarkFile)
+			if err != nil {
+				return false, fmt.Errorf("create .default-password: %w", err)
+			}
+			return true, nil
+		}
+		if strings.HasPrefix(status, "Wallet locked") {
+			if err := t.unlockWallets(ctx, DefaultWalletPassword); err != nil {
+				return true, fmt.Errorf("unlock: %w", err)
+			}
+			return true, nil
+		}
+		return false, nil
+	})
+}
+
 func (t *Launcher) upBoltz(ctx context.Context) error {
-	s, err := t.GetService("boltz")
-	if err != nil {
-		return err
-	}
-	if err := s.Up(ctx); err != nil {
-		return err
-	}
-	//for {
-	//	status, err := s.GetStatus(ctx)
-	//	if err != nil {
-	//		return err
-	//	}
-	//	fmt.Printf("%s: %s\n", s.GetName(), status)
-	//	if status == "Ready" {
-	//		break
-	//	}
-	//	select {
-	//	case <-ctx.Done(): // context cancelled
-	//		return errors.New("interrupted")
-	//	case <-time.After(3 * time.Second): // retry
-	//	}
-	//}
-	return nil
+	return t.upService(ctx, "boltz", func(status string) (bool, error) {
+		return true, nil
+	})
 }
 
 type Request struct {
