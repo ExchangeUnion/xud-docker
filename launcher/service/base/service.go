@@ -186,7 +186,7 @@ func (t *Service) Exec(ctx context.Context, name string, args ...string) (string
 		AttachStderr: true,
 	})
 	if err != nil {
-		return "", fmt.Errorf("[docker] failed to create exec: %s", err)
+		return "", fmt.Errorf("[docker] create exec: %w", err)
 	}
 
 	execId := createResp.ID
@@ -197,23 +197,23 @@ func (t *Service) Exec(ctx context.Context, name string, args ...string) (string
 		Tty:    false,
 	})
 	if err != nil {
-		return "", fmt.Errorf("[docker] failed to attach exec: %s", err)
+		return "", fmt.Errorf("[docker] attach exec: %w", err)
 	}
 
 	var buf bytes.Buffer
 	_, err = stdcopy.StdCopy(&buf, &buf, attachResp.Reader)
 	if err != nil {
-		return "", fmt.Errorf("[docker] failed to stdcopy: %s", err)
+		return "", fmt.Errorf("[docker] stdcopy: %w", err)
 	}
 
-	exec, err := t.client.ContainerExecInspect(ctx, execId)
+	exec_, err := t.client.ContainerExecInspect(ctx, execId)
 	if err != nil {
-		return "", fmt.Errorf("[docker] failed to inspect exec: %s", err)
+		return "", fmt.Errorf("[docker] inspect exec: %w", err)
 	}
-	exitCode := exec.ExitCode
+	exitCode := exec_.ExitCode
 
 	if exitCode != 0 {
-		msg := fmt.Sprintf("command \"%s\" exits with non-zero code %d", strings.Join(append([]string{name}, args...), " "), exitCode)
+		msg := fmt.Sprintf("[docker] command \"%s\" exits with non-zero code %d", strings.Join(append([]string{name}, args...), " "), exitCode)
 		return "", service.ErrExec{
 			Output:   buf.String(),
 			ExitCode: exitCode,

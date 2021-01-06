@@ -95,7 +95,7 @@ func (t *Launcher) upProxy(ctx context.Context) error {
 			break
 		}
 		if status == "Container missing" || status == "Container exited" {
-			return fmt.Errorf("failed to start proxy: %s", status)
+			return fmt.Errorf("start proxy: %s", status)
 		}
 		select {
 		case <-ctx.Done(): // context cancelled
@@ -133,7 +133,7 @@ func (t *Launcher) upLnd(ctx context.Context, name string) error {
 			break
 		}
 		if status == "Container missing" || status == "Container exited" {
-			return fmt.Errorf("failed to start proxy: %s", status)
+			return fmt.Errorf("start %s: %s", name, status)
 		}
 		select {
 		case <-ctx.Done(): // context cancelled
@@ -160,6 +160,9 @@ func (t *Launcher) upConnext(ctx context.Context) error {
 		fmt.Printf("%s: %s\n", s.GetName(), status)
 		if status == "Ready" {
 			break
+		}
+		if status == "Container missing" || status == "Container exited" {
+			return fmt.Errorf("start %s: %s", "connext", status)
 		}
 		select {
 		case <-ctx.Done(): // context cancelled
