@@ -221,6 +221,9 @@ func (t *Service) GetStatus(ctx context.Context) (string, error) {
 			if strings.Contains(err.Output, "open /root/.lnd/tls.cert: no such file or directory") {
 				return "Starting...", nil
 			}
+			if strings.Contains(err.Output, "connection refused") {
+				return "Starting...", nil
+			}
 			t.Logger.Errorf("%s", strings.TrimSpace(err.Output))
 		}
 		return "", err
