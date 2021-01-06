@@ -19,20 +19,20 @@ type Base = base.Service
 type Chain string
 
 const (
-	Bitcoin   Chain   = "bitcoin"
-	Litecoin          = "litecoin"
+	Bitcoin  Chain = "bitcoin"
+	Litecoin       = "litecoin"
 )
 
 var (
-	reNeutrinoSyncingNew = regexp.MustCompile(`^.*New block: height=(?P<Height>\d+),.*$`)
+	reNeutrinoSyncingNew   = regexp.MustCompile(`^.*New block: height=(?P<Height>\d+),.*$`)
 	reNeutrinoSyncingBegin = regexp.MustCompile(`^.*Syncing to block height (\d+) from peer.*$`)
-	reNeutrinoSyncingEnd = regexp.MustCompile(`^.*Fully caught up with cfheaders at height (\d+), waiting at tip for new blocks.*$`)
-	reNeutrinoSyncing = regexp.MustCompile(`^.*Fetching set of checkpointed cfheaders filters from height=(\d+).*$`)
+	reNeutrinoSyncingEnd   = regexp.MustCompile(`^.*Fully caught up with cfheaders at height (\d+), waiting at tip for new blocks.*$`)
+	reNeutrinoSyncing      = regexp.MustCompile(`^.*Fetching set of checkpointed cfheaders filters from height=(\d+).*$`)
 )
 
 type Service struct {
 	*Base
-	Chain   Chain
+	Chain Chain
 }
 
 func New(ctx types.Context, name string, chain Chain) (*Service, error) {
@@ -86,7 +86,7 @@ func (t *Service) getNeutrinoSyncingStatus(ctx context.Context) (string, error) 
 	total = 0
 	synced = 0
 
-	for i:=len(lines) -1; i>=0; i-- {
+	for i := len(lines) - 1; i >= 0; i-- {
 		line := lines[i]
 		m := pEnd.FindStringSubmatch(line)
 		if m != nil {
@@ -217,8 +217,11 @@ func (t *Service) GetStatus(ctx context.Context) (string, error) {
 				if t.UseNeutrino() {
 					return t.getNeutrinoSyncingStatus(ctx)
 				}
-				return "", err
 			}
+			if strings.Contains(err.Output, "open /root/.lnd/tls.cert: no such file or directory") {
+				return "Starting...", nil
+			}
+			t.Logger.Errorf("%s", strings.TrimSpace(err.Output))
 		}
 		return "", err
 	}
@@ -270,7 +273,6 @@ func (t *Service) Apply(cfg interface{}) error {
 				"--neutrino.connect=btcd.simnet.exchangeunion.com:38555",
 				"--chan-enable-timeout=0m10s",
 				"--max-cltv-expiry=5000",
-
 			)
 		case Litecoin:
 			t.Command = append(t.Command,
