@@ -28,7 +28,7 @@ func (f *Formatter) Format(entry *logrus.Entry) ([]byte, error) {
 		name = ""
 	}
 
-	b.WriteString(fmt.Sprintf("%s [%-5s] %-36s: %s\n",
+	b.WriteString(fmt.Sprintf("%s [%-5s] %-24s: %s\n",
 		entry.Time.Format("2006-01-02 15:04:05.000"),
 		strings.ToUpper(entry.Level.String()),
 		name,

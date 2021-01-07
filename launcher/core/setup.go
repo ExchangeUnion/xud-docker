@@ -82,38 +82,38 @@ func (t *Launcher) Setup(ctx context.Context) error {
 }
 
 func (t *Launcher) upProxy(ctx context.Context) error {
-	return t.upService(ctx, "proxy", func(status string) (bool, error) {
+	return t.upService(ctx, "proxy", func(status string) bool {
 		if status == "Ready" {
-			return true, nil
+			return true
 		}
-		return false, nil
+		return false
 	})
 }
 
 func (t *Launcher) upLnd(ctx context.Context, name string) error {
-	return t.upService(ctx, name, func(status string) (bool, error) {
+	return t.upService(ctx, name, func(status string) bool {
 		if status == "Ready" {
-			return true, nil
+			return true
 		}
 		if strings.HasPrefix(status, "Syncing 100.00%") {
-			return true, nil
+			return true
 		}
 		if strings.HasPrefix(status, "Syncing 99.99%") {
-			return true, nil
+			return true
 		}
 		if strings.HasPrefix(status, "Wallet locked") {
-			return true, nil
+			return true
 		}
-		return false, nil
+		return false
 	})
 }
 
 func (t *Launcher) upConnext(ctx context.Context) error {
-	return t.upService(ctx, "connext", func(status string) (bool, error) {
+	return t.upService(ctx, "connext", func(status string) bool {
 		if status == "Ready" {
-			return true, nil
+			return true
 		}
-		return false, nil
+		return false
 	})
 }
 
@@ -205,7 +205,7 @@ func (t *Launcher) unlockWallets(ctx context.Context, password string) error {
 	return nil
 }
 
-func (t *Launcher) upService(ctx context.Context, name string, checkFunc func(string) (bool, error)) error {
+func (t *Launcher) upService(ctx context.Context, name string, checkFunc func(string) bool) error {
 	s, err := t.GetService(name)
 	if err != nil {
 		return fmt.Errorf("get service: %w", err)
@@ -213,15 +213,10 @@ func (t *Launcher) upService(ctx context.Context, name string, checkFunc func(st
 	if err := s.Up(ctx); err != nil {
 		return fmt.Errorf("up: %s", err)
 	}
-	errCount := 0
 	for {
 		status, err := s.GetStatus(ctx)
 		if err != nil {
-			if errCount > 10 {
-				return fmt.Errorf("get status: %w", err)
-			}
-			errCount++
-			t.Logger.Errorf("Failed to get status: %s (count: %d)", err, errCount)
+			t.Logger.Errorf("Failed to get status: %s", err)
 		} else {
 			t.Logger.Debugf("[status] %s: %s", name, status)
 
@@ -229,11 +224,7 @@ func (t *Launcher) upService(ctx context.Context, name string, checkFunc func(st
 				return fmt.Errorf("%s: %s", name, status)
 			}
 
-			ready, err := checkFunc(status)
-			if err != nil {
-				return err
-			}
-			if ready {
+			if checkFunc(status) {
 				break
 			}
 		}
@@ -247,36 +238,39 @@ func (t *Launcher) upService(ctx context.Context, name string, checkFunc func(st
 }
 
 func (t *Launcher) upXud(ctx context.Context) error {
-	return t.upService(ctx, "xud", func(status string) (bool, error) {
+	return t.upService(ctx, "xud", func(status string) bool {
 		if status == "Ready" {
-			return true, nil
+			return true
 		}
 		if status == "Waiting for channels" {
-			return true, nil
+			return true
 		}
 		if strings.HasPrefix(status, "Wallet missing") {
 			if err := t.createWallets(ctx, DefaultWalletPassword); err != nil {
-				return false, fmt.Errorf("create: %w", err)
+				t.Logger.Errorf("Failed to create: %s", err)
+				return false
 			}
 			_, err := os.Create(t.DefaultPasswordMarkFile)
 			if err != nil {
-				return false, fmt.Errorf("create .default-password: %w", err)
+				t.Logger.Errorf("Failed to create .default-password: %s", err)
+				return false
 			}
-			return true, nil
+			return false
 		}
 		if strings.HasPrefix(status, "Wallet locked") {
 			if err := t.unlockWallets(ctx, DefaultWalletPassword); err != nil {
-				return true, fmt.Errorf("unlock: %w", err)
+				t.Logger.Errorf("Failed to unlock: %s", err)
+				return false
 			}
-			return true, nil
+			return false
 		}
-		return false, nil
+		return false
 	})
 }
 
 func (t *Launcher) upBoltz(ctx context.Context) error {
-	return t.upService(ctx, "boltz", func(status string) (bool, error) {
-		return true, nil
+	return t.upService(ctx, "boltz", func(status string) bool {
+		return true
 	})
 }
 
@@ -398,7 +392,19 @@ func (t *Launcher) attachToProxy(ctx context.Context) error {
 	interrupt := make(chan os.Signal, 1)
 	signal.Notify(interrupt, os.Interrupt)
 
-	u := url.URL{Scheme: "wss", Host: "127.0.0.1:8889", Path: "/launcher"}
+	s, err := t.GetService("proxy")
+	if err != nil {
+		return err
+	}
+
+	params, err := s.GetRpcParams()
+	if err != nil {
+		return err
+	}
+
+	port := params.(proxy.RpcParams).Port
+
+	u := url.URL{Scheme: "wss", Host: fmt.Sprintf("127.0.0.1:%d", port), Path: "/launcher"}
 	t.Logger.Debugf("Connecting to %s", u.String())
 
 	config := tls.Config{RootCAs: nil, InsecureSkipVerify: true}
