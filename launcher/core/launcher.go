@@ -6,6 +6,7 @@ import (
 	"crypto/tls"
 	"errors"
 	"fmt"
+	"github.com/ExchangeUnion/xud-docker/launcher/build"
 	"github.com/ExchangeUnion/xud-docker/launcher/logging"
 	"github.com/ExchangeUnion/xud-docker/launcher/service/arby"
 	"github.com/ExchangeUnion/xud-docker/launcher/service/bitcoind"
@@ -454,6 +455,14 @@ func NewLauncher() (*Launcher, error) {
 		},
 	}
 
+	versionCmd := &cobra.Command{
+		Use:   "version",
+		Short: "Show the version",
+		Run: func(cmd *cobra.Command, args []string) {
+			fmt.Printf("xud-docker %s-%s\n", build.Version, build.GitCommit[:7])
+		},
+	}
+
 	rootCmd.AddCommand(setupCmd)
 	rootCmd.AddCommand(cleanupCmd)
 	rootCmd.AddCommand(genCmd)
@@ -461,6 +470,7 @@ func NewLauncher() (*Launcher, error) {
 	rootCmd.AddCommand(stopCmd)
 	rootCmd.AddCommand(startCmd)
 	rootCmd.AddCommand(restartCmd)
+	rootCmd.AddCommand(versionCmd)
 
 	return &l, nil
 }

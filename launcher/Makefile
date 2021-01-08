@@ -13,7 +13,7 @@ else
 endif
 
 LDFLAGS := -ldflags "-w -s \
--X $(PKG)/build.Version=$(Version) \
+-X $(PKG)/build.Version=$(VERSION) \
 -X $(PKG)/build.GitCommit=$(COMMIT) \
 -X $(PKG)/build.Timestamp=$(TIMESTAMP)"
 
