@@ -8,11 +8,13 @@ import (
 	"errors"
 	"fmt"
 	"github.com/ExchangeUnion/xud-docker/launcher/service/proxy"
+	"github.com/ExchangeUnion/xud-docker/launcher/utils"
 	"github.com/gorilla/websocket"
 	"golang.org/x/sync/errgroup"
 	"net/http"
 	"net/url"
 	"os"
+	"os/exec"
 	"os/signal"
 	"strings"
 	"sync"
@@ -26,6 +28,12 @@ const (
 var (
 	errInterrupted = errors.New("interrupted")
 )
+
+func (t *Launcher) Pull(ctx context.Context) error {
+	t.Logger.Debugf("Pulling images")
+	cmd := exec.Command("docker-compose", "pull")
+	return utils.Run(ctx, cmd)
+}
 
 func (t *Launcher) Setup(ctx context.Context) error {
 	t.Logger.Debugf("Setup %s (%s)", t.Network, t.NetworkDir)
@@ -42,6 +50,10 @@ func (t *Launcher) Setup(ctx context.Context) error {
 
 	if err := t.Gen(ctx); err != nil {
 		return fmt.Errorf("generate files: %w", err)
+	}
+
+	if err := t.Pull(ctx); err != nil {
+		return fmt.Errorf("pull: %w", err)
 	}
 
 	t.Logger.Debugf("Start proxy")

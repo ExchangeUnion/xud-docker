@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/ExchangeUnion/xud-docker/launcher/types"
+	"github.com/ExchangeUnion/xud-docker/launcher/utils"
 	"golang.org/x/sync/errgroup"
 	"os"
 	"os/exec"
@@ -108,9 +109,7 @@ func (t *Launcher) Down(ctx context.Context) error {
 		}
 	}
 	c := exec.Command("docker-compose", "down")
-	c.Stdout = os.Stdout
-	c.Stderr = os.Stderr
-	return c.Run()
+	return utils.Run(ctx, c)
 }
 
 func (t *Launcher) removeFiles(ctx context.Context) error {

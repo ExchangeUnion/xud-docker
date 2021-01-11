@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"github.com/ExchangeUnion/xud-docker/launcher/service"
 	"github.com/ExchangeUnion/xud-docker/launcher/types"
+	"github.com/ExchangeUnion/xud-docker/launcher/utils"
 	dt "github.com/docker/docker/api/types"
 	docker "github.com/docker/docker/client"
 	"github.com/docker/docker/pkg/stdcopy"
@@ -94,26 +95,12 @@ func (t *Service) Restart(ctx context.Context) error {
 
 func (t *Service) Create(ctx context.Context) error {
 	c := exec.Command("docker-compose", "up", "-d", "--no-start", t.Name)
-	output, err := c.Output()
-	text := strings.TrimSpace(string(output))
-	if text == "" {
-		t.Logger.Debugf("[run] docker-compose up -d --no-start %s\n", t.Name)
-	} else {
-		t.Logger.Debugf("[run] docker-compose up -d --no-start %s\n%s", t.Name, text)
-	}
-	return err
+	return utils.Run(ctx, c)
 }
 
 func (t *Service) Up(ctx context.Context) error {
 	c := exec.Command("docker-compose", "up", "-d", t.Name)
-	output, err := c.Output()
-	text := strings.TrimSpace(string(output))
-	if text == "" {
-		t.Logger.Debugf("[run] docker-compose up -d %s", t.Name)
-	} else {
-		t.Logger.Debugf("[run] docker-compose up -d %s\n%s", t.Name, text)
-	}
-	return err
+	return utils.Run(ctx, c)
 }
 
 func (t *Service) demuxLogsReader(reader io.Reader) io.Reader {
