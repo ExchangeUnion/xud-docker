@@ -12,6 +12,13 @@ else
 	TIMESTAMP := $(shell date +%s)
 endif
 
+ifeq ($(GOOS), windows)
+	OUTPUT := launcher.exe
+else
+	OUTPUT := launcher
+endif
+
+
 LDFLAGS := -ldflags "-w -s \
 -X $(PKG)/build.Version=$(VERSION) \
 -X $(PKG)/build.GitCommit=$(COMMIT) \
@@ -21,5 +28,12 @@ default: build
 
 build:
 	$(GOBUILD) $(LDFLAGS)
+
+zip:
+	zip --junk-paths launcher.zip $(OUTPUT)
+
+clean:
+	rm -f launcher
+	rm -f launcher.zip
 
 .PHONY: build
