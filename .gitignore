@@ -19,7 +19,3 @@ tools/logs
 
 # project source code
 images/*/.src
-
-# launcher binaries
-launcher/launcher
-launcher/launcher.exe
