@@ -60,14 +60,16 @@ jobs:
             launcher/launcher
             launcher/launcher.exe
 
+      - name: Create Zip File
+        run: |
+          zip --junk-paths launcher.zip launcher/launcher*
+
       - name: Upload Release Assets
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ needs.create_release.outputs.upload_url }}
-          asset_path: launcher
-          asset_name: |
-            launcher
-            launcher.exe
+          asset_path: launcher.zip
+          asset_name: ${{ matrix.os }}-${{ matrix.arch }}.zip
           asset_content_type: application/zip
