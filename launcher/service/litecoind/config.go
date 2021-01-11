@@ -21,7 +21,7 @@ func (t *Service) GetDefaultConfig() interface{} {
 	} else {
 		image = "exchangeunion/litecoind:latest"
 	}
-	base.BaseConfig.Image = image
+	base.BaseConfig.Image = t.Base.GetBranchImage(image)
 
 	return &Config{
 		BaseConfig: *base,

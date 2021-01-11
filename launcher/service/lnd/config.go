@@ -49,11 +49,11 @@ func (t *Service) GetDefaultConfig() interface{} {
 
 	return &Config{
 		BaseConfig: BaseConfig{
-			Image: image,
+			Image:    t.Base.GetBranchImage(image),
 			Disabled: false,
-			Dir: filepath.Join(t.Context.GetDataDir(), t.Name),
+			Dir:      filepath.Join(t.Context.GetDataDir(), t.Name),
 		},
-		Mode: string(Native),
+		Mode:           string(Native),
 		PreserveConfig: false,
 	}
 }

@@ -6,3 +6,8 @@ type Config struct {
 	ExposePorts []string `usage:"Expose service ports to your host machine"`
 	Disabled    bool     `usage:"Enable/Disable service"`
 }
+
+func (t *Service) GetBranchImage(name string) string {
+	// TODO get branch image
+	return name
+}

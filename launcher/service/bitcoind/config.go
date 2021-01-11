@@ -20,7 +20,7 @@ type BaseConfig = base.Config
 type Config struct {
 	BaseConfig
 
-	Mode           string   `usage:"%(name)s service mode"`
+	Mode           string `usage:"%(name)s service mode"`
 	Rpchost        string `usage:"External %(name)s RPC hostname"`
 	Rpcport        uint16 `usage:"External %(name)s RPC port"`
 	Rpcuser        string `usage:"External %(name)s RPC username"`
@@ -40,9 +40,9 @@ func (t *Service) GetDefaultConfig() interface{} {
 
 	return &Config{
 		BaseConfig: BaseConfig{
-			Image:    image,
+			Image:    t.Base.GetBranchImage(image),
 			Disabled: true,
-			Dir: filepath.Join(t.Context.GetDataDir(), t.Name),
+			Dir:      filepath.Join(t.Context.GetDataDir(), t.Name),
 		},
 		Mode:           Light,
 		Rpchost:        "",
