@@ -17,6 +17,8 @@ jobs:
         exclude:
           - os: windows
             arch: arm64
+          - os: darwin
+            arch: arm64
 
     runs-on: ubuntu-latest
 
