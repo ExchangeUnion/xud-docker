@@ -11,20 +11,22 @@ jobs:
     name: Build artifacts
     strategy:
       matrix:
-        platform: [ ubuntu-latest ]
         go-version: [ 1.15.x ]
         os: [ linux, darwin, windows ]
-        architecture: [ amd64, arm64 ]
+        arch: [ amd64, arm64 ]
+        exclude:
+          - os: windows
+            arch: arm64
 
-    runs-on: ${{ matrix.platform }}
+    runs-on: ubuntu-latest
 
     steps:
-      - name: Install Go
+      - name: Setup Go
         uses: actions/setup-go@v1
         with:
           go-version: ${{ matrix.go-version }}
 
-      - name: Check out code into the Go module directory
+      - name: Checkout
         uses: actions/checkout@v2
 
       - name: Fetch dependencies
@@ -33,12 +35,12 @@ jobs:
 
       - name: Build
         working-directory: ./launcher
-        run: GOOS=${{ matrix.os }} GOARCH=${{ matrix.architecture }} make build
+        run: GOOS=${{ matrix.os }} GOARCH=${{ matrix.arch }} make build
 
-      - name: Upload artifact
+      - name: Upload artifacts
         uses: actions/upload-artifact@v2
         with:
-          name: ${{ matrix.os }}-${{ matrix.architecture }}
+          name: ${{ matrix.os }}-${{ matrix.arch }}
           path: |
             launcher/launcher
             launcher/launcher.exe
