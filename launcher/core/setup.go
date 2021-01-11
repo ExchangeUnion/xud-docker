@@ -16,6 +16,7 @@ import (
 	"os"
 	"os/exec"
 	"os/signal"
+	"path/filepath"
 	"strings"
 	"sync"
 	"time"
@@ -46,6 +47,18 @@ func (t *Launcher) Setup(ctx context.Context) error {
 
 	if err := os.Chdir(t.NetworkDir); err != nil {
 		return fmt.Errorf("change directory: %w", err)
+	}
+
+	logfile := filepath.Join(t.NetworkDir, "logs", fmt.Sprintf("%s.log", t.Network))
+	f, err := os.Create(logfile)
+	if err != nil {
+		return fmt.Errorf("create %s: %w", logfile, err)
+	}
+	defer f.Close()
+
+	_, err = f.WriteString("Waiting for XUD dependencies to be ready\n")
+	if err != nil {
+		return fmt.Errorf("write log: %w", err)
 	}
 
 	if err := t.Gen(ctx); err != nil {
@@ -86,6 +99,12 @@ func (t *Launcher) Setup(ctx context.Context) error {
 	if err := t.upBoltz(ctx); err != nil {
 		return fmt.Errorf("up boltz: %w", err)
 	}
+
+	_, err = f.WriteString("Start shell\n")
+	if err != nil {
+		return fmt.Errorf("write log: %w", err)
+	}
+	_ = f.Close()
 
 	fmt.Println("Attached to proxy. Press Ctrl-C to detach from it.")
 	wg.Wait()
