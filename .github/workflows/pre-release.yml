@@ -50,7 +50,12 @@ jobs:
 
       - name: Build
         working-directory: ./launcher
-        run: GOOS=${{ matrix.os }} GOARCH=${{ matrix.arch }} make build
+        env:
+          GOOS: ${{ matrix.os }}
+          GOARCH: ${{ matrix.arch }}
+        run: |
+          make
+          make zip
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v2
@@ -59,10 +64,6 @@ jobs:
           path: |
             launcher/launcher
             launcher/launcher.exe
-
-      - name: Create Zip File
-        run: |
-          zip --junk-paths launcher.zip launcher/launcher*
 
       - name: Upload Release Assets
         uses: actions/upload-release-asset@v1
