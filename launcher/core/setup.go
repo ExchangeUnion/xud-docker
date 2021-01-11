@@ -39,6 +39,12 @@ func (t *Launcher) Pull(ctx context.Context) error {
 func (t *Launcher) Setup(ctx context.Context) error {
 	t.Logger.Debugf("Setup %s (%s)", t.Network, t.NetworkDir)
 
+	// Checking Docker
+	err := utils.Run(ctx, exec.Command("docker", "info"))
+	if err != nil {
+		return fmt.Errorf("docker is not ready: %w", err)
+	}
+
 	wd, err := os.Getwd()
 	if err != nil {
 		return fmt.Errorf("get working directory: %w", err)
