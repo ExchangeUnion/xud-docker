@@ -48,13 +48,17 @@ jobs:
         working-directory: ./launcher
         run: go mod vendor
 
+      - name: Get the version
+        id: get_version
+        run: echo ::set-output name=VERSION::${GITHUB_REF#refs/tags/}
+
       - name: Build
         working-directory: ./launcher
         env:
           GOOS: ${{ matrix.os }}
           GOARCH: ${{ matrix.arch }}
         run: |
-          make
+          make VERSION=${{ steps.get_version.outputs.VERSION }} build
           make zip
 
       - name: Upload artifacts
