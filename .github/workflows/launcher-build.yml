@@ -1,7 +1,5 @@
 name: Launcher Build
 
-on: push
-
 jobs:
   build:
     name: Build artifacts
