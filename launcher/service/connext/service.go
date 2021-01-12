@@ -15,8 +15,8 @@ type Base = base.Service
 
 const (
 	ChainId                       = "1337"
-	SimnetChannelFactoryAddress   = "0x09f37Ee0662E13e7d07e84CE77705E981Be79406"
-	SimnetTransferRegistryAddress = "0xE70F6686f0AF6a858256B073ABB74fC5C79cE343"
+	SimnetChannelFactoryAddress   = "0x2b19530c81E97FBc2feD79E813E4723D9bA7343B"
+	SimnetTransferRegistryAddress = "0xD74aafE4e2E723C53c82eb0ba8716eD386389123"
 	SimnetEthProvider             = "http://35.234.110.95:8545"
 )
 
