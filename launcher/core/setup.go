@@ -268,7 +268,7 @@ func (t *Launcher) upService(ctx context.Context, name string, checkFunc func(st
 		select {
 		case <-ctx.Done(): // context cancelled
 			return errInterrupted
-		case <-time.After(3 * time.Second): // retry
+		case <-time.After(10 * time.Second): // retry
 		}
 	}
 	return nil
