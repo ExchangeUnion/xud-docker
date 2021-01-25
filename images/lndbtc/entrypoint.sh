@@ -25,7 +25,7 @@ if [ ! -z ${NEUTRINO} ]; then
           PEERS="${PEERS}neutrino.addpeer=bitcoin.michael1011.at:18333\nneutrino.addpeer=btc.kilrau.com:18333"
           ;;
         mainnet)
-          PEERS="${PEERS}neutrino.addpeer=bitcoin.michael1011.at:8333\nneutrino.addpeer=btc.kilrau.com:8333\nneutrino.addpeer=thun.droidtech.it:8333"
+          PEERS="${PEERS}neutrino.addpeer=bitcoin.michael1011.at:8333\nneutrino.addpeer=btc.kilrau.com:8333\nneutrino.addpeer=btc.mcnally.cloud:8333"
           ;;
         esac
       ;;
