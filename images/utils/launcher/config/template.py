@@ -291,11 +291,11 @@ nodes_config = {
         },
         "connext": {
             "name": "connext",
-            "image": "exchangeunion/connext:latest",
+            "image": "connextproject/vector_node:795d14aa",
             "volumes": [
                 {
                     "host": "$data_dir/connext",
-                    "container": "/app/connext-store",
+                    "container": "/database",
                 },
             ],
             "ports": [],
