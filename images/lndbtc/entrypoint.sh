@@ -9,9 +9,7 @@ cd "$SCRIPT_PATH" || exit 1
 LND_DIR="/root/.lnd"
 mkdir -p $LND_DIR
 
-if [[ ! -e $LND_DIR/lnd.conf ]]; then
-  cp /root/lnd.conf $LND_DIR/lnd.conf
-fi
+cp /root/lnd.conf $LND_DIR/lnd.conf
 
 NEUTRINO=${NEUTRINO:-}
 
@@ -66,12 +64,8 @@ LND_HOSTNAME="$HOME/.lnd/tor/hostname"
 echo "Waiting for lnd-$CHAIN onion address..."
 
 wait_file "$LND_HOSTNAME" && {
-	LND_ONION_ADDRESS=$(cat "$LND_HOSTNAME")
-	echo "Onion address for lnd-$CHAIN is $LND_ONION_ADDRESS"
-  # mark lnd as locked before starting
-  touch "$HOME/.lnd/wallet.lock"
-  # notify peers.sh to bootstrap peers
-  touch "$HOME/.lnd/peers.lock"
+  LND_ONION_ADDRESS=$(cat "$LND_HOSTNAME")
+  echo "Onion address for lnd-$CHAIN is $LND_ONION_ADDRESS"
 
   case $CHAIN in
     bitcoin)
