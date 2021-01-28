@@ -18,7 +18,7 @@ func (t *Service) GetDefaultConfig() interface{} {
 	network := t.Context.GetNetwork()
 	var image string
 	if network == types.Mainnet {
-		image = "exchangeunion/xud:1.2.4-1"
+		image = "exchangeunion/xud:1.2.6"
 	} else {
 		image = "exchangeunion/xud:latest"
 	}
