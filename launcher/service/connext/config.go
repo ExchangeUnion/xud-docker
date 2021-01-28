@@ -16,7 +16,7 @@ func (t *Service) GetDefaultConfig() interface{} {
 	network := t.Context.GetNetwork()
 	var image string
 	if network == types.Mainnet {
-		image = "exchangeunion/connext:1.3.6"
+		image = "exchangeunion/connext:1.3.6-1"
 	} else if network == types.Simnet {
 		image = "connextproject/vector_node:94d3dbcd"
 	} else if network == types.Testnet {
