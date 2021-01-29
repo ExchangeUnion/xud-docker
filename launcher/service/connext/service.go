@@ -35,11 +35,18 @@ func New(ctx types.Context, name string) (*Service, error) {
 }
 
 func (t *Service) IsHealthy(ctx context.Context) bool {
+	if t.UseVector() {
+		output, err := t.Exec(ctx, "curl", "-s", "http://localhost:8000/ping")
+		if err != nil {
+			return false
+		}
+		return strings.TrimSpace(string(output)) == "pong"
+	}
 	output, err := t.Exec(ctx, "curl", "-s", "http://localhost:5040/health")
 	if err != nil {
 		return false
 	}
-	return string(output) == ""
+	return strings.TrimSpace(string(output)) == ""
 }
 
 func (t *Service) GetStatus(ctx context.Context) (string, error) {
@@ -56,6 +63,10 @@ func (t *Service) GetStatus(ctx context.Context) (string, error) {
 	}
 
 	return "Starting...", nil
+}
+
+func (t *Service) UseVector() bool {
+	return strings.Contains(t.Image, "vector_node")
 }
 
 func (t *Service) Apply(cfg interface{}) error {
@@ -77,7 +88,7 @@ func (t *Service) Apply(cfg interface{}) error {
 		return err
 	}
 
-	if strings.Contains(c.Image, "vector_node") {
+	if t.UseVector() {
 		var chainId string
 		var channelFactoryAddress string
 		var transferRegistryAddress string
